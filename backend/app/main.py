@@ -67,9 +67,11 @@ def create_app() -> FastAPI:
 
     from app.routers import auth  # noqa: E402 (avoid circular import at module level)
     app.include_router(auth.router)
+
+    from app.routers import users  # noqa: E402
+    app.include_router(users.router)
     # Future routers – uncomment as features are implemented:
-    # from app.routers import users, courses, enrolments
-    # app.include_router(users.router)
+    # from app.routers import courses, enrolments
     # app.include_router(courses.router)
     # app.include_router(enrolments.router)
 

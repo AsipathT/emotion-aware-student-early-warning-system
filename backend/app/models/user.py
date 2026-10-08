@@ -18,12 +18,16 @@ datetime objects.
 import enum
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Boolean, DateTime, Enum, String, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base
+
+if TYPE_CHECKING:
+    from app.models.profile import Profile
 
 
 # ── Role enum ─────────────────────────────────────────────────────────────────
@@ -113,6 +117,18 @@ class User(Base):
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,
+    )
+
+    # ── Relationships ─────────────────────────────────────────────────────────
+    # uselist=False enforces 1-to-1 at the ORM level (DB uniqueness is on
+    # profiles.user_id).  cascade="all, delete-orphan" ensures the profile row
+    # is deleted when the user account is deleted.
+    profile: Mapped[Optional["Profile"]] = relationship(
+        "Profile",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+        lazy="noload",   # always load explicitly with selectinload() in queries
     )
 
     def __repr__(self) -> str:  # pragma: no cover

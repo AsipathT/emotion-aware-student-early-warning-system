@@ -32,6 +32,7 @@ from app.core.db import Base          # noqa: E402
 # Import all model modules so their tables are registered on Base.metadata
 # before autogenerate runs.  Add a line for every new model file you create.
 import app.models.user          # noqa: F401
+import app.models.profile       # noqa: F401
 
 # ── Alembic Config ────────────────────────────────────────────────────────────
 config = context.config
