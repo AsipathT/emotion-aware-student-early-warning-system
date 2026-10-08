@@ -27,6 +27,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.db import Base
 
 if TYPE_CHECKING:
+    from app.models.course import Course
     from app.models.profile import Profile
 
 
@@ -129,6 +130,14 @@ class User(Base):
         uselist=False,
         cascade="all, delete-orphan",
         lazy="noload",   # always load explicitly with selectinload() in queries
+    )
+
+    # 1-to-many relationship: courses taught by a lecturer
+    courses_taught: Mapped[list["Course"]] = relationship(
+        "Course",
+        back_populates="lecturer",
+        cascade="all, delete-orphan",
+        lazy="noload",
     )
 
     def __repr__(self) -> str:  # pragma: no cover

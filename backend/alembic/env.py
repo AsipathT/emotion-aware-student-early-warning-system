@@ -33,6 +33,7 @@ from app.core.db import Base          # noqa: E402
 # before autogenerate runs.  Add a line for every new model file you create.
 import app.models.user          # noqa: F401
 import app.models.profile       # noqa: F401
+import app.models.course        # noqa: F401
 
 # ── Alembic Config ────────────────────────────────────────────────────────────
 config = context.config
