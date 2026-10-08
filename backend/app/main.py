@@ -97,6 +97,12 @@ def create_app() -> FastAPI:
     from app.routers import jobs  # noqa: E402
     app.include_router(jobs.router)
 
+    from app.routers import analytics  # noqa: E402
+    app.include_router(analytics.router)
+
+    from app.routers import affect  # noqa: E402
+    app.include_router(affect.router)
+
     # Future routers – uncomment as features are implemented:
     # from app.routers import enrolments
     # app.include_router(enrolments.router)

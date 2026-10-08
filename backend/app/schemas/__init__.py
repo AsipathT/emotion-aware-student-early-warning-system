@@ -34,3 +34,7 @@ from app.schemas.behaviour import (  # noqa: F401
     UserSessionCreate, UserSessionUpdate, UserSessionResponse,
     ClickEventCreate, ClickEventResponse, BulkClickEventCreate
 )
+from app.schemas.analytics import (  # noqa: F401
+    WeeklyFeatureResponse, RiskScoreResponse, TrajectoryLabelResponse,
+    AffectWeeklyCreate, AffectWeeklyResponse, BulkAffectWeeklyCreate
+)

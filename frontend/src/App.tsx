@@ -5,6 +5,8 @@ import { Navbar } from './components/Navbar';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { CourseAnalyticsPage } from './pages/CourseAnalyticsPage';
+import { CourseContentPage } from './pages/CourseContentPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,6 +34,22 @@ export const App: React.FC = () => {
                 element={
                   <ProtectedRoute>
                     <DashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/courses/:courseId/analytics"
+                element={
+                  <ProtectedRoute>
+                    <CourseAnalyticsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/courses/:courseId/content"
+                element={
+                  <ProtectedRoute>
+                    <CourseContentPage />
                   </ProtectedRoute>
                 }
               />
