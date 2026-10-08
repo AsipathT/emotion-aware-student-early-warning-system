@@ -73,6 +73,21 @@ def create_app() -> FastAPI:
 
     from app.routers import courses  # noqa: E402
     app.include_router(courses.router)
+    from app.routers import content  # noqa: E402
+    app.include_router(content.router)
+
+    from app.routers import assignments  # noqa: E402
+    app.include_router(assignments.router)
+
+    from app.routers import quizzes  # noqa: E402
+    app.include_router(quizzes.router)
+
+    from app.routers import gradebook  # noqa: E402
+    app.include_router(gradebook.router)
+
+    from app.routers import attendance  # noqa: E402
+    app.include_router(attendance.router)
+
     # Future routers – uncomment as features are implemented:
     # from app.routers import enrolments
     # app.include_router(enrolments.router)

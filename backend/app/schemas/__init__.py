@@ -19,3 +19,14 @@ from app.schemas.course import (  # noqa: F401
     ModuleCreate,
     ModuleResponse,
 )
+from app.schemas.assessment import (  # noqa: F401
+    AssignmentCreate, AssignmentUpdate, AssignmentResponse,
+    AssignmentSubmissionCreate, AssignmentSubmissionGrade, AssignmentSubmissionResponse,
+    QuizCreate, QuizUpdate, QuizResponse, QuizQuestionCreate, QuizQuestionResponse,
+    QuizQuestionStudentResponse, QuizAnswerCreate, QuizAttemptResponse
+)
+from app.schemas.gradebook import GradebookEntryCreate, GradebookEntryResponse  # noqa: F401
+from app.schemas.attendance import (  # noqa: F401
+    AttendanceSessionCreate, AttendanceSessionResponse,
+    AttendanceRecordCreate, AttendanceRecordResponse, BulkAttendanceMark
+)
