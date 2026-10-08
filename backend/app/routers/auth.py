@@ -14,7 +14,7 @@ Security notes
 * Passwords are never logged or returned in any response body.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from jose import JWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,6 +30,7 @@ from app.core.security import (
     verify_password,
 )
 from app.models.user import User
+from app.models.behaviour import UserSession
 from app.schemas.auth import (
     LoginRequest,
     RegisterRequest,
@@ -95,6 +96,7 @@ async def register(
     ),
 )
 async def login(
+    request: Request,
     body: LoginRequest,
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
@@ -111,9 +113,23 @@ async def login(
             detail="This account has been deactivated. Contact your administrator.",
         )
 
+    # Record UserSession
+    user_agent = request.headers.get("user-agent")
+    ip_address = request.client.host if request.client else None
+    
+    session_record = UserSession(
+        user_id=user.id,
+        ip_address=ip_address,
+        user_agent=user_agent[:512] if user_agent else None
+    )
+    db.add(session_record)
+    await db.flush()
+    await db.refresh(session_record)
+
     return TokenResponse(
         access_token=create_access_token(str(user.id), user.role.value),
         refresh_token=create_refresh_token(str(user.id), user.role.value),
+        session_id=session_record.id,
     )
 
 

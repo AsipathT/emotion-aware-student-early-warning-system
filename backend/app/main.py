@@ -31,8 +31,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # ---- startup ----
     print(f"[startup]  environment : {settings.app_env}")
     print(f"[startup]  database    : {settings.postgres_host}:{settings.postgres_port}/{settings.postgres_db}")
+    from app.jobs.scheduler import start_scheduler, stop_scheduler
+    start_scheduler()
     yield
     # ---- shutdown ----
+    stop_scheduler()
     print("[shutdown] application stopped")
 
 
@@ -87,6 +90,12 @@ def create_app() -> FastAPI:
 
     from app.routers import attendance  # noqa: E402
     app.include_router(attendance.router)
+
+    from app.routers import behaviour  # noqa: E402
+    app.include_router(behaviour.router)
+
+    from app.routers import jobs  # noqa: E402
+    app.include_router(jobs.router)
 
     # Future routers – uncomment as features are implemented:
     # from app.routers import enrolments

@@ -15,6 +15,7 @@ Schema map
 
 import uuid
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -89,6 +90,7 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+    session_id: Optional[uuid.UUID] = None
 
 
 class UserResponse(BaseModel):

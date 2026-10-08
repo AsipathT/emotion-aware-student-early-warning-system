@@ -30,3 +30,7 @@ from app.schemas.attendance import (  # noqa: F401
     AttendanceSessionCreate, AttendanceSessionResponse,
     AttendanceRecordCreate, AttendanceRecordResponse, BulkAttendanceMark
 )
+from app.schemas.behaviour import (  # noqa: F401
+    UserSessionCreate, UserSessionUpdate, UserSessionResponse,
+    ClickEventCreate, ClickEventResponse, BulkClickEventCreate
+)
