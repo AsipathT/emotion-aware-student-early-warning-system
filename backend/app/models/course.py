@@ -10,10 +10,10 @@ Relationships
 """
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
@@ -64,6 +64,16 @@ class Course(Base):
         default=False,
         nullable=False,
         index=True,
+    )
+
+    # ── Scheduling ────────────────────────────────────────────────────────────
+    start_date: Mapped[Optional[date]] = mapped_column(
+        Date,
+        nullable=True,
+    )
+    end_date: Mapped[Optional[date]] = mapped_column(
+        Date,
+        nullable=True,
     )
 
     # ── UTC Timestamps ────────────────────────────────────────────────────────

@@ -196,20 +196,16 @@ Video events: `event_type` in `[video_play, video_pause, video_seek, video_ended
 | course_id | UUID FK→courses.id | ON DELETE CASCADE |
 | week_index | Integer | NOT NULL (0-based) |
 | week_start | Date | NOT NULL |
-| total_clicks | Integer | default 0 |
-| total_time_seconds | Integer | default 0 |
-| content_views | Integer | default 0 |
-| video_play_seconds | Integer | default 0 |
-| assignment_submissions | Integer | default 0 |
-| quiz_attempts_count | Integer | default 0 |
-| forum_posts | Integer | default 0 |
-| avg_score | Float | nullable |
-| score_trend | Float | nullable |
+| session_frequency | Integer | default 0 |
+| clicks_total | Integer | default 0 |
+| active_days | Integer | default 0 |
+| active_duration_trend | Float | nullable |
+| submission_delay_days | Float | nullable |
+| video_interaction_intensity | Float | nullable |
+| missed_assessments | Integer | default 0 |
+| prev_attempts | Integer | default 0 |
+| studied_credits | Float | nullable |
 | attendance_rate | Float | nullable |
-| sessions_count | Integer | default 0 |
-| avg_session_duration | Float | nullable |
-| distinct_days_active | Integer | default 0 |
-| late_submissions | Integer | default 0 |
 | score_so_far | Float | nullable |
 | computed_at | TIMESTAMPTZ | server_default=now() |
 | created_at / updated_at | TIMESTAMPTZ | standard |
@@ -265,6 +261,24 @@ Video events: `event_type` in `[video_play, video_pause, video_seek, video_ended
 | withdrawal_week | Integer | nullable |
 | seed | Integer | NOT NULL |
 | created_at | TIMESTAMPTZ | standard |
+
+### 1.19 `affect_weekly` (Feature 2)
+| Column | Type | Constraints |
+|---|---|---|
+| id | UUID PK | |
+| student_id | UUID FK→users.id | ON DELETE CASCADE |
+| course_id | UUID FK→courses.id | ON DELETE CASCADE |
+| week_index | Integer | NOT NULL |
+| exam_anxiety | Float | nullable (0.0-1.0) |
+| conceptual_confusion | Float | nullable (0.0-1.0) |
+| academic_helplessness | Float | nullable (0.0-1.0) |
+| course_frustration | Float | nullable (0.0-1.0) |
+| motivation_erosion | Float | nullable (0.0-1.0) |
+| confidence | Float | nullable |
+| message_count | Integer | default 0 |
+| schema_version | String(20) | NOT NULL, default '1.0' |
+| created_at | TIMESTAMPTZ | standard |
+| **UNIQUE** | (student_id, course_id, week_index) | |
 
 ---
 
@@ -343,8 +357,9 @@ Plus APScheduler cron job running weekly inside the app lifespan.
 ### 2.9 Analytics — Ingestion (Feature 23-adjacent, for 27/28/29)
 | Method | Path | Roles | Description |
 |---|---|---|---|
-| POST | `/api/v1/analytics/risk-scores` | admin | Ingest risk_scores batch |
-| POST | `/api/v1/analytics/trajectory-labels` | admin | Ingest trajectory_labels batch |
+| POST | `/api/v1/analytics/risk-scores` | admin | Ingest risk_scores batch (with course_id & pseudonyms) |
+| POST | `/api/v1/analytics/trajectory-labels` | admin | Ingest trajectory_labels batch (with course_id & pseudonyms) |
+| POST | `/api/v1/analytics/affect-scores` | admin | Ingest affect_weekly batch (with course_id & pseudonyms) |
 
 ### 2.10 Analytics — Read (Features 27, 28, 29)
 | Method | Path | Roles | Description |
@@ -368,9 +383,9 @@ Plus APScheduler cron job running weekly inside the app lifespan.
 | GET | `/api/v1/export/gradebook` | admin, lecturer | CSV/JSON |
 | GET | `/api/v1/export/attendance` | admin, lecturer | CSV/JSON |
 | GET | `/api/v1/export/click-events` | admin | CSV/JSON (date-ranged, streamed) |
-| GET | `/api/v1/export/training-table` | admin, lecturer | Joined table with "withdraws within k weeks" label |
+| GET | `/api/v1/export/training-table` | admin, lecturer | Joined table (weekly_features + affect_weekly + trajectory_labels + academic columns) with "withdraws within k weeks" label. risk_scores excluded. |
 
-All exports pseudonymise identifiers (UUID → hash, no emails/names).
+All exports pseudonymise identifiers (`HMAC-SHA256(user_id, PSEUDONYM_SALT) -> "pseudo_<first 10 hex>"`).
 
 ---
 
@@ -485,25 +500,22 @@ All exports pseudonymise identifiers (UUID → hash, no emails/names).
 1. **Enrollment table**: I will create a minimal `enrollments` table since it does not exist and is needed by assignments, quizzes, attendance, and the weekly aggregation job. Member 1 can extend it later.
 2. **Course `start_date`**: I will add `start_date` (Date, nullable) to the Course model. Week-0 is defined as the ISO week containing `start_date`. If `start_date` is NULL, the weekly aggregation job skips that course.
 3. **Content payload convention**: `content_payload` in modules is a JSON object with a `blocks` array. Each block has `{type: "text"|"video"|"resource", ...}`. Text blocks have `body` (markdown). Video blocks have `url`, `title`. Resource blocks have `url`, `title`, `mime_type`. I will document this and build the frontend renderer accordingly.
-4. **Pseudonymisation**: Since Member 1's pseudonymisation layer (Feature 5) does not exist yet, exports will use a SHA-256 hash of the user UUID as the pseudonymous identifier. No emails or names will be included.
+4. **Pseudonymisation**: Implemented via isolated module: `HMAC-SHA256(user_id, PSEUDONYM_SALT) -> "pseudo_<first 10 hex>"` using a safe dev default for `PSEUDONYM_SALT`. All ingestion endpoints accept pseudonyms + `course_id` and resolve to real `user_id`. All exports and AI-facing read APIs use pseudonyms.
 5. **No file upload**: Assignment submissions use `content_text` (plain text/markdown) and optionally `file_url` (externally hosted). I will not implement actual file storage.
 6. **Forum posts**: The `forum_posts` column in `weekly_features` will always be 0 until a forum feature is implemented. The column is there for schema completeness.
-7. **APScheduler guard**: To prevent double-scheduling when uvicorn reloads, I will use a file-based lock or check if the scheduler is already running.
+7. **APScheduler guard**: To prevent double-scheduling when uvicorn reloads, I will use an `ENABLE_SCHEDULER` env flag (default true in dev) to control the scheduler startup.
 8. **Synthetic email domain**: Synthetic students use `@synthetic.lms.edu` email domain for easy identification and bulk deletion.
 
 ---
 
 ## 6. Questions for the Developer (max 5)
 
-1. **Enrollment model ownership**: I need to create an `enrollments` table for my features. Is it OK if I create a minimal version now, and you (Member 1) extend it later? Or do you want to create it first?
-
-2. **Course `start_date`**: I plan to add `start_date` and `end_date` columns to the `courses` table (nullable Date). The weekly aggregation job uses `start_date` as the week-0 anchor. Is this acceptable, or do you have a different plan for course scheduling?
-
-3. **Content payload format**: The `modules.content_payload` column is currently JSON with no documented schema. I plan to render it as an array of blocks: `[{type: "text", body: "..."}, {type: "video", url: "...", title: "..."}, {type: "resource", url: "...", title: "..."}]`. Does this align with your intent?
-
-4. **Video hosting**: Should the video player use external URLs (YouTube/Vimeo embed or direct MP4 links), or should I plan for local video storage? I'm assuming external URLs for now.
-
-5. **Synthetic data scope**: Should synthetic data include counsellor accounts and intervention records, or just students/courses/assessments/behaviour? I'm planning the latter for now since interventions are outside my feature scope.
+*(Resolved)*
+1. **Enrollment model ownership**: Minimal enrollments table will be created.
+2. **Course `start_date`**: Existing courses with NULL start_date will be skipped with a logged warning.
+3. **Content payload format**: `{"blocks":[...]}` object format. Unknown payloads rendered as raw JSON (backward compatible).
+4. **Video hosting**: Direct MP4 URLs are primary. YouTube supported via IFrame API for event tracking.
+5. **Synthetic data scope**: Students/courses/assessments/behaviour/affect only. `lecturer@lms.edu` as course owner (no interventions).
 
 ---
 
