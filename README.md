@@ -33,6 +33,66 @@ the system aims to answer:
 
 ---
 
+## 🚀 Features
+
+The system acts as an LMS with integrated analytics capabilities.
+Key features developed in the current iteration include:
+
+- **Authentication & RBAC**: Fully functional authentication system with roles (student, lecturer, admin).
+- **Course & Content Management**: Robust models for tracking enrollments, assignments, quizzes, and module progression.
+- **Behavioral & Interaction Tracking**: Automatically tracks `UserSession` and click events throughout the LMS to generate longitudinal behavioral metrics.
+- **Weekly Analytics Aggregation Job**: A scheduled background job computes rich weekly features (e.g., session frequency, active days, video interaction intensity) for every enrolled student.
+- **Affective State Ingestion**: Endpoints allowing admins to bulk-ingest emotion and affect scores extracted from student communication.
+- **Longitudinal Risk Trajectories**: Tracking and visualization of week-by-week multimodal stress vs. engagement data using a dynamic `Recharts`-based dashboard.
+- **Synthetic Data Generator**: Capable of generating robust datasets with synthetic engagement and affective profiles to test the machine learning pipeline.
+- **Analytics Exporter**: One-click download of the `training_data.csv` which perfectly aligns academic, affective, and behavioral modalities for model training.
+
+---
+
+## ⚙️ Technology Stack
+
+**Backend:**
+- Python 3.10+
+- FastAPI (High performance async framework)
+- SQLAlchemy 2.0 (Async DB access)
+- PostgreSQL (Primary Datastore)
+- APScheduler (For background weekly aggregation)
+- Alembic (Database migrations)
+
+**Frontend:**
+- React 18 & TypeScript
+- Vite (Fast development tooling)
+- TailwindCSS (Utility-first styling)
+- TanStack Query (Data fetching, caching)
+- Recharts (Data visualization & plotting)
+
+---
+
+## 🔧 Running Locally
+
+**1. Database and Backend:**
+Using Docker Compose:
+```bash
+docker-compose up -d
+```
+(This provisions the Postgres database and runs the FastAPI server at `http://localhost:8000`)
+
+**2. Database Migrations:**
+Ensure the models are applied:
+```bash
+docker exec -i lms_backend alembic upgrade head
+```
+
+**3. Frontend Dev Server:**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+(The Vite frontend is available at `http://localhost:5173`)
+
+---
+
 # 🎯 Research Objective
 
 The primary objective of this research is:
@@ -84,3 +144,4 @@ Feature Extraction
 Emotion Classification
      ↓
 Affective State Scores
+```
