@@ -1,13 +1,16 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { LogOut, User, BookOpen, Activity, UserCircle } from 'lucide-react';
+import { LogOut, User, BookOpen, Activity, UserCircle, GraduationCap } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const location = useLocation();
 
-  const isCurrent = (path: string) => location.pathname === path;
+  const isCurrent = (path: string) => {
+    if (path === '/') return location.pathname === '/';
+    return location.pathname.startsWith(path);
+  };
 
   return (
     <nav className="bg-white border-b border-slate-200 sticky top-0 z-50">
@@ -23,7 +26,7 @@ export const Navbar: React.FC = () => {
           <div className="flex items-center space-x-4">
             {isAuthenticated && user ? (
               <>
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2 sm:space-x-3">
                   <Link
                     to="/"
                     className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${
@@ -34,6 +37,18 @@ export const Navbar: React.FC = () => {
                   >
                     <BookOpen className="w-4 h-4 mr-1.5" />
                     Dashboard
+                  </Link>
+
+                  <Link
+                    to="/courses"
+                    className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                      isCurrent('/courses')
+                        ? 'text-indigo-600 bg-indigo-50/80 font-semibold'
+                        : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <GraduationCap className="w-4 h-4 mr-1.5" />
+                    Courses
                   </Link>
 
                   <Link
@@ -49,14 +64,14 @@ export const Navbar: React.FC = () => {
                   </Link>
                 </div>
 
-                <div className="flex items-center space-x-2 pl-4 border-l border-slate-200">
+                <div className="flex items-center space-x-2 pl-3 sm:pl-4 border-l border-slate-200">
                   <Link
                     to="/profile"
                     title="View and edit your profile"
                     className="flex items-center space-x-1.5 text-sm text-slate-700 bg-slate-100 hover:bg-slate-200/80 px-3 py-1.5 rounded-full transition"
                   >
                     <User className="w-4 h-4 text-slate-500" />
-                    <span className="font-medium">{user.full_name}</span>
+                    <span className="font-medium hidden sm:inline">{user.full_name}</span>
                     <span className="text-[10px] uppercase bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-bold ml-1">
                       {user.role}
                     </span>

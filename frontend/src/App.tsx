@@ -7,6 +7,8 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { CourseCatalogPage } from './pages/CourseCatalogPage';
+import { CourseDetailPage } from './pages/CourseDetailPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,6 +37,24 @@ export const App: React.FC = () => {
                 element={
                   <ProtectedRoute>
                     <DashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Protected Course & Curriculum Management */}
+              <Route
+                path="/courses"
+                element={
+                  <ProtectedRoute>
+                    <CourseCatalogPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/courses/:courseId"
+                element={
+                  <ProtectedRoute>
+                    <CourseDetailPage />
                   </ProtectedRoute>
                 }
               />
