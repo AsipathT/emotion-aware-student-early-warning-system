@@ -1,7 +1,16 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { LogOut, User, BookOpen, Activity, UserCircle, GraduationCap } from 'lucide-react';
+import {
+  LogOut,
+  User,
+  BookOpen,
+  Activity,
+  UserCircle,
+  GraduationCap,
+  Shield,
+  BookmarkCheck,
+} from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -11,6 +20,11 @@ export const Navbar: React.FC = () => {
     if (path === '/') return location.pathname === '/';
     return location.pathname.startsWith(path);
   };
+
+  // Do not render top navigation on auth screens
+  if (location.pathname === '/login' || location.pathname === '/register') {
+    return null;
+  }
 
   return (
     <nav className="bg-white border-b border-slate-200 sticky top-0 z-50">
@@ -51,6 +65,21 @@ export const Navbar: React.FC = () => {
                     Courses
                   </Link>
 
+                  {/* Conditionally render My Courses for Students */}
+                  {user.role === 'student' && (
+                    <Link
+                      to="/my-courses"
+                      className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                        isCurrent('/my-courses')
+                          ? 'text-indigo-600 bg-indigo-50/80 font-semibold'
+                          : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <BookmarkCheck className="w-4 h-4 mr-1.5" />
+                      My Courses
+                    </Link>
+                  )}
+
                   <Link
                     to="/profile"
                     className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${
@@ -62,6 +91,20 @@ export const Navbar: React.FC = () => {
                     <UserCircle className="w-4 h-4 mr-1.5" />
                     Profile
                   </Link>
+
+                  {user.role === 'admin' && (
+                    <Link
+                      to="/admin"
+                      className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                        isCurrent('/admin')
+                          ? 'text-purple-700 bg-purple-50 font-semibold'
+                          : 'text-slate-600 hover:text-purple-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <Shield className="w-4 h-4 mr-1.5 text-purple-600" />
+                      Admin
+                    </Link>
+                  )}
                 </div>
 
                 <div className="flex items-center space-x-2 pl-3 sm:pl-4 border-l border-slate-200">

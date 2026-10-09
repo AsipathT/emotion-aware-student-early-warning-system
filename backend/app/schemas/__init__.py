@@ -25,4 +25,11 @@ from app.schemas.admin import (  # noqa: F401
     UserRoleUpdate,
     UserStatusUpdate,
 )
+from app.schemas.enrollment import (  # noqa: F401
+    EnrollmentCourseSummary,
+    EnrollmentCreate,
+    EnrollmentResponse,
+    EnrollmentStudentSummary,
+    EnrollmentUpdate,
+)
 

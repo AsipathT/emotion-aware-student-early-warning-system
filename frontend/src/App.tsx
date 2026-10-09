@@ -9,6 +9,8 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { CourseCatalogPage } from './pages/CourseCatalogPage';
 import { CourseDetailPage } from './pages/CourseDetailPage';
+import { MyEnrollmentsPage } from './pages/MyEnrollmentsPage';
+import { AdminDashboardPage } from './pages/AdminDashboardPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -59,12 +61,32 @@ export const App: React.FC = () => {
                 }
               />
 
+              {/* Protected Student Enrollments (Student Only) */}
+              <Route
+                path="/my-courses"
+                element={
+                  <ProtectedRoute allowedRoles={['student']}>
+                    <MyEnrollmentsPage />
+                  </ProtectedRoute>
+                }
+              />
+
               {/* Protected User Profile Dashboard */}
               <Route
                 path="/profile"
                 element={
                   <ProtectedRoute>
                     <ProfilePage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Protected Admin Governance Panel (Admin Only) */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AdminDashboardPage />
                   </ProtectedRoute>
                 }
               />

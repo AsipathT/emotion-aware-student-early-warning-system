@@ -34,6 +34,7 @@ from app.core.db import Base          # noqa: E402
 import app.models.user          # noqa: F401
 import app.models.profile       # noqa: F401
 import app.models.course        # noqa: F401
+import app.models.enrollment      # noqa: F401
 
 # ── Alembic Config ────────────────────────────────────────────────────────────
 config = context.config

@@ -28,6 +28,7 @@ from app.core.db import Base
 
 if TYPE_CHECKING:
     from app.models.course import Course
+    from app.models.enrollment import Enrollment
     from app.models.profile import Profile
 
 
@@ -136,6 +137,14 @@ class User(Base):
     courses_taught: Mapped[list["Course"]] = relationship(
         "Course",
         back_populates="lecturer",
+        cascade="all, delete-orphan",
+        lazy="noload",
+    )
+
+    # 1-to-many relationship: course enrollments for a student
+    enrollments: Mapped[list["Enrollment"]] = relationship(
+        "Enrollment",
+        back_populates="student",
         cascade="all, delete-orphan",
         lazy="noload",
     )

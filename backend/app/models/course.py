@@ -21,6 +21,7 @@ from sqlalchemy.types import JSON
 from app.core.db import Base
 
 if TYPE_CHECKING:
+    from app.models.enrollment import Enrollment
     from app.models.user import User
 
 
@@ -91,6 +92,13 @@ class Course(Base):
         back_populates="course",
         cascade="all, delete-orphan",
         order_by="Module.sequence_order",
+        lazy="noload",
+    )
+
+    enrollments: Mapped[List["Enrollment"]] = relationship(
+        "Enrollment",
+        back_populates="course",
+        cascade="all, delete-orphan",
         lazy="noload",
     )
 
