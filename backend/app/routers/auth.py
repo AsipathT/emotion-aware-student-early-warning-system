@@ -14,7 +14,7 @@ Security notes
 * Passwords are never logged or returned in any response body.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from jose import JWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -91,18 +91,38 @@ async def register(
     summary="Obtain an access + refresh token pair",
     description=(
         "Validates email/password credentials and returns a short-lived access "
-        "token (default 30 min) and a long-lived refresh token (default 7 days)."
+        "token (default 30 min) and a long-lived refresh token (default 7 days). "
+        "Supports both application/x-www-form-urlencoded (OAuth2 standard) and application/json."
     ),
 )
 async def login(
-    body: LoginRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
-    result = await db.execute(select(User).where(User.email == body.email))
+    content_type = request.headers.get("content-type", "").lower()
+    email: str | None = None
+    password: str | None = None
+
+    if "application/x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type:
+        form = await request.form()
+        email = str(form.get("username") or form.get("email") or "")
+        password = str(form.get("password") or "")
+    else:
+        try:
+            body_json = await request.json()
+            email = str(body_json.get("email") or body_json.get("username") or "")
+            password = str(body_json.get("password") or "")
+        except Exception:
+            raise _INVALID_CREDENTIALS
+
+    if not email or not password:
+        raise _INVALID_CREDENTIALS
+
+    result = await db.execute(select(User).where(User.email == email))
     user: User | None = result.scalar_one_or_none()
 
     # Generic message for both "not found" and "wrong password" cases
-    if user is None or not verify_password(body.password, user.hashed_password):
+    if user is None or not verify_password(password, user.hashed_password):
         raise _INVALID_CREDENTIALS
 
     if not user.is_active:
