@@ -19,3 +19,10 @@ from app.schemas.course import (  # noqa: F401
     ModuleCreate,
     ModuleResponse,
 )
+from app.schemas.admin import (  # noqa: F401
+    AdminUserResponse,
+    SystemStatsResponse,
+    UserRoleUpdate,
+    UserStatusUpdate,
+)
+

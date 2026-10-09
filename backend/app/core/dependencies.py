@@ -122,3 +122,21 @@ def require_roles(*allowed: UserRole) -> Callable:
         return current_user
 
     return _check
+
+
+# ── get_current_admin ─────────────────────────────────────────────────────────
+
+async def get_current_admin(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """
+    Ensures the authenticated user has the ADMIN role.
+    Raises HTTP 403 Forbidden if the user is not an administrator.
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Administrative privileges required. Access denied.",
+        )
+    return current_user
+
