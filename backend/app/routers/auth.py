@@ -1,25 +1,17 @@
 """
 backend/app/routers/auth.py
 
-Authentication endpoints – register, login, and token refresh.
-
-All routes are mounted under the prefix /api/v1/auth (see main.py).
-
-Security notes
---------------
-* On login failure we deliberately return the same generic message whether
-  the email is unknown or the password is wrong, to prevent user-enumeration.
-* The refresh endpoint validates the `type` claim so access tokens cannot be
-  used as refresh tokens and vice-versa.
-* Passwords are never logged or returned in any response body.
+Authentication endpoints – register, login, and token refresh (MongoDB backed).
 """
+
+import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from jose import JWTError
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.core.db import get_db
+from app.core.database import get_db
 from app.core.security import (
     ACCESS_TOKEN_TYPE,
     REFRESH_TOKEN_TYPE,
@@ -29,7 +21,6 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
-from app.models.user import User
 from app.schemas.auth import (
     LoginRequest,
     RegisterRequest,
@@ -54,34 +45,40 @@ _INVALID_CREDENTIALS = HTTPException(
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Register a new user account",
-    description=(
-        "Creates a new user with the provided email, password, full name, and role. "
-        "Returns the created user profile (no password hash)."
-    ),
+    description="Creates a new user account and stores document in MongoDB 'users' collection.",
 )
 async def register(
     body: RegisterRequest,
-    db: AsyncSession = Depends(get_db),
-) -> User:
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> UserResponse:
     # Duplicate e-mail guard
-    existing = await db.execute(select(User).where(User.email == body.email))
-    if existing.scalar_one_or_none() is not None:
+    existing = await db.users.find_one({"email": body.email})
+    if existing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="An account with this email address already exists.",
         )
 
-    user = User(
-        email=body.email,
-        hashed_password=hash_password(body.password),
-        full_name=body.full_name,
-        role=body.role,
-    )
-    db.add(user)
-    # flush → assigns server-side defaults (UUID, timestamps) before commit
-    await db.flush()
-    await db.refresh(user)
-    return user
+    uid = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+    role_val = body.role.value if hasattr(body.role, "value") else str(body.role)
+
+    user_doc = {
+        "_id": uid,
+        "id": uid,
+        "email": body.email,
+        "hashed_password": hash_password(body.password),
+        "full_name": body.full_name,
+        "role": role_val,
+        "is_active": True,
+        "is_verified": False,
+        "created_at": now,
+        "updated_at": now,
+        "profile": None,
+    }
+
+    await db.users.insert_one(user_doc)
+    return UserResponse(**user_doc)
 
 
 # ── POST /api/v1/auth/login ───────────────────────────────────────────────────
@@ -89,15 +86,11 @@ async def register(
     "/login",
     response_model=TokenResponse,
     summary="Obtain an access + refresh token pair",
-    description=(
-        "Validates email/password credentials and returns a short-lived access "
-        "token (default 30 min) and a long-lived refresh token (default 7 days). "
-        "Supports both application/x-www-form-urlencoded (OAuth2 standard) and application/json."
-    ),
+    description="Validates email/password credentials against MongoDB and returns JWT tokens.",
 )
 async def login(
     request: Request,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> TokenResponse:
     content_type = request.headers.get("content-type", "").lower()
     email: str | None = None
@@ -118,22 +111,24 @@ async def login(
     if not email or not password:
         raise _INVALID_CREDENTIALS
 
-    result = await db.execute(select(User).where(User.email == email))
-    user: User | None = result.scalar_one_or_none()
+    user_doc = await db.users.find_one({"email": email})
 
-    # Generic message for both "not found" and "wrong password" cases
-    if user is None or not verify_password(password, user.hashed_password):
+    # Generic error message to prevent enumeration
+    if not user_doc or not verify_password(password, user_doc.get("hashed_password", "")):
         raise _INVALID_CREDENTIALS
 
-    if not user.is_active:
+    if not user_doc.get("is_active", True):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="This account has been deactivated. Contact your administrator.",
         )
 
+    user_id_str = str(user_doc["_id"])
+    role_str = str(user_doc.get("role", "student"))
+
     return TokenResponse(
-        access_token=create_access_token(str(user.id), user.role.value),
-        refresh_token=create_refresh_token(str(user.id), user.role.value),
+        access_token=create_access_token(user_id_str, role_str),
+        refresh_token=create_refresh_token(user_id_str, role_str),
     )
 
 
@@ -142,14 +137,10 @@ async def login(
     "/refresh",
     response_model=TokenResponse,
     summary="Issue a new token pair from a valid refresh token",
-    description=(
-        "Accepts a valid, unexpired refresh token and returns a brand-new "
-        "access + refresh token pair (refresh-token rotation)."
-    ),
 )
 async def refresh_tokens(
     body: TokenRefreshRequest,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> TokenResponse:
     _bad_token = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -162,7 +153,6 @@ async def refresh_tokens(
     except JWTError:
         raise _bad_token
 
-    # Reject access tokens presented at the refresh endpoint
     if payload.get("type") != REFRESH_TOKEN_TYPE:
         raise _bad_token
 
@@ -170,14 +160,17 @@ async def refresh_tokens(
     if not user_id:
         raise _bad_token
 
-    result = await db.execute(select(User).where(User.id == user_id))
-    user: User | None = result.scalar_one_or_none()
+    user_doc = await db.users.find_one({"_id": user_id})
+    if not user_doc:
+        user_doc = await db.users.find_one({"id": user_id})
 
-    if user is None or not user.is_active:
+    if not user_doc or not user_doc.get("is_active", True):
         raise _bad_token
 
-    # Rotate: issue a completely new token pair
+    user_id_str = str(user_doc["_id"])
+    role_str = str(user_doc.get("role", "student"))
+
     return TokenResponse(
-        access_token=create_access_token(str(user.id), user.role.value),
-        refresh_token=create_refresh_token(str(user.id), user.role.value),
+        access_token=create_access_token(user_id_str, role_str),
+        refresh_token=create_refresh_token(user_id_str, role_str),
     )

@@ -1,28 +1,18 @@
 """
 backend/app/routers/admin.py
 
-Admin Panel endpoints (Feature 40).
-All endpoints in this router strictly require the ADMIN role via get_current_admin.
-
-Endpoints
----------
-  GET  /api/v1/admin/stats               – System-wide metrics & resource counts
-  GET  /api/v1/admin/users               – List all accounts and nested profiles
-  PUT  /api/v1/admin/users/{id}/status   – Activate / suspend user account
-  PUT  /api/v1/admin/users/{id}/role     – Promote / modify user authorization role
+Admin Panel endpoints (MongoDB backed - Feature 40).
 """
 
 import uuid
+from datetime import datetime, timezone
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.core.db import get_db
+from app.core.database import get_db
 from app.core.dependencies import get_current_admin
-from app.models.course import Course
 from app.models.user import User, UserRole
 from app.schemas.admin import (
     AdminUserResponse,
@@ -44,38 +34,18 @@ router = APIRouter(
     "/stats",
     response_model=SystemStatsResponse,
     summary="Get system-wide platform statistics",
-    description="Returns aggregate counts of users, active accounts, roles, and courses.",
+    description="Returns aggregate counts from MongoDB users and courses collections.",
 )
 async def get_system_stats(
-    db: AsyncSession = Depends(get_db),
+    db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> SystemStatsResponse:
-    # Query users counts
-    total_users_res = await db.execute(select(func.count(User.id)))
-    total_users = total_users_res.scalar_one() or 0
+    total_users = await db.users.count_documents({})
+    active_users = await db.users.count_documents({"is_active": True})
+    total_students = await db.users.count_documents({"role": "student"})
+    total_lecturers = await db.users.count_documents({"role": "lecturer"})
 
-    active_users_res = await db.execute(
-        select(func.count(User.id)).where(User.is_active == True)  # noqa: E712
-    )
-    active_users = active_users_res.scalar_one() or 0
-
-    students_res = await db.execute(
-        select(func.count(User.id)).where(User.role == UserRole.STUDENT)
-    )
-    total_students = students_res.scalar_one() or 0
-
-    lecturers_res = await db.execute(
-        select(func.count(User.id)).where(User.role == UserRole.LECTURER)
-    )
-    total_lecturers = lecturers_res.scalar_one() or 0
-
-    # Query courses counts
-    total_courses_res = await db.execute(select(func.count(Course.id)))
-    total_courses = total_courses_res.scalar_one() or 0
-
-    published_courses_res = await db.execute(
-        select(func.count(Course.id)).where(Course.is_published == True)  # noqa: E712
-    )
-    published_courses = published_courses_res.scalar_one() or 0
+    total_courses = await db.courses.count_documents({})
+    published_courses = await db.courses.count_documents({"is_published": True})
 
     return SystemStatsResponse(
         total_users=total_users,
@@ -93,19 +63,14 @@ async def get_system_stats(
     "/users",
     response_model=List[AdminUserResponse],
     summary="List all platform users",
-    description="Returns all registered accounts with nested profile records.",
+    description="Returns all registered accounts with nested profile records from MongoDB.",
 )
 async def list_all_users(
-    db: AsyncSession = Depends(get_db),
-) -> List[User]:
-    result = await db.execute(
-        select(User)
-        .options(selectinload(User.profile))
-        .order_by(User.created_at.desc())
-        .execution_options(populate_existing=True)
-    )
-    users = result.scalars().all()
-    return list(users)
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> List[AdminUserResponse]:
+    cursor = db.users.find({}).sort("created_at", -1)
+    users_docs = await cursor.to_list(length=1000)
+    return [AdminUserResponse(**u) for u in users_docs]
 
 
 # ── PUT /api/v1/admin/users/{user_id}/status ──────────────────────────────────
@@ -114,39 +79,40 @@ async def list_all_users(
     "/users/{user_id}/status",
     response_model=AdminUserResponse,
     summary="Update user active/suspended status",
-    description="Activates or suspends a specific user account.",
+    description="Activates or suspends a specific user account in MongoDB.",
 )
 async def update_user_status(
     user_id: uuid.UUID,
     body: UserStatusUpdate,
     current_admin: User = Depends(get_current_admin),
-    db: AsyncSession = Depends(get_db),
-) -> User:
-    result = await db.execute(
-        select(User)
-        .options(selectinload(User.profile))
-        .where(User.id == user_id)
-        .execution_options(populate_existing=True)
-    )
-    user = result.scalar_one_or_none()
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> AdminUserResponse:
+    uid_str = str(user_id)
+    user_doc = await db.users.find_one({"_id": uid_str})
+    if not user_doc:
+        user_doc = await db.users.find_one({"id": uid_str})
 
-    if not user:
+    if not user_doc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User with ID {user_id} was not found.",
         )
 
-    # Prevent administrators from accidentally locking themselves out
-    if user.id == current_admin.id and not body.is_active:
+    # Prevent administrators from locking themselves out
+    if str(user_doc["_id"]) == str(current_admin.id) and not body.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Administrators cannot suspend their own active account.",
         )
 
-    user.is_active = body.is_active
-    await db.flush()
-    await db.refresh(user)
-    return user
+    now = datetime.now(timezone.utc)
+    updated_doc = await db.users.find_one_and_update(
+        {"_id": user_doc["_id"]},
+        {"$set": {"is_active": body.is_active, "updated_at": now}},
+        return_document=True,
+    )
+
+    return AdminUserResponse(**updated_doc)
 
 
 # ── PUT /api/v1/admin/users/{user_id}/role ────────────────────────────────────
@@ -155,36 +121,38 @@ async def update_user_status(
     "/users/{user_id}/role",
     response_model=AdminUserResponse,
     summary="Update user role",
-    description="Assigns a new authorization role (Student, Lecturer, Counsellor, Admin) to a user.",
+    description="Assigns a new authorization role to a user in MongoDB.",
 )
 async def update_user_role(
     user_id: uuid.UUID,
     body: UserRoleUpdate,
     current_admin: User = Depends(get_current_admin),
-    db: AsyncSession = Depends(get_db),
-) -> User:
-    result = await db.execute(
-        select(User)
-        .options(selectinload(User.profile))
-        .where(User.id == user_id)
-        .execution_options(populate_existing=True)
-    )
-    user = result.scalar_one_or_none()
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> AdminUserResponse:
+    uid_str = str(user_id)
+    user_doc = await db.users.find_one({"_id": uid_str})
+    if not user_doc:
+        user_doc = await db.users.find_one({"id": uid_str})
 
-    if not user:
+    if not user_doc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User with ID {user_id} was not found.",
         )
 
     # Prevent admin from removing their own admin status
-    if user.id == current_admin.id and body.role != UserRole.ADMIN:
+    role_val = body.role.value if hasattr(body.role, "value") else str(body.role)
+    if str(user_doc["_id"]) == str(current_admin.id) and role_val != UserRole.ADMIN.value:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Administrators cannot demote their own account role.",
         )
 
-    user.role = body.role
-    await db.flush()
-    await db.refresh(user)
-    return user
+    now = datetime.now(timezone.utc)
+    updated_doc = await db.users.find_one_and_update(
+        {"_id": user_doc["_id"]},
+        {"$set": {"role": role_val, "updated_at": now}},
+        return_document=True,
+    )
+
+    return AdminUserResponse(**updated_doc)

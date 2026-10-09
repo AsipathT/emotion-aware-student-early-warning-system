@@ -25,8 +25,8 @@ richer claim validation out of the box.
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict
 
+import bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from app.core.config import settings
 
@@ -35,22 +35,31 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_TYPE = "access"
 REFRESH_TOKEN_TYPE = "refresh"
 
-# ── bcrypt context ────────────────────────────────────────────────────────────
-# `deprecated="auto"` means older hash schemes are transparently re-hashed on
-# next login – useful for future algorithm migrations.
-_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 
 # ── Password helpers ──────────────────────────────────────────────────────────
 
 def hash_password(plain_password: str) -> str:
-    """Return the bcrypt hash of *plain_password*."""
-    return _pwd_context.hash(plain_password)
+    """
+    Return the bcrypt hash of *plain_password*.
+    Uses direct bcrypt hashing for full compatibility with Python 3.11 - 3.14+.
+    """
+    pwd_bytes = plain_password.encode("utf-8")
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(pwd_bytes, salt).decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Return True if *plain_password* matches *hashed_password*."""
-    return _pwd_context.verify(plain_password, hashed_password)
+    """
+    Return True if *plain_password* matches *hashed_password*.
+    Compatible with existing bcrypt hashes ($2b$, $2a$) in the database.
+    """
+    try:
+        return bcrypt.checkpw(
+            plain_password.encode("utf-8"),
+            hashed_password.encode("utf-8"),
+        )
+    except (ValueError, TypeError, Exception):
+        return False
 
 
 # ── JWT helpers ───────────────────────────────────────────────────────────────
