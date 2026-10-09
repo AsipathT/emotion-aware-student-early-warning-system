@@ -7,8 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.core.dependencies import require_roles
 from app.models.analytics import AffectWeekly
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.analytics import BulkAffectWeeklyCreate
+from app.core.pseudonym import resolve_pseudonym
 
 
 router = APIRouter(prefix="/api/v1/affect", tags=["affect"])
@@ -18,15 +19,18 @@ router = APIRouter(prefix="/api/v1/affect", tags=["affect"])
 async def bulk_ingest_affect_scores(
     payload: BulkAffectWeeklyCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles("admin"))
+    current_user: User = Depends(require_roles(UserRole.ADMIN))
 ) -> Dict[str, Any]:
     """
     Admin-only endpoint to bulk-ingest affect weekly scores.
     """
     for record_in in payload.records:
-        # Check if exists
+        student_id = await resolve_pseudonym(db, record_in.course_id, record_in.pseudo_student_id)
+        if not student_id:
+            continue
+            
         stmt = select(AffectWeekly).where(
-            AffectWeekly.student_id == record_in.student_id,
+            AffectWeekly.student_id == student_id,
             AffectWeekly.course_id == record_in.course_id,
             AffectWeekly.week_index == record_in.week_index
         )
@@ -43,7 +47,9 @@ async def bulk_ingest_affect_scores(
             existing.message_count = record_in.message_count
             db.add(existing)
         else:
-            new_record = AffectWeekly(**record_in.model_dump())
+            data = record_in.model_dump(exclude={'pseudo_student_id'})
+            data['student_id'] = student_id
+            new_record = AffectWeekly(**data)
             db.add(new_record)
             
     await db.flush()

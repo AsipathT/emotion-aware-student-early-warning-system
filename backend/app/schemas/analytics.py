@@ -66,7 +66,7 @@ class TrajectoryLabelResponse(BaseModel):
 
 
 class AffectWeeklyCreate(BaseModel):
-    student_id: uuid.UUID
+    pseudo_student_id: str
     course_id: uuid.UUID
     week_index: int
     exam_anxiety: Optional[float] = Field(None, ge=0.0, le=1.0)
@@ -78,8 +78,18 @@ class AffectWeeklyCreate(BaseModel):
     message_count: int = Field(default=0, ge=0)
 
 
-class AffectWeeklyResponse(AffectWeeklyCreate):
+class AffectWeeklyResponse(BaseModel):
     id: uuid.UUID
+    student_id: uuid.UUID
+    course_id: uuid.UUID
+    week_index: int
+    exam_anxiety: Optional[float] = None
+    conceptual_confusion: Optional[float] = None
+    academic_helplessness: Optional[float] = None
+    course_frustration: Optional[float] = None
+    motivation_erosion: Optional[float] = None
+    confidence: Optional[float] = None
+    message_count: int
     schema_version: str
     created_at: datetime
 
@@ -88,3 +98,31 @@ class AffectWeeklyResponse(AffectWeeklyCreate):
 
 class BulkAffectWeeklyCreate(BaseModel):
     records: List[AffectWeeklyCreate]
+
+
+class RiskScoreCreate(BaseModel):
+    pseudo_student_id: str
+    course_id: uuid.UUID
+    week_index: int
+    risk_score: float
+    risk_tier: str
+    calibrated: bool = False
+    modality_weights: Optional[Dict[str, Any]] = None
+    top_features: Optional[Dict[str, Any]] = None
+    c1_snapshot: Optional[Dict[str, Any]] = None
+    c2_snapshot: Optional[Dict[str, Any]] = None
+    missing_modalities: Optional[Dict[str, Any]] = None
+    model_version: Optional[str] = None
+
+
+class TrajectoryLabelCreate(BaseModel):
+    pseudo_student_id: str
+    course_id: uuid.UUID
+    week_index: int
+    label: str
+    p_stable: Optional[float] = None
+    p_improving: Optional[float] = None
+    p_declining: Optional[float] = None
+    p_volatile: Optional[float] = None
+    confidence: Optional[float] = None
+    indicators: Optional[Dict[str, Any]] = None

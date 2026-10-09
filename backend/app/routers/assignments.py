@@ -172,7 +172,11 @@ async def grade_submission(
     
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
-        
+
+    assignment = await db.get(Assignment, assignment_id)
+    if not assignment or assignment.course_id != course_id:
+        raise HTTPException(status_code=404, detail="Assignment not found")
+
     submission.score = grade_in.score
     submission.feedback = grade_in.feedback
     submission.graded_by = current_user.id
@@ -180,6 +184,36 @@ async def grade_submission(
     submission.graded_at = datetime.now(timezone.utc)
     
     db.add(submission)
+    await db.flush()
+
+    # Upsert GradebookEntry for this assignment + student
+    from app.models.gradebook import GradebookEntry
+    gb_stmt = select(GradebookEntry).where(
+        GradebookEntry.course_id == course_id,
+        GradebookEntry.student_id == student_id,
+        GradebookEntry.item_type == "assignment",
+        GradebookEntry.item_id == assignment_id
+    )
+    gb_result = await db.execute(gb_stmt)
+    gb_entry = gb_result.scalar_one_or_none()
+
+    if gb_entry:
+        gb_entry.score = grade_in.score
+        gb_entry.max_score = assignment.max_score
+        gb_entry.weight = assignment.weight
+    else:
+        gb_entry = GradebookEntry(
+            course_id=course_id,
+            student_id=student_id,
+            item_type="assignment",
+            item_id=assignment_id,
+            title=assignment.title,
+            score=grade_in.score,
+            max_score=assignment.max_score,
+            weight=assignment.weight,
+        )
+        db.add(gb_entry)
+
     await db.flush()
     await db.refresh(submission)
     return submission

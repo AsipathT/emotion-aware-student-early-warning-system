@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     secret_key: str
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
+    pseudonym_salt: str = "default_safe_dev_salt_1234"
 
     # ── PostgreSQL ────────────────────────────────────────────────────────────
     postgres_user: str

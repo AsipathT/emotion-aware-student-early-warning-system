@@ -76,6 +76,7 @@ class QuizQuestion(Base):
     order: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    options: Mapped[list["QuizOption"]] = relationship("QuizOption", cascade="all, delete-orphan", lazy="noload")
 
 
 class QuizOption(Base):

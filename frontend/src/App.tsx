@@ -7,6 +7,9 @@ import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { CourseAnalyticsPage } from './pages/CourseAnalyticsPage';
 import { CourseContentPage } from './pages/CourseContentPage';
+import { VideoPlayerPage } from './pages/VideoPlayerPage';
+import { AttendancePage } from './pages/AttendancePage';
+import { GradebookPage } from './pages/GradebookPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -50,6 +53,30 @@ export const App: React.FC = () => {
                 element={
                   <ProtectedRoute>
                     <CourseContentPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/courses/:courseId/video"
+                element={
+                  <ProtectedRoute>
+                    <VideoPlayerPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/courses/:courseId/attendance"
+                element={
+                  <ProtectedRoute>
+                    <AttendancePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/courses/:courseId/gradebook"
+                element={
+                  <ProtectedRoute>
+                    <GradebookPage />
                   </ProtectedRoute>
                 }
               />

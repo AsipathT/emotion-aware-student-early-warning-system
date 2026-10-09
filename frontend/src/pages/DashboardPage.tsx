@@ -99,9 +99,12 @@ export const DashboardPage: React.FC = () => {
                   {course.description && (
                     <p className="text-xs text-gray-500 mt-1 line-clamp-2">{course.description}</p>
                   )}
-                  <div className="mt-3 flex items-center gap-2">
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
                     <Link to={`/courses/${course.id}/analytics`} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium bg-indigo-50 px-2 py-1 rounded">Analytics</Link>
                     <Link to={`/courses/${course.id}/content`} className="text-xs text-gray-600 hover:text-gray-800 font-medium bg-gray-200 px-2 py-1 rounded">Content</Link>
+                    <Link to={`/courses/${course.id}/video`} className="text-xs text-purple-600 hover:text-purple-800 font-medium bg-purple-50 px-2 py-1 rounded">Video Player</Link>
+                    <Link to={`/courses/${course.id}/attendance`} className="text-xs text-blue-600 hover:text-blue-800 font-medium bg-blue-50 px-2 py-1 rounded">Attendance</Link>
+                    <Link to={`/courses/${course.id}/gradebook`} className="text-xs text-green-600 hover:text-green-800 font-medium bg-green-50 px-2 py-1 rounded">Gradebook</Link>
                   </div>
                 </div>
               ))}

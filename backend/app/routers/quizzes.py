@@ -2,7 +2,7 @@ import uuid
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -114,7 +114,7 @@ async def add_quiz_question(
     
     await db.flush()
     # Eager load options to return
-    stmt = select(QuizQuestion).options(selectinload(QuizQuestion.options)).where(QuizQuestion.id == question.id)
+    stmt = select(QuizQuestion).options(selectinload(QuizQuestion.options)).where(QuizQuestion.id == question.id).execution_options(populate_existing=True)
     result = await db.execute(stmt)
     return result.scalar_one()
 
@@ -222,6 +222,37 @@ async def submit_quiz_attempt(
                 
     attempt.score = total_score
     db.add(attempt)
+    await db.flush()
+
+    # Upsert GradebookEntry for this quiz + student
+    from app.models.gradebook import GradebookEntry
+    quiz = await db.get(Quiz, quiz_id)
+    gb_stmt = select(GradebookEntry).where(
+        GradebookEntry.course_id == course_id,
+        GradebookEntry.student_id == current_user.id,
+        GradebookEntry.item_type == "quiz",
+        GradebookEntry.item_id == quiz_id
+    )
+    gb_result = await db.execute(gb_stmt)
+    gb_entry = gb_result.scalar_one_or_none()
+
+    if gb_entry:
+        # Keep best score
+        if total_score > gb_entry.score:
+            gb_entry.score = total_score
+    else:
+        gb_entry = GradebookEntry(
+            course_id=course_id,
+            student_id=current_user.id,
+            item_type="quiz",
+            item_id=quiz_id,
+            title=quiz.title,
+            score=total_score,
+            max_score=quiz.max_score,
+            weight=quiz.weight,
+        )
+        db.add(gb_entry)
+
     await db.flush()
     await db.refresh(attempt)
     return attempt
