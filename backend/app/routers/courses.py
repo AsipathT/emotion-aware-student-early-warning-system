@@ -1,32 +1,22 @@
 """
 backend/app/routers/courses.py
 
-Course and Module management endpoints.
-
-Endpoints
----------
-  POST  /api/v1/courses                      – Create course (Lecturer / Admin)
-  GET   /api/v1/courses                      – List published courses (Admin views all)
-  GET   /api/v1/courses/{course_id}          – Get course with nested modules
-  POST  /api/v1/courses/{course_id}/modules  – Add module to course (Lecturer / Admin)
+Course and Module management endpoints (MongoDB backed).
 """
 
 import uuid
+from datetime import datetime, timezone
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.core.db import get_db
+from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_roles
-from app.models.course import Course, Module
 from app.models.user import User, UserRole
 from app.schemas.course import (
     CourseCreate,
     CourseResponse,
-    CourseUpdate,
     ModuleCreate,
     ModuleResponse,
 )
@@ -41,55 +31,55 @@ router = APIRouter(prefix="/api/v1/courses", tags=["courses"])
     response_model=CourseResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create a new course (Lecturer or Admin)",
-    description=(
-        "Creates a new course. Lecturers are automatically assigned as the course instructor. "
-        "Administrators may explicitly assign another lecturer via `lecturer_id`."
-    ),
+    description="Creates a course document and stores it in MongoDB 'courses' collection.",
 )
 async def create_course(
     body: CourseCreate,
     current_user: User = Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN)),
-    db: AsyncSession = Depends(get_db),
-) -> Course:
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> CourseResponse:
     target_lecturer_id = current_user.id
 
     if current_user.role == UserRole.LECTURER:
-        if body.lecturer_id and body.lecturer_id != current_user.id:
+        if body.lecturer_id and str(body.lecturer_id) != str(current_user.id):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Lecturers can only create courses assigned to themselves.",
             )
     elif current_user.role == UserRole.ADMIN and body.lecturer_id:
-        # Validate that specified lecturer exists and is active
-        lecturer_res = await db.execute(
-            select(User).where(User.id == body.lecturer_id)
-        )
-        assigned_user = lecturer_res.scalar_one_or_none()
+        target_str = str(body.lecturer_id)
+        assigned_user = await db.users.find_one({"_id": target_str})
+        if not assigned_user:
+            assigned_user = await db.users.find_one({"id": target_str})
         if not assigned_user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Lecturer with ID {body.lecturer_id} does not exist.",
             )
-        if not assigned_user.is_active:
+        if not assigned_user.get("is_active", True):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Assigned lecturer account is deactivated.",
             )
         target_lecturer_id = body.lecturer_id
 
-    new_course = Course(
-        title=body.title,
-        description=body.description,
-        lecturer_id=target_lecturer_id,
-        is_published=body.is_published,
-    )
-    db.add(new_course)
-    await db.flush()
-    await db.refresh(new_course)
+    cid = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
 
-    # Pre-populate empty modules list for schema serialisation
-    new_course.modules = []
-    return new_course
+    course_doc = {
+        "_id": cid,
+        "id": cid,
+        "title": body.title,
+        "description": body.description,
+        "lecturer_id": str(target_lecturer_id),
+        "is_published": body.is_published,
+        "created_at": now,
+        "updated_at": now,
+        "modules": [],
+    }
+
+    await db.courses.insert_one(course_doc)
+    return CourseResponse(**course_doc)
 
 
 # ── GET /api/v1/courses ───────────────────────────────────────────────────────
@@ -98,39 +88,37 @@ async def create_course(
     "",
     response_model=List[CourseResponse],
     summary="List courses",
-    description=(
-        "Returns all published courses. Administrators can see all courses (published and unpublished). "
-        "Lecturers also see their own unpublished drafts."
-    ),
+    description="Returns courses from MongoDB according to user role permissions.",
 )
 async def list_courses(
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-) -> List[Course]:
-    query = (
-        select(Course)
-        .options(selectinload(Course.modules))
-        .order_by(Course.created_at.desc())
-    )
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> List[CourseResponse]:
+    filter_q = {}
 
     if current_user.role == UserRole.ADMIN:
-        # Admin sees everything
-        pass
+        filter_q = {}
     elif current_user.role == UserRole.LECTURER:
-        # Lecturer sees published courses plus their own course drafts
-        query = query.where(
-            or_(
-                Course.is_published == True,
-                Course.lecturer_id == current_user.id,
-            )
-        )
+        filter_q = {
+            "$or": [
+                {"is_published": True},
+                {"lecturer_id": str(current_user.id)},
+            ]
+        }
     else:
-        # Students and Counsellors see only published courses
-        query = query.where(Course.is_published == True)
+        filter_q = {"is_published": True}
 
-    result = await db.execute(query)
-    courses = result.scalars().all()
-    return list(courses)
+    cursor = db.courses.find(filter_q).sort("created_at", -1)
+    courses_docs = await cursor.to_list(length=1000)
+
+    # Ensure modules are sorted by sequence_order in each course
+    for c in courses_docs:
+        c["modules"] = sorted(
+            c.get("modules", []),
+            key=lambda m: m.get("sequence_order", 1),
+        )
+
+    return [CourseResponse(**c) for c in courses_docs]
 
 
 # ── GET /api/v1/courses/{course_id} ───────────────────────────────────────────
@@ -139,35 +127,29 @@ async def list_courses(
     "/{course_id}",
     response_model=CourseResponse,
     summary="Get course with modules",
-    description=(
-        "Fetches a single course with its complete ordered curriculum modules. "
-        "Unpublished courses are only viewable by their instructor or administrators."
-    ),
+    description="Fetches a course and its embedded modules from MongoDB.",
 )
 async def get_course(
     course_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-) -> Course:
-    query = (
-        select(Course)
-        .options(selectinload(Course.modules))
-        .where(Course.id == course_id)
-    )
-    result = await db.execute(query)
-    course = result.scalar_one_or_none()
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> CourseResponse:
+    cid_str = str(course_id)
+    course_doc = await db.courses.find_one({"_id": cid_str})
+    if not course_doc:
+        course_doc = await db.courses.find_one({"id": cid_str})
 
-    if not course:
+    if not course_doc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Course not found.",
         )
 
-    # Visibility permission check for unpublished courses
-    if not course.is_published:
+    # Visibility permission check for unpublished drafts
+    if not course_doc.get("is_published", False):
         can_access = (
             current_user.role in (UserRole.ADMIN, UserRole.COUNSELLOR)
-            or course.lecturer_id == current_user.id
+            or str(course_doc.get("lecturer_id")) == str(current_user.id)
         )
         if not can_access:
             raise HTTPException(
@@ -175,7 +157,12 @@ async def get_course(
                 detail="Course not found.",
             )
 
-    return course
+    course_doc["modules"] = sorted(
+        course_doc.get("modules", []),
+        key=lambda m: m.get("sequence_order", 1),
+    )
+
+    return CourseResponse(**course_doc)
 
 
 # ── POST /api/v1/courses/{course_id}/modules ──────────────────────────────────
@@ -185,43 +172,51 @@ async def get_course(
     response_model=ModuleResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Add a module to a course (Lecturer or Admin)",
-    description=(
-        "Appends a learning module to an existing course. Only the assigned lecturer "
-        "or an administrator may add modules."
-    ),
+    description="Pushes a new module into the course's modules array in MongoDB.",
 )
 async def add_module(
     course_id: uuid.UUID,
     body: ModuleCreate,
     current_user: User = Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN)),
-    db: AsyncSession = Depends(get_db),
-) -> Module:
-    # Verify course exists
-    course_res = await db.execute(
-        select(Course).where(Course.id == course_id)
-    )
-    course = course_res.scalar_one_or_none()
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> ModuleResponse:
+    cid_str = str(course_id)
+    course_doc = await db.courses.find_one({"_id": cid_str})
+    if not course_doc:
+        course_doc = await db.courses.find_one({"id": cid_str})
 
-    if not course:
+    if not course_doc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Course not found.",
         )
 
-    # Authorization: check ownership if caller is a lecturer
-    if current_user.role == UserRole.LECTURER and course.lecturer_id != current_user.id:
+    if current_user.role == UserRole.LECTURER and str(course_doc.get("lecturer_id")) != str(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only the assigned course instructor or an administrator can add modules.",
         )
 
-    module = Module(
-        course_id=course_id,
-        title=body.title,
-        content_payload=body.content_payload,
-        sequence_order=body.sequence_order,
+    mid = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+
+    module_doc = {
+        "_id": mid,
+        "id": mid,
+        "course_id": cid_str,
+        "title": body.title,
+        "content_payload": body.content_payload,
+        "sequence_order": body.sequence_order,
+        "created_at": now,
+        "updated_at": now,
+    }
+
+    await db.courses.update_one(
+        {"_id": course_doc["_id"]},
+        {
+            "$push": {"modules": module_doc},
+            "$set": {"updated_at": now},
+        },
     )
-    db.add(module)
-    await db.flush()
-    await db.refresh(module)
-    return module
+
+    return ModuleResponse(**module_doc)

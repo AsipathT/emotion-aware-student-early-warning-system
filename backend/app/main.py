@@ -18,7 +18,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.routers import health  # add further routers here as the project grows
+from app.routers import health
 
 
 # ── Lifespan ──────────────────────────────────────────────────────────────────
@@ -26,13 +26,20 @@ from app.routers import health  # add further routers here as the project grows
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     Code before `yield` runs at startup; code after runs at shutdown.
-    Add database pool warm-up, scheduler start, etc. here.
     """
     # ---- startup ----
     print(f"[startup]  environment : {settings.app_env}")
-    print(f"[startup]  database    : {settings.postgres_host}:{settings.postgres_port}/{settings.postgres_db}")
+    print(f"[startup]  database    : MongoDB Atlas ({settings.mongo_db_name})")
+    try:
+        from app.core.database import client
+        await client.admin.command('ping')
+        print("[startup]  MongoDB Atlas connected successfully.")
+    except Exception as exc:
+        print(f"[startup]  Warning: MongoDB ping failed: {exc}")
     yield
     # ---- shutdown ----
+    from app.core.database import client
+    client.close()
     print("[shutdown] application stopped")
 
 
@@ -62,10 +69,9 @@ def create_app() -> FastAPI:
     )
 
     # ── Routers ───────────────────────────────────────────────────────────────
-    # All routes are versioned under /api/v1/ (see development.md §1)
     app.include_router(health.router)
 
-    from app.routers import auth  # noqa: E402 (avoid circular import at module level)
+    from app.routers import auth  # noqa: E402
     app.include_router(auth.router)
 
     from app.routers import users  # noqa: E402
@@ -73,9 +79,12 @@ def create_app() -> FastAPI:
 
     from app.routers import courses  # noqa: E402
     app.include_router(courses.router)
-    # Future routers – uncomment as features are implemented:
-    # from app.routers import enrolments
-    # app.include_router(enrolments.router)
+
+    from app.routers import admin  # noqa: E402
+    app.include_router(admin.router)
+
+    from app.routers import enrollments  # noqa: E402
+    app.include_router(enrollments.router)
 
     return app
 

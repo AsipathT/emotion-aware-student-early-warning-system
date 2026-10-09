@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Activity, Lock, Mail, AlertCircle, CheckCircle, Eye, EyeOff, ArrowRight } from 'lucide-react';
@@ -6,13 +6,20 @@ import { Activity, Lock, Mail, AlertCircle, CheckCircle, Eye, EyeOff, ArrowRight
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // If already authenticated, redirect directly to dashboard
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      navigate('/', { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
 
   // Check if redirected from registration page with success message
   const successMessage = (location.state as { message?: string })?.message;
