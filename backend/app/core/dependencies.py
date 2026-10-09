@@ -24,7 +24,7 @@ Usage
         ...
 """
 
-from typing import Callable, Sequence
+from typing import Callable, Optional, Sequence
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -37,14 +37,14 @@ from app.core.security import ACCESS_TOKEN_TYPE, decode_token
 from app.models.user import User, UserRole
 
 # HTTPBearer extracts the `Authorization: Bearer <token>` header.
-# auto_error=True (default) returns 403 automatically when the header is absent.
-_bearer_scheme = HTTPBearer(auto_error=True)
+# auto_error=False allows get_current_user to raise standard 401 instead of 403.
+_bearer_scheme = HTTPBearer(auto_error=False)
 
 
 # ── get_current_user ──────────────────────────────────────────────────────────
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(_bearer_scheme),
     db: AsyncSession = Depends(get_db),
 ) -> User:
     """
@@ -62,6 +62,9 @@ async def get_current_user(
         detail="Could not validate credentials.",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    if not credentials:
+        raise _unauth
 
     try:
         payload = decode_token(credentials.credentials)
@@ -108,7 +111,9 @@ def require_roles(*allowed: UserRole) -> Callable:
         @router.get("/admin-only", dependencies=[Depends(require_roles(UserRole.ADMIN))])
         async def admin_endpoint(): ...
     """
-    allowed_set: frozenset[UserRole] = frozenset(allowed)
+    allowed_set: frozenset[UserRole] = frozenset(
+        UserRole(r) if isinstance(r, str) else r for r in allowed
+    )
 
     async def _check(current_user: User = Depends(get_current_user)) -> User:
         if current_user.role not in allowed_set:
@@ -116,7 +121,7 @@ def require_roles(*allowed: UserRole) -> Callable:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=(
                     f"Access denied. Required role(s): "
-                    f"{', '.join(r.value for r in allowed_set)}."
+                    f"{', '.join((r.value if hasattr(r, 'value') else str(r)) for r in allowed_set)}."
                 ),
             )
         return current_user

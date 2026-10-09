@@ -2,7 +2,7 @@ import uuid
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class WeeklyFeatureResponse(BaseModel):
@@ -76,6 +76,14 @@ class AffectWeeklyCreate(BaseModel):
     motivation_erosion: Optional[float] = Field(None, ge=0.0, le=1.0)
     confidence: Optional[float] = Field(None, ge=0.0, le=1.0)
     message_count: int = Field(default=0, ge=0)
+    schema_version: str = "1.0"
+
+    @field_validator("schema_version")
+    @classmethod
+    def validate_schema_version(cls, v: str) -> str:
+        if v not in ("1.0", "1"):
+            raise ValueError("Unsupported schema_version. Expected '1.0'")
+        return v
 
 
 class AffectWeeklyResponse(BaseModel):
@@ -104,15 +112,40 @@ class RiskScoreCreate(BaseModel):
     pseudo_student_id: str
     course_id: uuid.UUID
     week_index: int
-    risk_score: float
+    risk_score: float = Field(..., ge=0.0, le=100.0)
     risk_tier: str
     calibrated: bool = False
-    modality_weights: Optional[Dict[str, Any]] = None
+    modality_weights: Optional[Dict[str, float]] = None
     top_features: Optional[Dict[str, Any]] = None
     c1_snapshot: Optional[Dict[str, Any]] = None
     c2_snapshot: Optional[Dict[str, Any]] = None
     missing_modalities: Optional[Dict[str, Any]] = None
+    schema_version: str = "1.0"
     model_version: Optional[str] = None
+
+    @field_validator("schema_version")
+    @classmethod
+    def validate_schema_version(cls, v: str) -> str:
+        if v not in ("1.0", "1"):
+            raise ValueError("Unsupported schema_version. Expected '1.0'")
+        return v
+
+    @field_validator("risk_tier")
+    @classmethod
+    def validate_risk_tier(cls, v: str) -> str:
+        valid_tiers = {"low", "medium", "high", "critical"}
+        if v.lower() not in valid_tiers:
+            raise ValueError(f"Invalid risk_tier: {v}. Must be one of Low, Medium, High, Critical")
+        return v.capitalize()
+
+    @field_validator("modality_weights")
+    @classmethod
+    def validate_modality_weights(cls, v: Optional[Dict[str, float]]) -> Optional[Dict[str, float]]:
+        if v is not None and len(v) > 0:
+            total = sum(v.values())
+            if abs(total - 1.0) > 0.01:
+                raise ValueError(f"modality_weights must sum to 1.0 (got {total})")
+        return v
 
 
 class TrajectoryLabelCreate(BaseModel):
@@ -120,9 +153,25 @@ class TrajectoryLabelCreate(BaseModel):
     course_id: uuid.UUID
     week_index: int
     label: str
-    p_stable: Optional[float] = None
-    p_improving: Optional[float] = None
-    p_declining: Optional[float] = None
-    p_volatile: Optional[float] = None
-    confidence: Optional[float] = None
+    p_stable: Optional[float] = Field(None, ge=0.0, le=1.0)
+    p_improving: Optional[float] = Field(None, ge=0.0, le=1.0)
+    p_declining: Optional[float] = Field(None, ge=0.0, le=1.0)
+    p_volatile: Optional[float] = Field(None, ge=0.0, le=1.0)
+    confidence: Optional[float] = Field(None, ge=0.0, le=1.0)
     indicators: Optional[Dict[str, Any]] = None
+    schema_version: str = "1.0"
+
+    @field_validator("schema_version")
+    @classmethod
+    def validate_schema_version(cls, v: str) -> str:
+        if v not in ("1.0", "1"):
+            raise ValueError("Unsupported schema_version. Expected '1.0'")
+        return v
+
+    @field_validator("label")
+    @classmethod
+    def validate_label(cls, v: str) -> str:
+        valid_labels = {"stable", "improving", "declining", "volatile"}
+        if v.lower() not in valid_labels:
+            raise ValueError(f"Invalid label: {v}. Must be one of Stable, Improving, Declining, Volatile")
+        return v.capitalize()

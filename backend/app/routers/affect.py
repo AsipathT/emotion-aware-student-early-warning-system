@@ -1,6 +1,6 @@
 from typing import Any, Dict
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,7 +27,10 @@ async def bulk_ingest_affect_scores(
     for record_in in payload.records:
         student_id = await resolve_pseudonym(db, record_in.course_id, record_in.pseudo_student_id)
         if not student_id:
-            continue
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unknown pseudonymous student_id: {record_in.pseudo_student_id}"
+            )
             
         stmt = select(AffectWeekly).where(
             AffectWeekly.student_id == student_id,

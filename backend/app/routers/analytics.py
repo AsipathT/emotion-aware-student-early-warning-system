@@ -29,7 +29,10 @@ async def ingest_risk_scores(
     for record_in in payload:
         student_id = await resolve_pseudonym(db, record_in.course_id, record_in.pseudo_student_id)
         if not student_id:
-            continue
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unknown pseudonymous student_id: {record_in.pseudo_student_id}"
+            )
         
         stmt = select(RiskScore).where(
             RiskScore.student_id == student_id,
@@ -63,7 +66,10 @@ async def ingest_trajectory_labels(
     for record_in in payload:
         student_id = await resolve_pseudonym(db, record_in.course_id, record_in.pseudo_student_id)
         if not student_id:
-            continue
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unknown pseudonymous student_id: {record_in.pseudo_student_id}"
+            )
         
         stmt = select(TrajectoryLabel).where(
             TrajectoryLabel.student_id == student_id,
