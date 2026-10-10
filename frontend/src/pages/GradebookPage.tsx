@@ -16,7 +16,7 @@ export const GradebookPage: React.FC = () => {
       <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Course Gradebook</h1>
-          <p className="text-gray-500 mt-1">Feature 12: Consolidated grades for all assignments and quizzes.</p>
+          <p className="text-gray-500 mt-1">Feature 12: Consolidated grades for all assignments and quizzes (Course: {courseId || 'General'}).</p>
         </div>
         <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition">
           Export Grades
