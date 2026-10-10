@@ -35,9 +35,6 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    if not credentials:
-        raise _unauth
-
     try:
         payload = decode_token(credentials.credentials)
     except JWTError:
@@ -74,7 +71,7 @@ def require_roles(*allowed: UserRole) -> Callable:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=(
                     f"Access denied. Required role(s): "
-                    f"{', '.join((r.value if hasattr(r, 'value') else str(r)) for r in allowed_set)}."
+                    f"{', '.join(r.value for r in allowed_set)}."
                 ),
             )
         return current_user

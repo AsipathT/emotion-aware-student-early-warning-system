@@ -129,6 +129,10 @@ async def submit_assignment(
     if not assignment.get("is_published"):
         raise HTTPException(status_code=403, detail="Assignment not published")
 
+    enrollment = await db.enrollments.find_one({"course_id": str(course_id), "student_id": str(current_user.id)})
+    if not enrollment:
+        raise HTTPException(status_code=403, detail="Not enrolled in this course")
+
     existing = await db.assignment_submissions.find_one({
         "assignment_id": aid_str,
         "student_id": str(current_user.id)
@@ -136,9 +140,22 @@ async def submit_assignment(
     if existing:
         raise HTTPException(status_code=409, detail="Assignment already submitted")
 
+    now = datetime.now(timezone.utc)
+    is_late = False
+    delay_days = 0
+    due_at = assignment.get("due_at")
+    if due_at:
+        if due_at.tzinfo is None:
+            due_at = due_at.replace(tzinfo=timezone.utc)
+        if now > due_at:
+            is_late = True
+            delay_days = max(1, (now - due_at).days)
+
     submission = AssignmentSubmission(
         assignment_id=assignment_id,
         student_id=current_user.id,
+        is_late=is_late,
+        delay_days=delay_days,
         **submission_in.model_dump()
     )
     await db.assignment_submissions.insert_one(submission.to_mongo())

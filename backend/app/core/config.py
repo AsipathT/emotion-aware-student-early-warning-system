@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     secret_key: str = "replace_with_a_long_random_secret_key_min_32_chars"
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
-    pseudonym_salt: str = "default_safe_dev_salt_1234"
+    ENABLE_SCHEDULER: bool = False
 
     # ── MongoDB Atlas ─────────────────────────────────────────────────────────
     mongo_uri: str = (
