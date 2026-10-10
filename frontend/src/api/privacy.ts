@@ -18,16 +18,21 @@ export interface ScrubTextResponse {
 }
 
 /**
- * Controlled identity reveal for authorized personnel (Counsellors, Academic Staff, Admins).
- * Calls GET /api/v1/reveal/{pid} with Bearer token authentication.
+ * Controlled identity reveal for authorized personnel (Counsellors, Academic Staff).
+ * Calls POST /api/v1/reveal with Bearer token authentication and justification reason.
  * Triggers Feature 7 audit logging on the backend.
  */
 export const revealStudentIdentity = async (
-  pid: string
+  pid: string,
+  reason: string
 ): Promise<IdentityRevealResponse> => {
-  const response = await apiClient.get<IdentityRevealResponse>(`/reveal/${encodeURIComponent(pid)}`);
+  const response = await apiClient.post<IdentityRevealResponse>('/reveal', {
+    pid,
+    reason,
+  });
   return response.data;
 };
+
 
 /**
  * Text scrubber utility to sanitize sensitive PII from free text.

@@ -1,6 +1,7 @@
 import { apiClient } from './client';
 
-export type UserRole = 'student' | 'lecturer' | 'counsellor' | 'admin';
+export type UserRole = 'student' | 'lecturer' | 'counsellor' | 'admin' | 'auditor';
+
 
 export interface LoginPayload {
   email: string;

@@ -21,6 +21,7 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_roles
 from app.core.privacy import pseudonymize
 from app.models.user import User, UserRole
+from app.schemas.audit import AuditAction, AuditOutcome
 from app.schemas.consent import (
     ConsentDecision,
     ConsentDecisionRequest,
@@ -29,9 +30,10 @@ from app.schemas.consent import (
     ConsentRecord,
     ConsentStatusResponse,
 )
-from app.services.audit import log_audit_event
+from app.services.audit import log_audit_event, log_event
 
 router = APIRouter(prefix="/api/v1/consent", tags=["consent"])
+
 
 
 def _extract_client_info(request: Request) -> str:
@@ -216,21 +218,28 @@ async def record_consent_decision(
     await db.consent_records.insert_one(record_doc)
 
     # 4. Feature 7: Audit Logging
-    audit_action = (
-        "CONSENT_ACCEPTED"
-        if body.decision == ConsentDecision.ACCEPTED
-        else "CONSENT_DECLINED"
+    role_str = (
+        current_user.role.value
+        if hasattr(current_user.role, "value")
+        else str(current_user.role)
     )
-    await log_audit_event(
+    audit_action = (
+        AuditAction.CONSENT_ACCEPTED
+        if body.decision == ConsentDecision.ACCEPTED
+        else AuditAction.CONSENT_DECLINED
+    )
+    await log_event(
+        request=request,
         db=db,
         action=audit_action,
-        requester_id=str(current_user.id),
-        target_pid=pid,
+        actor_id=str(current_user.id),
+        actor_role=role_str,
+        target_type="student",
+        target_id=pid,
+        outcome=AuditOutcome.SUCCESS,
         details={
             "notice_version": active_version,
             "decision": body.decision.value,
-            "ip_or_client": client_info,
-            "user_email": current_user.email,
         },
     )
 
@@ -281,16 +290,23 @@ async def withdraw_consent(
     await db.consent_records.insert_one(record_doc)
 
     # Feature 7: Audit Logging
-    await log_audit_event(
+    role_str = (
+        current_user.role.value
+        if hasattr(current_user.role, "value")
+        else str(current_user.role)
+    )
+    await log_event(
+        request=request,
         db=db,
-        action="CONSENT_WITHDRAWN",
-        requester_id=str(current_user.id),
-        target_pid=pid,
+        action=AuditAction.CONSENT_WITHDRAWN,
+        actor_id=str(current_user.id),
+        actor_role=role_str,
+        target_type="student",
+        target_id=pid,
+        outcome=AuditOutcome.SUCCESS,
         details={
             "notice_version": active_version,
             "decision": "withdrawn",
-            "ip_or_client": client_info,
-            "user_email": current_user.email,
         },
     )
 
@@ -341,16 +357,24 @@ async def publish_new_notice(
     await db.consent_notices.insert_one(notice_doc)
 
     # 4. Feature 7: Audit Logging
-    await log_audit_event(
+    role_str = (
+        current_user.role.value
+        if hasattr(current_user.role, "value")
+        else str(current_user.role)
+    )
+    await log_event(
+        request=None,
         db=db,
         action="NOTICE_PUBLISHED",
-        requester_id=str(current_user.id),
+        actor_id=str(current_user.id),
+        actor_role=role_str,
+        outcome=AuditOutcome.SUCCESS,
         details={
             "new_version": next_version,
-            "admin_email": current_user.email,
             "notice_length": len(body.text),
         },
     )
+
 
     return ConsentNotice(
         id=notice_id,

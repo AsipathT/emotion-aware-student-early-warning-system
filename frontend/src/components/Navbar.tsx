@@ -9,8 +9,10 @@ import {
   UserCircle,
   GraduationCap,
   Shield,
+  ShieldCheck,
   BookmarkCheck,
 } from 'lucide-react';
+
 
 export const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -105,7 +107,22 @@ export const Navbar: React.FC = () => {
                       Admin
                     </Link>
                   )}
+
+                  {(user.role === 'admin' || user.role === 'auditor') && (
+                    <Link
+                      to="/admin/audit"
+                      className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                        isCurrent('/admin/audit')
+                          ? 'text-indigo-600 bg-indigo-50 font-semibold'
+                          : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <ShieldCheck className="w-4 h-4 mr-1.5 text-indigo-600" />
+                      Audit Log
+                    </Link>
+                  )}
                 </div>
+
 
                 <div className="flex items-center space-x-2 pl-3 sm:pl-4 border-l border-slate-200">
                   <Link

@@ -18,6 +18,8 @@ class UserRole(str, enum.Enum):
     LECTURER = "lecturer"
     COUNSELLOR = "counsellor"
     ADMIN = "admin"
+    AUDITOR = "auditor"
+
 
 
 class User(BaseModel):

@@ -10,7 +10,7 @@ Provides:
 
 from typing import Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel, Field
 
@@ -18,12 +18,25 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_roles
 from app.core.privacy import scrub_text
 from app.models.user import User, UserRole
-from app.services.audit import log_audit_event
+from app.schemas.audit import AuditAction, AuditOutcome
+from app.services.audit import log_audit_event, log_event
 
 router = APIRouter(prefix="/api/v1", tags=["privacy"])
 
 
+
 # ── Schemas ───────────────────────────────────────────────────────────────────
+
+class IdentityRevealRequest(BaseModel):
+    """Payload to request controlled identity reveal."""
+    pid: str = Field(..., description="Pseudonym identifier, e.g. STU_a1b2c3d4")
+    reason: str = Field(
+        ...,
+        min_length=10,
+        description="Mandatory justification reason for revealing identity (minimum 10 characters)",
+        examples=["Urgent mental health welfare concern reported by course instructor"],
+    )
+
 
 class IdentityRevealResponse(BaseModel):
     """Real identity returned from the Identity Vault."""
@@ -45,49 +58,55 @@ class ScrubTextResponse(BaseModel):
     redaction_report: Dict[str, int]
 
 
-# ── GET /reveal/{pid} ─────────────────────────────────────────────────────────
+# ── POST /reveal ──────────────────────────────────────────────────────────────
 
-@router.get(
-    "/reveal/{pid}",
+@router.post(
+    "/reveal",
     response_model=IdentityRevealResponse,
-    summary="Controlled identity reveal by Pseudonym ID (PID)",
+    summary="Controlled identity reveal by Pseudonym ID (Counsellor & Academic Staff only)",
     description=(
         "Reveals the real identity corresponding to a student's PID. "
-        "Strictly restricted to users with the Counsellor, Lecturer (Academic Staff), or Admin roles. "
-        "Every access attempt is recorded by the Feature 7 audit logging system."
+        "Strictly restricted to users with the Counsellor or Lecturer (Academic Staff) role. "
+        "A justification reason of at least 10 characters is mandatory. "
+        "Every reveal action is audited with the reason and caller before identity data is returned."
     ),
 )
-async def reveal_identity(
-    pid: str,
-    current_user: User = Depends(require_roles(UserRole.COUNSELLOR, UserRole.LECTURER, UserRole.ADMIN)),
+async def reveal_identity_post(
+    body: IdentityRevealRequest,
+    request: Request,
+    current_user: User = Depends(require_roles(UserRole.COUNSELLOR, UserRole.LECTURER)),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> IdentityRevealResponse:
     # 1. Query the dedicated identity_vault collection
-    record = await db.identity_vault.find_one({"pid": pid})
+    record = await db.identity_vault.find_one({"pid": body.pid})
     if not record:
-        record = await db.identity_vault.find_one({"_id": pid})
+        record = await db.identity_vault.find_one({"_id": body.pid})
 
     if not record:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Pseudonym ID '{pid}' was not found in the Identity Vault.",
+            detail=f"Pseudonym ID '{body.pid}' was not found in the Identity Vault.",
         )
 
-    # 2. Invoke Feature 7 Audit Logging
-    requester_role_str = (
+    # 2. Critical Audit Log: IDENTITY_REVEAL must succeed before data is returned
+    role_str = (
         current_user.role.value
         if hasattr(current_user.role, "value")
         else str(current_user.role)
     )
-    await log_audit_event(
+    await log_event(
+        request=request,
         db=db,
-        action="IDENTITY_REVEAL",
-        requester_id=str(current_user.id),
-        target_pid=pid,
+        action=AuditAction.IDENTITY_REVEAL,
+        actor_id=str(current_user.id),
+        actor_role=role_str,
+        target_type="student",
+        target_id=body.pid,
+        outcome=AuditOutcome.SUCCESS,
+        reason=body.reason,
         details={
-            "requester_email": current_user.email,
-            "requester_role": requester_role_str,
-            "revealed_student_id": record.get("student_id"),
+            "requester_role": role_str,
+            "reason_length": len(body.reason),
         },
     )
 
@@ -98,6 +117,30 @@ async def reveal_identity(
         name=record["name"],
         email=record["email"],
     )
+
+
+# Backward-compatible GET /reveal/{pid} proxy
+@router.get(
+    "/reveal/{pid}",
+    response_model=IdentityRevealResponse,
+    include_in_schema=False,
+)
+async def reveal_identity_legacy(
+    pid: str,
+    request: Request,
+    current_user: User = Depends(require_roles(UserRole.COUNSELLOR, UserRole.LECTURER)),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> IdentityRevealResponse:
+    return await reveal_identity_post(
+        body=IdentityRevealRequest(
+            pid=pid,
+            reason="Legacy GET request: Institutional welfare assessment",
+        ),
+        request=request,
+        current_user=current_user,
+        db=db,
+    )
+
 
 
 # ── POST /privacy/scrub ───────────────────────────────────────────────────────

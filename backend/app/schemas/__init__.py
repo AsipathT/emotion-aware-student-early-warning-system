@@ -47,4 +47,11 @@ from app.schemas.consent import (  # noqa: F401
     ConsentRecord,
     ConsentStatusResponse,
 )
+from app.schemas.audit import (  # noqa: F401
+    AuditAction,
+    AuditLogBase,
+    AuditLogQueryResponse,
+    AuditOutcome,
+)
+
 

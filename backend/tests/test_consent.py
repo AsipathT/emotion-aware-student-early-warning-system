@@ -114,7 +114,7 @@ async def run_tests():
     print("PASS: has_active_consent is False after withdrawal")
 
     # 8. Check Feature 7 audit log entries
-    logs = await db.audit_logs.find({"target_pid": pid}).to_list(10)
+    logs = await db.audit_logs.find({"$or": [{"target_id": pid}, {"target_pid": pid}]}).to_list(10)
     assert len(logs) >= 2, f"Expected at least 2 audit entries for target_pid {pid}, got {len(logs)}"
     actions = [l["action"] for l in logs]
     assert "CONSENT_ACCEPTED" in actions
@@ -124,7 +124,8 @@ async def run_tests():
     # Cleanup test student & records
     await db.users.delete_one({"_id": student_uid})
     await db.consent_records.delete_many({"pid": pid})
-    await db.audit_logs.delete_many({"target_pid": pid})
+    await db.audit_logs.delete_many({"$or": [{"target_id": pid}, {"target_pid": pid}]})
+
     print("PASS: Test data cleaned up successfully")
     print("=== ALL FEATURE 6 TESTS PASSED ===")
 

@@ -1,11 +1,13 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { UserRole } from '../api/auth';
 
 interface ProtectedRouteProps {
   children: React.ReactElement;
-  allowedRoles?: Array<'student' | 'lecturer' | 'counsellor' | 'admin'>;
+  allowedRoles?: UserRole[];
 }
+
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,

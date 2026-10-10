@@ -60,7 +60,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
                 "is_active": True,
             }
             await db.consent_notices.insert_one(seed_doc)
-            print("[startup]  Feature 6: Default Consent Notice v1 seeded successfully.")
+        # Feature 7: Ensure audit log collection indexes
+        from app.repositories.audit_repo import ensure_indexes
+        await ensure_indexes(db)
+        print("[startup]  Feature 7: Audit log indexes ensured.")
     except Exception as exc:
         print(f"[startup]  Warning: MongoDB startup check failed: {exc}")
     yield
@@ -86,6 +89,10 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    # ── Feature 7: Request Tracking Middleware ────────────────────────────────
+    from app.core.middleware import RequestTrackingMiddleware  # noqa: E402
+    app.add_middleware(RequestTrackingMiddleware)
+
     # ── CORS ──────────────────────────────────────────────────────────────────
     app.add_middleware(
         CORSMiddleware,
@@ -94,6 +101,53 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # ── Feature 7: Global 401 / 403 ACCESS_DENIED Exception Handler ───────────
+    from fastapi import HTTPException, Request  # noqa: E402
+    from fastapi.responses import JSONResponse  # noqa: E402
+    from app.core.security import decode_token  # noqa: E402
+    from app.schemas.audit import AuditAction, AuditOutcome  # noqa: E402
+    from app.services.audit import log_event  # noqa: E402
+
+    @app.exception_handler(HTTPException)
+    async def audit_access_denied_handler(request: Request, exc: HTTPException):
+        if exc.status_code in (401, 403):
+            actor_id = "anonymous"
+            actor_role = "anonymous"
+            auth_header = request.headers.get("authorization", "")
+            if auth_header.startswith("Bearer "):
+                token = auth_header.split(" ", 1)[1].strip()
+                try:
+                    payload = decode_token(token)
+                    actor_id = str(payload.get("sub") or "anonymous")
+                    actor_role = str(payload.get("role") or "anonymous")
+                except Exception:
+                    pass
+
+            try:
+                from app.core.database import db
+                await log_event(
+                    request=request,
+                    db=db,
+                    action=AuditAction.ACCESS_DENIED,
+                    actor_id=actor_id,
+                    actor_role=actor_role,
+                    outcome=AuditOutcome.DENIED,
+                    details={
+                        "status_code": exc.status_code,
+                        "endpoint": request.url.path,
+                        "reason": str(exc.detail)[:120],
+                    },
+                )
+            except Exception:
+                pass  # Non-critical: never suppress response
+
+        headers = getattr(exc, "headers", None)
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail},
+            headers=headers,
+        )
 
     # ── Routers ───────────────────────────────────────────────────────────────
     app.include_router(health.router)
@@ -118,6 +172,9 @@ def create_app() -> FastAPI:
 
     from app.routers import consent  # noqa: E402
     app.include_router(consent.router)
+
+    from app.routers import audit  # noqa: E402
+    app.include_router(audit.router)
 
     return app
 

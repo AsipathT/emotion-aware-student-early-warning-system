@@ -12,6 +12,8 @@ import { CourseCatalogPage } from './pages/CourseCatalogPage';
 import { CourseDetailPage } from './pages/CourseDetailPage';
 import { MyEnrollmentsPage } from './pages/MyEnrollmentsPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { AuditLogPage } from './pages/admin/AuditLogPage';
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -93,6 +95,17 @@ export const App: React.FC = () => {
                   </ProtectedRoute>
                 }
               />
+
+              {/* Feature 7: Protected Compliance Audit Log (Admin & Auditor Only) */}
+              <Route
+                path="/admin/audit"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'auditor']}>
+                    <AuditLogPage />
+                  </ProtectedRoute>
+                }
+              />
+
 
               {/* Fallback redirect */}
               <Route path="*" element={<Navigate to="/" replace />} />

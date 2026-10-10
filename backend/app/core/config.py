@@ -42,6 +42,15 @@ class Settings(BaseSettings):
         """Upper-case accessor for Feature 5 privacy hashing."""
         return self.pseudonym_secret_key
 
+    # ── Feature 7: Audit Logging & Proxy Trust ────────────────────────────────
+    trusted_proxy: bool = False
+
+    @property
+    def TRUSTED_PROXY(self) -> bool:
+        """Accessor for trusted proxy configuration."""
+        return self.trusted_proxy
+
+
     # ── CORS ──────────────────────────────────────────────────────────────────
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
 
