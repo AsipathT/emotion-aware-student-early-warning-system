@@ -34,6 +34,20 @@ class Settings(BaseSettings):
     )
     mongo_db_name: str = "lms_db"
 
+    # Optional test database overrides
+    test_mongo_uri: str = ""
+    test_db_name: str = ""
+
+    @property
+    def MONGODB_URI(self) -> str:
+        """Alias for mongo_uri."""
+        return self.mongo_uri
+
+    @property
+    def DB_NAME(self) -> str:
+        """Alias for mongo_db_name."""
+        return self.mongo_db_name
+
     # ── Feature 5: Pseudonymization & Privacy ─────────────────────────────────
     pseudonym_secret_key: str = "lms_pseudonym_hmac_secret_key_2026_super_secure"
 

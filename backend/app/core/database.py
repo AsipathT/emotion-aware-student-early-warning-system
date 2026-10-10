@@ -10,11 +10,17 @@ from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
 from app.core.config import settings
 
+def create_mongo_client(uri: str | None = None) -> AsyncIOMotorClient:
+    """Creates a new Motor client instance configured with tz_aware=True and SSL certificates."""
+    target_uri = uri or settings.mongo_uri
+    kwargs = {"tz_aware": True}
+    if target_uri.startswith("mongodb+srv://") or "ssl=true" in target_uri.lower() or "tls=true" in target_uri.lower():
+        kwargs["tlsCAFile"] = certifi.where()
+    return AsyncIOMotorClient(target_uri, **kwargs)
+
+
 # Singleton Motor client connection to MongoDB Atlas
-client: AsyncIOMotorClient = AsyncIOMotorClient(
-    settings.mongo_uri,
-    tlsCAFile=certifi.where(),
-)
+client: AsyncIOMotorClient = create_mongo_client()
 db: AsyncIOMotorDatabase = client[settings.mongo_db_name]
 
 
