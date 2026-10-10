@@ -11,6 +11,8 @@ import { CourseCatalogPage } from './pages/CourseCatalogPage';
 import { CourseDetailPage } from './pages/CourseDetailPage';
 import { MyEnrollmentsPage } from './pages/MyEnrollmentsPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { ForumPage } from './pages/ForumPage';
+import { ForumThreadPage } from './pages/ForumThreadPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -87,6 +89,24 @@ export const App: React.FC = () => {
                 element={
                   <ProtectedRoute allowedRoles={['admin']}>
                     <AdminDashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Dushan: forum */}
+              <Route
+                path="/courses/:courseId/forum"
+                element={
+                  <ProtectedRoute>
+                    <ForumPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/courses/:courseId/forum/:threadId"
+                element={
+                  <ProtectedRoute>
+                    <ForumThreadPage />
                   </ProtectedRoute>
                 }
               />

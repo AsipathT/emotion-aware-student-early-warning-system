@@ -36,6 +36,21 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         print("[startup]  MongoDB Atlas connected successfully.")
     except Exception as exc:
         print(f"[startup]  Warning: MongoDB ping failed: {exc}")
+
+    # --- Dushan: forum indexes ---
+    try:
+        from app.core.database import db as _db
+        await _db.forum_threads.create_index(
+            [("course_id", 1), ("last_activity_at", -1)],
+            background=True,
+        )
+        await _db.forum_posts.create_index(
+            [("thread_id", 1), ("created_at", 1)],
+            background=True,
+        )
+    except Exception as exc:
+        print(f"[startup]  Warning: forum index creation failed: {exc}")
+
     yield
     # ---- shutdown ----
     from app.core.database import client
@@ -85,6 +100,10 @@ def create_app() -> FastAPI:
 
     from app.routers import enrollments  # noqa: E402
     app.include_router(enrollments.router)
+
+    # --- Dushan: communication / interventions ---
+    from app.routers import forum  # noqa: E402
+    app.include_router(forum.router)
 
     return app
 
