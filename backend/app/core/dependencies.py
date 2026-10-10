@@ -2,60 +2,32 @@
 backend/app/core/dependencies.py
 
 Reusable FastAPI dependency functions shared across all routers.
-
-Provided dependencies
----------------------
-  get_current_user   – Validates Bearer JWT and returns the active User ORM object.
-  require_roles      – Factory that returns a dependency enforcing a role allowlist.
-
-Usage
------
-    from app.core.dependencies import get_current_user, require_roles
-    from app.models.user import UserRole
-
-    # Any authenticated user:
-    @router.get("/me")
-    async def me(user: User = Depends(get_current_user)):
-        ...
-
-    # Admin or Counsellor only:
-    @router.get("/{user_id}", dependencies=[Depends(require_roles(UserRole.ADMIN, UserRole.COUNSELLOR))])
-    async def get_user(...):
-        ...
+Provides get_current_user, require_roles, and get_current_admin using MongoDB.
 """
 
-from typing import Callable, Optional, Sequence
-
+from typing import Callable
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.core.db import get_db
+from app.core.database import get_db
 from app.core.security import ACCESS_TOKEN_TYPE, decode_token
 from app.models.user import User, UserRole
 
 # HTTPBearer extracts the `Authorization: Bearer <token>` header.
-# auto_error=False allows get_current_user to raise standard 401 instead of 403.
-_bearer_scheme = HTTPBearer(auto_error=False)
+_bearer_scheme = HTTPBearer(auto_error=True)
 
 
 # ── get_current_user ──────────────────────────────────────────────────────────
 
 async def get_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(_bearer_scheme),
-    db: AsyncSession = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
+    db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> User:
     """
     Decode the Bearer JWT from the Authorization header, verify it is an
-    access token, and return the matching active User from the database.
-
-    Raises HTTP 401 for any of:
-      - Missing / malformed token
-      - Expired token
-      - Token type is not "access"
-      - User not found or deactivated
+    access token, and return the matching active User from MongoDB.
     """
     _unauth = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -78,15 +50,14 @@ async def get_current_user(
     if not user_id:
         raise _unauth
 
-    result = await db.execute(
-        select(User).where(User.id == user_id)
-    )
-    user: User | None = result.scalar_one_or_none()
+    user_doc = await db.users.find_one({"_id": user_id})
+    if not user_doc:
+        user_doc = await db.users.find_one({"id": user_id})
 
-    if user is None or not user.is_active:
+    if not user_doc or not user_doc.get("is_active", True):
         raise _unauth
 
-    return user
+    return User(**user_doc)
 
 
 # ── require_roles ─────────────────────────────────────────────────────────────
@@ -94,26 +65,8 @@ async def get_current_user(
 def require_roles(*allowed: UserRole) -> Callable:
     """
     Dependency factory that enforces role-based access control.
-
-    Parameters
-    ----------
-    *allowed : UserRole
-        One or more roles that are permitted to access the endpoint.
-
-    Returns
-    -------
-    Callable
-        A FastAPI dependency function that raises HTTP 403 if the current
-        user's role is not in *allowed*.
-
-    Example
-    -------
-        @router.get("/admin-only", dependencies=[Depends(require_roles(UserRole.ADMIN))])
-        async def admin_endpoint(): ...
     """
-    allowed_set: frozenset[UserRole] = frozenset(
-        UserRole(r) if isinstance(r, str) else r for r in allowed
-    )
+    allowed_set: frozenset[UserRole] = frozenset(allowed)
 
     async def _check(current_user: User = Depends(get_current_user)) -> User:
         if current_user.role not in allowed_set:
@@ -127,3 +80,20 @@ def require_roles(*allowed: UserRole) -> Callable:
         return current_user
 
     return _check
+
+
+# ── get_current_admin ─────────────────────────────────────────────────────────
+
+async def get_current_admin(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """
+    Ensures the authenticated user has the ADMIN role.
+    Raises HTTP 403 Forbidden if the user is not an administrator.
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Administrative privileges required. Access denied.",
+        )
+    return current_user

@@ -1,52 +1,45 @@
+"""
+backend/app/models/enrollment.py
+
+MongoDB Enrollment document model (Feature 4).
+"""
+
 import uuid
-from datetime import datetime
-from typing import TYPE_CHECKING, Optional
+from datetime import datetime, timezone
+from typing import Any, Optional
 
-from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.core.db import Base
-
-if TYPE_CHECKING:
-    from app.models.user import User
-    from app.models.course import Course
+from pydantic import BaseModel, Field
 
 
-class Enrollment(Base):
+class Enrollment(BaseModel):
     """
-    Minimal enrollment model owned by Member 1 — extend, do not duplicate.
+    Enrollment document stored in MongoDB 'enrollments' collection.
     """
-    __tablename__ = "enrollments"
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    student_id: uuid.UUID
+    course_id: uuid.UUID
+    status: str = "active"
+    enrolled_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    course: Optional[Any] = None
+    student: Optional[Any] = None
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True
-    )
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    course_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("courses.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    status: Mapped[str] = mapped_column(
-        String(50), default="active", nullable=False, index=True
-    )
-    enrolled_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
-    withdrawn_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
-    )
+    model_config = {
+        "from_attributes": True,
+        "populate_by_name": True,
+    }
 
-    __table_args__ = (
-        UniqueConstraint("user_id", "course_id", name="uix_enrollment_user_course"),
-    )
-
-    user: Mapped["User"] = relationship("User", lazy="noload")
-    course: Mapped["Course"] = relationship("Course", lazy="noload")
+    def to_mongo(self) -> dict:
+        """Converts enrollment to dictionary for MongoDB insertion."""
+        eid = str(self.id)
+        sid = str(self.student_id)
+        cid = str(self.course_id)
+        return {
+            "_id": eid,
+            "id": eid,
+            "student_id": sid,
+            "course_id": cid,
+            "status": self.status,
+            "enrolled_at": self.enrolled_at,
+            "updated_at": self.updated_at,
+        }

@@ -1,172 +1,80 @@
 """
 backend/app/models/course.py
 
-SQLAlchemy 2.0 models for Course and Module management.
-
-Relationships
--------------
-  User (Lecturer) 1 ──< * Course
-  Course          1 ──< * Module
+MongoDB Course and Module document models (Feature 3).
 """
 
 import uuid
-from datetime import date, datetime
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from datetime import datetime, timezone
+from typing import Any, List, Optional
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Text, func
-from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.types import JSON
-
-from app.core.db import Base
-
-if TYPE_CHECKING:
-    from app.models.user import User
+from pydantic import BaseModel, Field
 
 
-class Course(Base):
+class Module(BaseModel):
     """
-    Academic course managed by a lecturer or administrator.
+    Learning module or weekly unit embedded within a Course document.
     """
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    course_id: uuid.UUID
+    title: str
+    content_payload: Optional[Any] = Field(default_factory=dict)
+    sequence_order: int = 1
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    __tablename__ = "courses"
+    model_config = {
+        "from_attributes": True,
+        "populate_by_name": True,
+    }
 
-    # ── Primary key ───────────────────────────────────────────────────────────
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4,
-        index=True,
-    )
-
-    # ── Core details ──────────────────────────────────────────────────────────
-    title: Mapped[str] = mapped_column(
-        String(255),
-        nullable=False,
-        index=True,
-    )
-    description: Mapped[Optional[str]] = mapped_column(
-        Text,
-        nullable=True,
-    )
-
-    # ── Ownership (Lecturer) ──────────────────────────────────────────────────
-    lecturer_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-
-    # ── Visibility ────────────────────────────────────────────────────────────
-    is_published: Mapped[bool] = mapped_column(
-        Boolean,
-        default=False,
-        nullable=False,
-        index=True,
-    )
-
-    # ── Scheduling ────────────────────────────────────────────────────────────
-    start_date: Mapped[Optional[date]] = mapped_column(
-        Date,
-        nullable=True,
-    )
-    end_date: Mapped[Optional[date]] = mapped_column(
-        Date,
-        nullable=True,
-    )
-
-    # ── UTC Timestamps ────────────────────────────────────────────────────────
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False,
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False,
-    )
-
-    # ── Relationships ─────────────────────────────────────────────────────────
-    lecturer: Mapped["User"] = relationship(
-        "User",
-        back_populates="courses_taught",
-        lazy="noload",
-    )
-
-    modules: Mapped[List["Module"]] = relationship(
-        "Module",
-        back_populates="course",
-        cascade="all, delete-orphan",
-        order_by="Module.sequence_order",
-        lazy="noload",
-    )
-
-    def __repr__(self) -> str:  # pragma: no cover
-        return f"<Course id={self.id} title={self.title!r} published={self.is_published}>"
+    def to_mongo(self) -> dict:
+        """Converts module to dictionary for MongoDB array insertion."""
+        mid = str(self.id)
+        cid = str(self.course_id)
+        return {
+            "_id": mid,
+            "id": mid,
+            "course_id": cid,
+            "title": self.title,
+            "content_payload": self.content_payload,
+            "sequence_order": self.sequence_order,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
 
 
-class Module(Base):
+class Course(BaseModel):
     """
-    Learning module or week-by-week unit within a Course.
+    Course document stored in MongoDB 'courses' collection.
+    Modules are embedded directly inside the document.
     """
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    title: str
+    description: Optional[str] = None
+    lecturer_id: uuid.UUID
+    is_published: bool = False
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    modules: List[Module] = Field(default_factory=list)
 
-    __tablename__ = "modules"
+    model_config = {
+        "from_attributes": True,
+        "populate_by_name": True,
+    }
 
-    # ── Primary key ───────────────────────────────────────────────────────────
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4,
-        index=True,
-    )
-
-    # ── Parent course ─────────────────────────────────────────────────────────
-    course_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("courses.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-
-    # ── Module details ────────────────────────────────────────────────────────
-    title: Mapped[str] = mapped_column(
-        String(255),
-        nullable=False,
-    )
-    content_payload: Mapped[Optional[Any]] = mapped_column(
-        JSON,
-        nullable=True,
-        default=dict,
-        comment="Structured learning content, assignments, resources, or metadata.",
-    )
-    sequence_order: Mapped[int] = mapped_column(
-        Integer,
-        default=1,
-        nullable=False,
-    )
-
-    # ── UTC Timestamps ────────────────────────────────────────────────────────
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False,
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False,
-    )
-
-    # ── Relationships ─────────────────────────────────────────────────────────
-    course: Mapped["Course"] = relationship(
-        "Course",
-        back_populates="modules",
-        lazy="noload",
-    )
-
-    def __repr__(self) -> str:  # pragma: no cover
-        return f"<Module id={self.id} course_id={self.course_id} title={self.title!r}>"
+    def to_mongo(self) -> dict:
+        """Converts course to dictionary for MongoDB insertion."""
+        cid = str(self.id)
+        lid = str(self.lecturer_id)
+        return {
+            "_id": cid,
+            "id": cid,
+            "title": self.title,
+            "description": self.description,
+            "lecturer_id": lid,
+            "is_published": self.is_published,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+            "modules": [m.to_mongo() if hasattr(m, "to_mongo") else m for m in self.modules],
+        }

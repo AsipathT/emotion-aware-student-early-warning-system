@@ -4,12 +4,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Navbar } from './components/Navbar';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
-import { CourseAnalyticsPage } from './pages/CourseAnalyticsPage';
-import { CourseContentPage } from './pages/CourseContentPage';
-import { VideoPlayerPage } from './pages/VideoPlayerPage';
-import { AttendancePage } from './pages/AttendancePage';
-import { GradebookPage } from './pages/GradebookPage';
+import { ProfilePage } from './pages/ProfilePage';
+import { CourseCatalogPage } from './pages/CourseCatalogPage';
+import { CourseDetailPage } from './pages/CourseDetailPage';
+import { MyEnrollmentsPage } from './pages/MyEnrollmentsPage';
+import { AdminDashboardPage } from './pages/AdminDashboardPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,12 +25,13 @@ export const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+        <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
           <Navbar />
           <main className="flex-1">
             <Routes>
-              {/* Public Authentication Route */}
+              {/* Public Authentication Routes */}
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
 
               {/* Protected LMS Dashboard */}
               <Route
@@ -40,48 +42,56 @@ export const App: React.FC = () => {
                   </ProtectedRoute>
                 }
               />
+
+              {/* Protected Course & Curriculum Management */}
               <Route
-                path="/courses/:courseId/analytics"
+                path="/courses"
                 element={
                   <ProtectedRoute>
-                    <CourseAnalyticsPage />
+                    <CourseCatalogPage />
                   </ProtectedRoute>
                 }
               />
               <Route
-                path="/courses/:courseId/content"
+                path="/courses/:courseId"
                 element={
                   <ProtectedRoute>
-                    <CourseContentPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/courses/:courseId/video"
-                element={
-                  <ProtectedRoute>
-                    <VideoPlayerPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/courses/:courseId/attendance"
-                element={
-                  <ProtectedRoute>
-                    <AttendancePage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/courses/:courseId/gradebook"
-                element={
-                  <ProtectedRoute>
-                    <GradebookPage />
+                    <CourseDetailPage />
                   </ProtectedRoute>
                 }
               />
 
-              {/* Catch-all redirect */}
+              {/* Protected Student Enrollments (Student Only) */}
+              <Route
+                path="/my-courses"
+                element={
+                  <ProtectedRoute allowedRoles={['student']}>
+                    <MyEnrollmentsPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Protected User Profile Dashboard */}
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <ProfilePage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Protected Admin Governance Panel (Admin Only) */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AdminDashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Fallback redirect */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>
