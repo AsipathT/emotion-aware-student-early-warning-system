@@ -18,7 +18,9 @@ export interface TokenResponse {
   access_token: string;
   refresh_token: string;
   token_type: string;
+  consent_required?: boolean;
 }
+
 
 export interface UserProfile {
   id: string;

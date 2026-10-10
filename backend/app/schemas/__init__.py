@@ -32,4 +32,19 @@ from app.schemas.enrollment import (  # noqa: F401
     EnrollmentStudentSummary,
     EnrollmentUpdate,
 )
+from app.schemas.export import (  # noqa: F401
+    BaseSafeExportModel,
+    DropoutRiskExport,
+    EmotionLogExport,
+    EngagementMetricExport,
+    StudentSafeProfileExport,
+)
+from app.schemas.consent import (  # noqa: F401
+    ConsentDecision,
+    ConsentDecisionRequest,
+    ConsentNotice,
+    ConsentNoticeCreate,
+    ConsentRecord,
+    ConsentStatusResponse,
+)
 

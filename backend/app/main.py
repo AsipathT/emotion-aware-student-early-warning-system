@@ -17,8 +17,11 @@ from typing import AsyncGenerator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from datetime import datetime, timezone
+
 from app.core.config import settings
 from app.routers import health
+
 
 
 # ── Lifespan ──────────────────────────────────────────────────────────────────
@@ -31,11 +34,35 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     print(f"[startup]  environment : {settings.app_env}")
     print(f"[startup]  database    : MongoDB Atlas ({settings.mongo_db_name})")
     try:
-        from app.core.database import client
+        from app.core.database import client, db
         await client.admin.command('ping')
         print("[startup]  MongoDB Atlas connected successfully.")
+
+        # Feature 6: Seed initial default consent notice if collection is empty
+        notice_count = await db.consent_notices.count_documents({})
+        if notice_count == 0:
+            import uuid
+            DEFAULT_NOTICE_TEXT = (
+                "To help us notice when students may need support, this LMS records how you use it: "
+                "logins, page and video activity, submissions, grades, attendance and the messages you post. "
+                "Messages and activity are processed with your identity replaced by a code before any analysis. "
+                "Results are only seen by authorised counsellors and academic staff, who use them to offer help. "
+                "They are never used for grading or disciplinary action. "
+                "You can withdraw at any time in your profile, and this will not affect your access to your courses."
+            )
+            now = datetime.now(timezone.utc)
+            seed_doc = {
+                "_id": str(uuid.uuid4()),
+                "id": str(uuid.uuid4()),
+                "version": 1,
+                "text": DEFAULT_NOTICE_TEXT,
+                "effective_from": now,
+                "is_active": True,
+            }
+            await db.consent_notices.insert_one(seed_doc)
+            print("[startup]  Feature 6: Default Consent Notice v1 seeded successfully.")
     except Exception as exc:
-        print(f"[startup]  Warning: MongoDB ping failed: {exc}")
+        print(f"[startup]  Warning: MongoDB startup check failed: {exc}")
     yield
     # ---- shutdown ----
     from app.core.database import client
@@ -85,6 +112,12 @@ def create_app() -> FastAPI:
 
     from app.routers import enrollments  # noqa: E402
     app.include_router(enrollments.router)
+
+    from app.routers import privacy  # noqa: E402
+    app.include_router(privacy.router)
+
+    from app.routers import consent  # noqa: E402
+    app.include_router(consent.router)
 
     return app
 

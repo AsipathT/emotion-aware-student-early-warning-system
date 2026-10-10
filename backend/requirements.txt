@@ -12,6 +12,9 @@ motor>=3.6.0
 dnspython>=2.6.0
 certifi>=2024.7.4
 
+# ── Natural Language Processing & Privacy ─────
+spacy>=3.8.0
+
 # ── Security ───────────────────────────────────
 python-jose[cryptography]>=3.3.0
 bcrypt>=4.2.0                   # direct bcrypt hashing (compatible with Python 3.11 - 3.14+)

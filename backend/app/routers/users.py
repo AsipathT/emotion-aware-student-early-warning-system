@@ -2,6 +2,7 @@
 backend/app/routers/users.py
 
 User profile management endpoints (MongoDB backed).
+Integrates with Feature 5 Identity Vault for student pseudonymization sync.
 """
 
 import uuid
@@ -12,6 +13,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_roles
+from app.core.privacy import pseudonymize
 from app.models.user import User, UserRole
 from app.schemas.profile import ProfileResponse, ProfileUpdate, UserDetailResponse, UserMeResponse
 
@@ -44,7 +46,7 @@ async def get_me(
     "/me/profile",
     response_model=ProfileResponse,
     summary="Create or update the current user's profile",
-    description="Upserts the user's profile embedded document in MongoDB.",
+    description="Upserts the user's profile embedded document in MongoDB and synchronizes with Identity Vault.",
 )
 async def upsert_my_profile(
     body: ProfileUpdate,
@@ -70,9 +72,32 @@ async def upsert_my_profile(
     profile_dict.update(update_fields)
     profile_dict["updated_at"] = now
 
+    update_doc = {"profile": profile_dict, "updated_at": now}
+
+    # Feature 5: If student updates their student_id, sync with identity_vault
+    effective_student_id = profile_dict.get("student_id")
+    if current_user.role == UserRole.STUDENT and effective_student_id:
+        pid = pseudonymize(effective_student_id)
+        update_doc["pid"] = pid
+        update_doc["student_id"] = effective_student_id
+
+        vault_doc = {
+            "_id": pid,
+            "pid": pid,
+            "student_id": effective_student_id,
+            "name": current_user.full_name,
+            "email": current_user.email,
+            "updated_at": now,
+        }
+        await db.identity_vault.update_one(
+            {"pid": pid},
+            {"$set": vault_doc},
+            upsert=True,
+        )
+
     await db.users.update_one(
         {"_id": user_doc["_id"]},
-        {"$set": {"profile": profile_dict, "updated_at": now}},
+        {"$set": update_doc},
     )
 
     return ProfileResponse(**profile_dict)

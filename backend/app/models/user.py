@@ -34,6 +34,8 @@ class User(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     profile: Optional[Any] = None
+    student_id: Optional[str] = None
+    pid: Optional[str] = None
 
     model_config = {
         "from_attributes": True,
@@ -43,7 +45,7 @@ class User(BaseModel):
     def to_mongo(self) -> dict:
         """Converts model to dictionary ready for MongoDB insertion."""
         uid = str(self.id)
-        return {
+        doc = {
             "_id": uid,
             "id": uid,
             "email": self.email,
@@ -56,3 +58,9 @@ class User(BaseModel):
             "updated_at": self.updated_at,
             "profile": self.profile,
         }
+        if self.student_id:
+            doc["student_id"] = self.student_id
+        if self.pid:
+            doc["pid"] = self.pid
+        return doc
+

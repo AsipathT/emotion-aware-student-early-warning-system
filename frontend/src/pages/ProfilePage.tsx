@@ -14,6 +14,8 @@ import {
   Calendar,
   Sparkles,
 } from 'lucide-react';
+import { PrivacySettings } from '../components/profile/PrivacySettings';
+
 
 export const ProfilePage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -406,6 +408,10 @@ export const ProfilePage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Feature 6: Ethics & Privacy Consent Management (Students) */}
+      {userData.role === 'student' && <PrivacySettings />}
     </div>
   );
 };
+
