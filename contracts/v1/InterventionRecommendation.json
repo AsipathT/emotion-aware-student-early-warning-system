@@ -1,0 +1,91 @@
+{
+  "$defs": {
+    "InterventionCandidate": {
+      "additionalProperties": false,
+      "description": "A single suggested intervention strategy evaluated by Component 4.",
+      "properties": {
+        "intervention_type": {
+          "description": "Categorical type of suggested intervention (e.g. peer_tutoring, academic_advising, counsellor_outreach)",
+          "minLength": 1,
+          "title": "Intervention Type",
+          "type": "string"
+        },
+        "rank": {
+          "description": "Ordinal recommendation priority rank (1 = highest priority)",
+          "minimum": 1,
+          "title": "Rank",
+          "type": "integer"
+        },
+        "rationale": {
+          "description": "Model explanation justifying why this intervention was selected (max 500 chars)",
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Rationale",
+          "type": "string"
+        },
+        "suitability_score": {
+          "description": "Predicted match suitability score for this student's risk profile (0.0 - 1.0)",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Suitability Score",
+          "type": "number"
+        }
+      },
+      "required": [
+        "intervention_type",
+        "suitability_score",
+        "rationale",
+        "rank"
+      ],
+      "title": "InterventionCandidate",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Ranked intervention recommendations generated for an at-risk student.\nTransmitted from Component 4 to LMS database (Feature 23).\nCandidates must contain 1-10 items with unique, consecutive ranks starting at 1.",
+  "properties": {
+    "candidates": {
+      "description": "List of 1 to 10 recommended intervention candidates ordered by priority",
+      "items": {
+        "$ref": "#/$defs/InterventionCandidate"
+      },
+      "maxItems": 10,
+      "minItems": 1,
+      "title": "Candidates",
+      "type": "array"
+    },
+    "pid": {
+      "description": "Pseudonymized student identifier (Feature 5 format)",
+      "pattern": "^STU_[0-9a-fA-F]{8}$",
+      "title": "Pid",
+      "type": "string"
+    },
+    "recommendation_id": {
+      "description": "Unique identifier for this recommendation batch",
+      "minLength": 1,
+      "title": "Recommendation Id",
+      "type": "string"
+    },
+    "status": {
+      "description": "Operational status of the recommendation (e.g. proposed, active, resolved)",
+      "minLength": 1,
+      "title": "Status",
+      "type": "string"
+    },
+    "week_index": {
+      "description": "Zero-indexed academic week of recommendation",
+      "minimum": 0,
+      "title": "Week Index",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "recommendation_id",
+    "pid",
+    "week_index",
+    "candidates",
+    "status"
+  ],
+  "title": "InterventionRecommendation",
+  "type": "object"
+}

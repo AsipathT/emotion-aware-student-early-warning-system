@@ -176,6 +176,9 @@ def create_app() -> FastAPI:
     from app.routers import audit  # noqa: E402
     app.include_router(audit.router)
 
+    from app.routers import contract  # noqa: E402
+    app.include_router(contract.router)
+
     return app
 
 

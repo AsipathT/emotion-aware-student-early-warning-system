@@ -1,0 +1,107 @@
+{
+  "$defs": {
+    "ModalityContributions": {
+      "additionalProperties": false,
+      "description": "Normalized proportional contribution of each data modality to the overall risk prediction.\nMust sum to 1.0 within a floating-point tolerance of 0.01.",
+      "properties": {
+        "academic": {
+          "description": "Proportion of risk attributed to academic performance & attendance (0.0 - 1.0)",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Academic",
+          "type": "number"
+        },
+        "affective": {
+          "description": "Proportion of risk attributed to affective / distress signals (0.0 - 1.0)",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Affective",
+          "type": "number"
+        },
+        "behavioral": {
+          "description": "Proportion of risk attributed to engagement & LMS clickstream signals (0.0 - 1.0)",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Behavioral",
+          "type": "number"
+        }
+      },
+      "required": [
+        "affective",
+        "behavioral",
+        "academic"
+      ],
+      "title": "ModalityContributions",
+      "type": "object"
+    },
+    "RiskTier": {
+      "description": "Multimodal dropout or disengagement risk classification produced by C3.",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "title": "RiskTier",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Multimodal student dropout or disengagement risk assessment.\nCombines affective, behavioral, and academic dimensions.\nTransmitted from Component 3 to LMS database (Feature 23).",
+  "properties": {
+    "course_id": {
+      "description": "Course institutional identifier",
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Course Id",
+      "type": "string"
+    },
+    "modality_contributions": {
+      "$ref": "#/$defs/ModalityContributions",
+      "description": "Proportional attribution across affective, behavioral, and academic sources"
+    },
+    "pid": {
+      "description": "Pseudonymized student identifier (Feature 5 format)",
+      "pattern": "^STU_[0-9a-fA-F]{8}$",
+      "title": "Pid",
+      "type": "string"
+    },
+    "risk_score": {
+      "description": "Comprehensive composite risk probability score (0.0 to 1.0)",
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Risk Score",
+      "type": "number"
+    },
+    "risk_tier": {
+      "$ref": "#/$defs/RiskTier",
+      "description": "Categorical risk classification (low, medium, high, critical)"
+    },
+    "top_drivers": {
+      "description": "Key risk factors and multimodal indicators (maximum 10)",
+      "items": {
+        "description": "Scrubbed text safe from personal identifiers",
+        "type": "string"
+      },
+      "maxItems": 10,
+      "title": "Top Drivers",
+      "type": "array"
+    },
+    "week_index": {
+      "description": "Zero-indexed academic week of evaluation",
+      "minimum": 0,
+      "title": "Week Index",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "pid",
+    "course_id",
+    "week_index",
+    "risk_score",
+    "risk_tier",
+    "modality_contributions"
+  ],
+  "title": "RiskAssessment",
+  "type": "object"
+}

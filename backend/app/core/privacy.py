@@ -60,6 +60,18 @@ def get_nlp():
 
 # ── Deterministic Pseudonymization ────────────────────────────────────────────
 
+# Student Pseudonym ID format: STU_ followed by exactly 8 hex characters
+PID_REGEX = re.compile(r"^STU_[0-9a-fA-F]{8}$")
+
+
+def is_valid_pid(pid: str) -> bool:
+    """
+    Validates whether a given string adheres to the Feature 5 student pseudonym
+    format: prefix 'STU_' followed by the first 8 hex characters of HMAC-SHA256.
+    """
+    return bool(isinstance(pid, str) and PID_REGEX.match(pid.strip()))
+
+
 def pseudonymize(student_id: str) -> str:
     """
     Creates a deterministic HMAC-SHA256 hash of the student_id using

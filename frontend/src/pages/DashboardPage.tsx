@@ -13,6 +13,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { BookOpen, Users, Brain, ShieldAlert, Award } from 'lucide-react';
+import IdentityRevealModal from '../components/privacy/IdentityRevealModal';
 
 interface CourseItem {
   id: string;
@@ -109,6 +110,12 @@ export const DashboardPage: React.FC = () => {
             <p className="text-2xl font-bold text-gray-900">3 Pending</p>
           </div>
         </div>
+      </div>
+
+      <div className="mt-8 p-6 bg-white rounded-lg shadow border border-gray-200">
+        <h3 className="text-lg font-bold text-gray-800 mb-4">Test Feature 5: Privacy Reveal</h3>
+        <p className="text-sm text-gray-600 mb-4">Testing reveal for pseudonym: STU_cdbe990a</p>
+        <IdentityRevealModal pid="STU_fa91e2c6" />
       </div>
 
       {/* Analytics Chart & Courses Section */}

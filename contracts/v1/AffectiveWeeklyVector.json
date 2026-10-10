@@ -1,0 +1,113 @@
+{
+  "$defs": {
+    "DistressClass": {
+      "description": "Fine-grained student academic distress categories identified by C1.",
+      "enum": [
+        "exam_anxiety",
+        "conceptual_confusion",
+        "academic_helplessness",
+        "course_frustration",
+        "motivation_erosion"
+      ],
+      "title": "DistressClass",
+      "type": "string"
+    },
+    "TopDriver": {
+      "additionalProperties": false,
+      "description": "Token, n-gram, or linguistic marker driving an affective classification.",
+      "properties": {
+        "token_or_marker": {
+          "description": "Linguistic feature or key marker token explaining distress",
+          "title": "Token Or Marker",
+          "type": "string"
+        },
+        "weight": {
+          "description": "Model attribution or attention weight associated with this driver",
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "token_or_marker",
+        "weight"
+      ],
+      "title": "TopDriver",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Aggregated affective distress distribution and stress indicators for a student\nover a one-week observation window.\nTransmitted from Component 1 to the LMS database (Feature 23).",
+  "properties": {
+    "confidence": {
+      "description": "Model prediction confidence score between 0.0 and 1.0",
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Confidence",
+      "type": "number"
+    },
+    "course_id": {
+      "description": "Course institutional identifier",
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Course Id",
+      "type": "string"
+    },
+    "emotion_scores": {
+      "additionalProperties": {
+        "description": "Normalized metric score bounded between 0.0 and 1.0 inclusive",
+        "maximum": 1.0,
+        "minimum": 0.0,
+        "type": "number"
+      },
+      "description": "Probability distribution across all 5 DistressClass categories (all keys mandatory)",
+      "propertyNames": {
+        "$ref": "#/$defs/DistressClass"
+      },
+      "title": "Emotion Scores",
+      "type": "object"
+    },
+    "message_count": {
+      "description": "Total volume of text messages analyzed during this weekly window",
+      "minimum": 0,
+      "title": "Message Count",
+      "type": "integer"
+    },
+    "pid": {
+      "description": "Pseudonymized student identifier (Feature 5 format)",
+      "pattern": "^STU_[0-9a-fA-F]{8}$",
+      "title": "Pid",
+      "type": "string"
+    },
+    "stress_label": {
+      "description": "Dominant or summary stress category designation",
+      "title": "Stress Label",
+      "type": "string"
+    },
+    "top_drivers": {
+      "description": "Top explanatory markers or keywords (maximum 10)",
+      "items": {
+        "$ref": "#/$defs/TopDriver"
+      },
+      "maxItems": 10,
+      "title": "Top Drivers",
+      "type": "array"
+    },
+    "week_index": {
+      "description": "Zero-indexed academic week of evaluation",
+      "minimum": 0,
+      "title": "Week Index",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "pid",
+    "course_id",
+    "week_index",
+    "emotion_scores",
+    "stress_label",
+    "confidence",
+    "message_count"
+  ],
+  "title": "AffectiveWeeklyVector",
+  "type": "object"
+}

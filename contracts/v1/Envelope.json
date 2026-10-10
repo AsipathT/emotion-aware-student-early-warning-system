@@ -1,0 +1,105 @@
+{
+  "$defs": {
+    "ComponentSource": {
+      "description": "Originating subsystem or ML component that generated the envelope.",
+      "enum": [
+        "lms",
+        "c1",
+        "c2",
+        "c3",
+        "c4"
+      ],
+      "title": "ComponentSource",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Standardized transmission envelope wrapping all LMS <-> ML component payloads.\nProvides semantic contract versioning, origin tagging, correlation request IDs,\nand optional pagination metadata for batch queries.",
+  "properties": {
+    "data": {
+      "anyOf": [
+        {},
+        {
+          "items": {},
+          "type": "array"
+        }
+      ],
+      "description": "The strongly-typed payload entity or list of entities",
+      "title": "Data"
+    },
+    "generated_at": {
+      "description": "UTC timestamp recording when this envelope payload was assembled",
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "page": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Current 1-based page index for list responses",
+      "title": "Page"
+    },
+    "page_size": {
+      "anyOf": [
+        {
+          "maximum": 500,
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Items per page for list responses (maximum 500)",
+      "title": "Page Size"
+    },
+    "request_id": {
+      "description": "Unique correlation request identifier (matches X-Request-ID)",
+      "minLength": 1,
+      "title": "Request Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "description": "Semantic contract version formatted as 'major.minor' string (e.g. '1.0')",
+      "pattern": "^\\d+\\.\\d+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/ComponentSource",
+      "description": "Emitting subsystem identifier (lms, c1, c2, c3, c4)"
+    },
+    "total": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Total number of items across all pages for batch list queries",
+      "title": "Total"
+    }
+  },
+  "required": [
+    "schema_version",
+    "generated_at",
+    "source",
+    "request_id",
+    "data"
+  ],
+  "title": "Envelope",
+  "type": "object"
+}
