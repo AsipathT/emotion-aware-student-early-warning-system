@@ -64,6 +64,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         from app.repositories.audit_repo import ensure_indexes
         await ensure_indexes(db)
         print("[startup]  Feature 7: Audit log indexes ensured.")
+
+        # Feature 21: Component export API keys check
+        if not settings.COMPONENT_API_KEYS:
+            import logging
+            logging.getLogger("app.main").warning(
+                "COMPONENT_API_KEYS is not configured. Component export endpoints will return HTTP 503."
+            )
     except Exception as exc:
         print(f"[startup]  Warning: MongoDB startup check failed: {exc}")
 
@@ -215,6 +222,8 @@ def create_app() -> FastAPI:
     from app.routers import contract  # noqa: E402
     app.include_router(contract.router)
 
+    from app.routers import export  # noqa: E402
+    app.include_router(export.router)
     # --- Dushan: communication / interventions ---
     from app.routers import forum  # noqa: E402
     app.include_router(forum.router)
