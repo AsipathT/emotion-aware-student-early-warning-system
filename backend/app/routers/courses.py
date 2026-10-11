@@ -113,6 +113,10 @@ async def list_courses(
 
     # Ensure modules are sorted by sequence_order in each course
     for c in courses_docs:
+        if "id" not in c or not c["id"]:
+            c["id"] = str(c.get("course_id") or c.get("_id"))
+        if "lecturer_id" not in c:
+            c["lecturer_id"] = None
         c["modules"] = sorted(
             c.get("modules", []),
             key=lambda m: m.get("sequence_order", 1),
@@ -130,7 +134,7 @@ async def list_courses(
     description="Fetches a course and its embedded modules from MongoDB.",
 )
 async def get_course(
-    course_id: uuid.UUID,
+    course_id: str,
     current_user: User = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> CourseResponse:
@@ -138,6 +142,8 @@ async def get_course(
     course_doc = await db.courses.find_one({"_id": cid_str})
     if not course_doc:
         course_doc = await db.courses.find_one({"id": cid_str})
+    if not course_doc:
+        course_doc = await db.courses.find_one({"course_id": cid_str})
 
     if not course_doc:
         raise HTTPException(
@@ -157,6 +163,11 @@ async def get_course(
                 detail="Course not found.",
             )
 
+    if "id" not in course_doc or not course_doc["id"]:
+        course_doc["id"] = str(course_doc.get("course_id") or course_doc.get("_id"))
+    if "lecturer_id" not in course_doc:
+        course_doc["lecturer_id"] = None
+
     course_doc["modules"] = sorted(
         course_doc.get("modules", []),
         key=lambda m: m.get("sequence_order", 1),
@@ -175,7 +186,7 @@ async def get_course(
     description="Pushes a new module into the course's modules array in MongoDB.",
 )
 async def add_module(
-    course_id: uuid.UUID,
+    course_id: str,
     body: ModuleCreate,
     current_user: User = Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN)),
     db: AsyncIOMotorDatabase = Depends(get_db),
@@ -184,6 +195,8 @@ async def add_module(
     course_doc = await db.courses.find_one({"_id": cid_str})
     if not course_doc:
         course_doc = await db.courses.find_one({"id": cid_str})
+    if not course_doc:
+        course_doc = await db.courses.find_one({"course_id": cid_str})
 
     if not course_doc:
         raise HTTPException(

@@ -33,14 +33,16 @@ router = APIRouter(tags=["enrollments"])
     description="Enrolls the authenticated student in the specified course in MongoDB.",
 )
 async def enroll_in_course(
-    course_id: uuid.UUID,
+    course_id: str,
     current_user: User = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> EnrollmentResponse:
     cid_str = str(course_id)
-    course_doc = await db.courses.find_one({"_id": cid_str})
-    if not course_doc:
-        course_doc = await db.courses.find_one({"id": cid_str})
+    course_doc = (
+        await db.courses.find_one({"_id": cid_str})
+        or await db.courses.find_one({"id": cid_str})
+        or await db.courses.find_one({"course_id": cid_str})
+    )
 
     if not course_doc:
         raise HTTPException(
@@ -83,10 +85,10 @@ async def enroll_in_course(
     # Attach nested course & student representations for schema
     user_doc = await db.users.find_one({"_id": uid_str}) or await db.users.find_one({"id": uid_str})
     enr_doc["course"] = EnrollmentCourseSummary(
-        id=course_doc["_id"],
+        id=course_doc.get("id") or course_doc["_id"],
         title=course_doc["title"],
         description=course_doc.get("description"),
-        lecturer_id=course_doc["lecturer_id"],
+        lecturer_id=course_doc.get("lecturer_id"),
         is_published=course_doc["is_published"],
         created_at=course_doc["created_at"],
     )
@@ -120,13 +122,17 @@ async def get_my_enrollments(
     results = []
     for enr in enrollments_docs:
         cid_str = enr["course_id"]
-        course_doc = await db.courses.find_one({"_id": cid_str}) or await db.courses.find_one({"id": cid_str})
+        course_doc = (
+            await db.courses.find_one({"_id": cid_str})
+            or await db.courses.find_one({"id": cid_str})
+            or await db.courses.find_one({"course_id": cid_str})
+        )
         if course_doc:
             enr["course"] = EnrollmentCourseSummary(
-                id=course_doc["_id"],
+                id=course_doc.get("id") or course_doc["_id"],
                 title=course_doc["title"],
                 description=course_doc.get("description"),
-                lecturer_id=course_doc["lecturer_id"],
+                lecturer_id=course_doc.get("lecturer_id"),
                 is_published=course_doc["is_published"],
                 created_at=course_doc["created_at"],
             )
@@ -144,12 +150,16 @@ async def get_my_enrollments(
     description="Returns the complete list of enrolled students for a given course from MongoDB.",
 )
 async def get_course_roster(
-    course_id: uuid.UUID,
+    course_id: str,
     current_user: User = Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN)),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> List[EnrollmentResponse]:
     cid_str = str(course_id)
-    course_doc = await db.courses.find_one({"_id": cid_str}) or await db.courses.find_one({"id": cid_str})
+    course_doc = (
+        await db.courses.find_one({"_id": cid_str})
+        or await db.courses.find_one({"id": cid_str})
+        or await db.courses.find_one({"course_id": cid_str})
+    )
     if not course_doc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -166,10 +176,10 @@ async def get_course_roster(
     roster_docs = await cursor.to_list(length=1000)
 
     course_summary = EnrollmentCourseSummary(
-        id=course_doc["_id"],
+        id=course_doc.get("id") or course_doc["_id"],
         title=course_doc["title"],
         description=course_doc.get("description"),
-        lecturer_id=course_doc["lecturer_id"],
+        lecturer_id=course_doc.get("lecturer_id"),
         is_published=course_doc["is_published"],
         created_at=course_doc["created_at"],
     )
