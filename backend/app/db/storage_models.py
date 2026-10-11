@@ -67,11 +67,31 @@ class StorageDocument(BaseModel):
         default="1.0",
         description="Contract specification version of incoming data payload",
     )
+    source: Optional[str] = Field(
+        default=None,
+        description="Data origin provenance, e.g. 'oulad' or 'synthetic'",
+    )
+    ingestion_run_id: Optional[str] = Field(
+        default=None,
+        description="Identifier of ingestion batch run",
+    )
 
     model_config = ConfigDict(
         populate_by_name=True,
         extra="forbid",
         str_strip_whitespace=True,
+    )
+
+
+class LegacyIdStorageDocument(StorageDocument):
+    """Storage base for collections whose routers still write a duplicate 'id' next to '_id'.
+
+    Temporary: remove once the routers stop writing 'id' and use '_id' only.
+    """
+    legacy_id: Optional[str] = Field(
+        default=None,
+        alias="id",
+        description="Deprecated duplicate of _id",
     )
 
 
@@ -178,7 +198,7 @@ class InterventionOutcomeStorage(StorageDocument):
 
 # ── Core LMS Domain Storage Models ────────────────────────────────────────────
 
-class UserStorage(StorageDocument):
+class UserStorage(LegacyIdStorageDocument):
     """Storage model for users collection."""
     email: str = Field(..., min_length=3)
     hashed_password: str = Field(..., min_length=1)
@@ -190,6 +210,7 @@ class UserStorage(StorageDocument):
     updated_at: UtcDatetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     student_id: Optional[str] = None
     pid: Optional[str] = None
+    profile: Optional[Dict[str, Any]] = Field(default=None, description="Embedded profile (Feature 2); free-form object or null")
 
 
 class IdentityVaultStorage(StorageDocument):
@@ -198,9 +219,12 @@ class IdentityVaultStorage(StorageDocument):
     student_id: str = Field(..., min_length=1)
     name: str = Field(..., min_length=1)
     email: str = Field(..., min_length=3)
+    is_imported: Optional[bool] = Field(default=False, description="Flag indicating externally imported identity")
+    created_at: Optional[UtcDatetime] = None
+    updated_at: Optional[UtcDatetime] = None
 
 
-class ConsentNoticeStorage(StorageDocument):
+class ConsentNoticeStorage(LegacyIdStorageDocument):
     """Storage model for consent_notices collection (Feature 6)."""
     version: int = Field(..., ge=1)
     text: str = Field(..., min_length=10)
@@ -208,7 +232,7 @@ class ConsentNoticeStorage(StorageDocument):
     is_active: bool = True
 
 
-class ConsentRecordStorage(StorageDocument):
+class ConsentRecordStorage(LegacyIdStorageDocument):
     """Storage model for consent_records collection (Feature 6)."""
     pid: Pid
     notice_version: int = Field(..., ge=1)
@@ -217,7 +241,7 @@ class ConsentRecordStorage(StorageDocument):
     ip_or_client: Optional[str] = None
 
 
-class AuditLogStorage(StorageDocument):
+class AuditLogStorage(LegacyIdStorageDocument):
     """Storage model for audit_logs collection (Feature 7)."""
     timestamp: UtcDatetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     actor_id: str = Field(..., min_length=1)
@@ -233,13 +257,15 @@ class AuditLogStorage(StorageDocument):
     details: Optional[Dict[str, Any]] = None
 
 
-class CourseStorage(StorageDocument):
+class CourseStorage(LegacyIdStorageDocument):
     """Storage model for courses collection."""
     course_id: CourseId
     title: str = Field(..., min_length=1)
     description: Optional[str] = None
-    lecturer_id: Optional[str] = None
+    lecturer_id: Optional[str] = Field(default=None, description="ID of the lecturer in charge")
     is_published: bool = False
+    presentation_length_days: Optional[int] = Field(default=None, ge=1, description="OULAD presentation duration in days")
+    modules: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Course modules list")
     created_at: UtcDatetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: UtcDatetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -260,6 +286,10 @@ class EnrolmentStorage(StorageDocument):
     enrolment_start: UtcDatetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     status: str = Field(default="active", min_length=1)
     enrolment_end: Optional[UtcDatetime] = None
+    final_result: Optional[str] = Field(default=None, description="Ground truth outcome e.g. Pass, Distinction, Fail, Withdrawn")
+    unregistration_week: Optional[int] = Field(default=None, ge=0, description="Week index when unregistration occurred")
+    date_registration: Optional[int] = Field(default=None, description="Raw day offset of registration")
+    date_unregistration: Optional[int] = Field(default=None, description="Raw day offset of unregistration")
 
 
 class AssignmentStorage(StorageDocument):
@@ -270,6 +300,8 @@ class AssignmentStorage(StorageDocument):
     title: str = Field(..., min_length=1)
     due_date: UtcDatetime
     max_points: float = Field(..., ge=0.0)
+    assessment_type: Optional[str] = Field(default=None, description="Assessment type e.g. TMA, CMA, Exam")
+    weight: Optional[float] = Field(default=None, ge=0.0, le=100.0, description="Assessment weight percentage")
 
 
 class SubmissionStorage(StorageDocument):
@@ -281,6 +313,9 @@ class SubmissionStorage(StorageDocument):
     submitted_at: UtcDatetime
     score: Optional[float] = Field(default=None, ge=0.0)
     feedback: Optional[str] = None
+    is_banked: Optional[bool] = Field(default=False, description="Banked submission from previous presentation")
+    delay_hours: Optional[float] = Field(default=None, description="Submission delay relative to assessment date in hours")
+    date_submitted: Optional[int] = Field(default=None, description="Raw day offset of submission")
 
 
 class QuizStorage(StorageDocument):
@@ -308,6 +343,7 @@ class GradeStorage(WeeklyStorageDocument):
     score: float = Field(..., ge=0.0)
     max_score: float = Field(..., gt=0.0)
     weight_pct: Optional[float] = Field(default=None, ge=0.0, le=100.0)
+    assessment_id: Optional[str] = Field(default=None, description="OULAD assessment identifier")
 
 
 class AttendanceStorage(WeeklyStorageDocument):
@@ -325,6 +361,9 @@ class ActivityEventStorage(StorageDocument):
     timestamp: UtcDatetime
     event_type: str = Field(..., min_length=1)
     event_payload: Optional[Dict[str, Any]] = None
+    timestamp_precision: Optional[str] = Field(default=None, description="Temporal resolution e.g. 'day', 'second'")
+    resource_id: Optional[str] = Field(default=None, description="VLE site/resource identifier")
+    clicks: Optional[int] = Field(default=None, ge=0, description="Sum of clicks for daily interaction")
 
 
 class InterventionStorage(StorageDocument):
@@ -354,3 +393,5 @@ class IngestionRunStorage(StorageDocument):
     status: str = Field(default="running")
     records_processed: int = Field(default=0, ge=0)
     error_message: Optional[str] = None
+    details: Optional[Dict[str, Any]] = Field(default=None, description="Detailed run metrics and collection counts")
+    dry_run: Optional[bool] = Field(default=False, description="Whether run was a dry run")

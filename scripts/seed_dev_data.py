@@ -91,9 +91,12 @@ async def seed_data(db: AsyncIOMotorDatabase) -> None:
         cid = c["course_id"]
         course_doc = {
             "_id": cid,
+            "id": cid,
             "course_id": cid,
             "title": c["title"],
             "description": c["description"],
+            "lecturer_id": "dummy-lecturer-uuid",
+            "modules": [],
             "is_published": True,
             "schema_version": 1,
             "ingested_at": base_time,

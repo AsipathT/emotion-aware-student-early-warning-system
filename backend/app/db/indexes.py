@@ -108,9 +108,14 @@ COLLECTION_INDEXES: Dict[str, List[IndexModel]] = {
     ],
     col.GRADES: [
         IndexModel(
-            [("pid", ASCENDING), ("course_id", ASCENDING), ("week_index", ASCENDING)],
+            [("pid", ASCENDING), ("course_id", ASCENDING), ("assessment_id", ASCENDING)],
             unique=True,
-            name="idx_grades_compound_weekly_unique",
+            name="idx_grades_pid_course_assessment_unique",
+            partialFilterExpression={"assessment_id": {"$exists": True}},
+        ),
+        IndexModel(
+            [("pid", ASCENDING), ("course_id", ASCENDING), ("week_index", ASCENDING)],
+            name="idx_grades_compound_weekly",
         ),
     ],
     col.ATTENDANCE: [

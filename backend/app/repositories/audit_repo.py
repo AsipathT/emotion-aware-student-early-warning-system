@@ -24,6 +24,7 @@ async def insert_audit_log(
     """
     doc = log_entry.model_dump(by_alias=True)
     doc["_id"] = log_entry.id
+    doc["id"] = log_entry.id
     # Ensure datetime object is stored directly in Mongo
     doc["timestamp"] = log_entry.timestamp
 
