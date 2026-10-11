@@ -10,6 +10,7 @@ import {
   GraduationCap,
   Shield,
   BookmarkCheck,
+  MessageCircle,
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -77,6 +78,21 @@ export const Navbar: React.FC = () => {
                     >
                       <BookmarkCheck className="w-4 h-4 mr-1.5" />
                       My Courses
+                    </Link>
+                  )}
+
+                  {/* Dushan: Messages link for chat-allowed roles */}
+                  {(user.role === 'student' || user.role === 'lecturer' || user.role === 'counsellor') && (
+                    <Link
+                      to="/messages"
+                      className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                        isCurrent('/messages')
+                          ? 'text-indigo-600 bg-indigo-50/80 font-semibold'
+                          : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <MessageCircle className="w-4 h-4 mr-1.5" />
+                      Messages
                     </Link>
                   )}
 

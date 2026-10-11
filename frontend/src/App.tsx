@@ -13,6 +13,7 @@ import { MyEnrollmentsPage } from './pages/MyEnrollmentsPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { ForumPage } from './pages/ForumPage';
 import { ForumThreadPage } from './pages/ForumThreadPage';
+import { ChatPage } from './pages/ChatPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -107,6 +108,16 @@ export const App: React.FC = () => {
                 element={
                   <ProtectedRoute>
                     <ForumThreadPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Dushan: chat */}
+              <Route
+                path="/messages"
+                element={
+                  <ProtectedRoute allowedRoles={['student', 'lecturer', 'counsellor']}>
+                    <ChatPage />
                   </ProtectedRoute>
                 }
               />
