@@ -13,6 +13,9 @@ import { CourseDetailPage } from './pages/CourseDetailPage';
 import { MyEnrollmentsPage } from './pages/MyEnrollmentsPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AuditLogPage } from './pages/admin/AuditLogPage';
+import { ForumPage } from './pages/ForumPage';
+import { ForumThreadPage } from './pages/ForumThreadPage';
+import { ChatPage } from './pages/ChatPage';
 
 
 const queryClient = new QueryClient({
@@ -106,6 +109,33 @@ export const App: React.FC = () => {
                 }
               />
 
+              {/* Dushan: forum */}
+              <Route
+                path="/courses/:courseId/forum"
+                element={
+                  <ProtectedRoute>
+                    <ForumPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/courses/:courseId/forum/:threadId"
+                element={
+                  <ProtectedRoute>
+                    <ForumThreadPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Dushan: chat */}
+              <Route
+                path="/messages"
+                element={
+                  <ProtectedRoute allowedRoles={['student', 'lecturer', 'counsellor']}>
+                    <ChatPage />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Fallback redirect */}
               <Route path="*" element={<Navigate to="/" replace />} />
