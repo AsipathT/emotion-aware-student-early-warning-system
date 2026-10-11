@@ -5,8 +5,9 @@ Centralised application settings loaded from environment variables / .env file.
 Uses pydantic-settings v2 so every field is validated at startup.
 """
 
+import json
 from functools import lru_cache
-from typing import List
+from typing import Dict, List
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -63,6 +64,23 @@ class Settings(BaseSettings):
     def TRUSTED_PROXY(self) -> bool:
         """Accessor for trusted proxy configuration."""
         return self.trusted_proxy
+
+
+    # ── Feature 21: Component API Authentication ──────────────────────────────
+    component_api_keys: str = ""
+
+    @property
+    def COMPONENT_API_KEYS(self) -> Dict[str, str]:
+        """Parsed mapping of component scopes to secret API keys."""
+        if not self.component_api_keys:
+            return {}
+        try:
+            val = json.loads(self.component_api_keys)
+            if isinstance(val, dict):
+                return {str(k).lower().strip(): str(v).strip() for k, v in val.items()}
+        except Exception:
+            pass
+        return {}
 
 
     # ── CORS ──────────────────────────────────────────────────────────────────

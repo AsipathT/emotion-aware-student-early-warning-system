@@ -1,7 +1,8 @@
 """
 backend/app/routers/enrollments.py
 
-Course enrollment endpoints (MongoDB backed - Feature 4).
+Course enrollment endpoints (MongoDB backed - Feature 4 & Feature 21).
+Reads and writes to canonical col.ENROLMENTS using pseudonym identifiers (PID).
 """
 
 import uuid
@@ -13,6 +14,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_roles
+from app.db import collections as col
 from app.models.user import User, UserRole
 from app.schemas.enrollment import (
     EnrollmentCourseSummary,
@@ -33,15 +35,12 @@ router = APIRouter(tags=["enrollments"])
     description="Enrolls the authenticated student in the specified course in MongoDB.",
 )
 async def enroll_in_course(
-    course_id: uuid.UUID,
+    course_id: str,
     current_user: User = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> EnrollmentResponse:
-    cid_str = str(course_id)
-    course_doc = await db.courses.find_one({"_id": cid_str})
-    if not course_doc:
-        course_doc = await db.courses.find_one({"id": cid_str})
-
+    cid_str = str(course_id).strip()
+    course_doc = await db[col.COURSES].find_one({"_id": cid_str})
     if not course_doc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -55,9 +54,21 @@ async def enroll_in_course(
         )
 
     uid_str = str(current_user.id)
-    existing = await db.enrollments.find_one({
-        "student_id": uid_str,
+    user_doc = await db.users.find_one({"_id": uid_str})
+    if not user_doc:
+        user_doc = await db.users.find_one({"id": uid_str})
+
+    pid = (user_doc.get("pid") if user_doc else None) or getattr(current_user, "pid", None)
+    if not pid:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Student profile has no pseudonym identifier (PID). Identity setup required before enrolling.",
+        )
+
+    existing = await db[col.ENROLMENTS].find_one({
+        "pid": pid,
         "course_id": cid_str,
+        "status": "active",
     })
     if existing:
         raise HTTPException(
@@ -70,35 +81,43 @@ async def enroll_in_course(
 
     enr_doc = {
         "_id": eid,
-        "id": eid,
-        "student_id": uid_str,
+        "pid": pid,
         "course_id": cid_str,
+        "enrolment_start": now,
         "status": "active",
-        "enrolled_at": now,
-        "updated_at": now,
+        "schema_version": 1,
+        "ingested_at": now,
+        "source_version": "1.0",
     }
 
-    await db.enrollments.insert_one(enr_doc)
+    await db[col.ENROLMENTS].insert_one(enr_doc)
 
-    # Attach nested course & student representations for schema
-    user_doc = await db.users.find_one({"_id": uid_str}) or await db.users.find_one({"id": uid_str})
-    enr_doc["course"] = EnrollmentCourseSummary(
+    course_summary = EnrollmentCourseSummary(
         id=course_doc["_id"],
         title=course_doc["title"],
         description=course_doc.get("description"),
-        lecturer_id=course_doc["lecturer_id"],
-        is_published=course_doc["is_published"],
-        created_at=course_doc["created_at"],
+        lecturer_id=course_doc.get("lecturer_id"),
+        is_published=course_doc.get("is_published", True),
+        created_at=course_doc.get("created_at", now),
     )
-    enr_doc["student"] = EnrollmentStudentSummary(
-        id=user_doc["_id"],
-        email=user_doc["email"],
-        full_name=user_doc["full_name"],
-        role=user_doc["role"],
-        profile=user_doc.get("profile"),
+    student_summary = EnrollmentStudentSummary(
+        id=user_doc.get("_id", uid_str) if user_doc else uid_str,
+        email=user_doc.get("email", current_user.email) if user_doc else current_user.email,
+        full_name=user_doc.get("full_name", current_user.full_name) if user_doc else current_user.full_name,
+        role=user_doc.get("role", current_user.role) if user_doc else current_user.role,
+        profile=user_doc.get("profile") if user_doc else None,
     )
 
-    return EnrollmentResponse(**enr_doc)
+    return EnrollmentResponse(
+        id=eid,
+        student_id=user_doc.get("_id", uid_str) if user_doc else uid_str,
+        course_id=cid_str,
+        status="active",
+        enrolled_at=now,
+        updated_at=now,
+        course=course_summary,
+        student=student_summary,
+    )
 
 
 # ── GET /api/v1/enrollments/me ────────────────────────────────────────────────
@@ -114,23 +133,59 @@ async def get_my_enrollments(
     db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> List[EnrollmentResponse]:
     uid_str = str(current_user.id)
-    cursor = db.enrollments.find({"student_id": uid_str}).sort("enrolled_at", -1)
+    user_doc = await db.users.find_one({"_id": uid_str})
+    if not user_doc:
+        user_doc = await db.users.find_one({"id": uid_str})
+
+    pid = (user_doc.get("pid") if user_doc else None) or getattr(current_user, "pid", None)
+    if not pid:
+        return []
+
+    cursor = db[col.ENROLMENTS].find({"pid": pid}).sort("enrolment_start", -1)
     enrollments_docs = await cursor.to_list(length=1000)
+    if not enrollments_docs:
+        return []
+
+    course_ids = list({e["course_id"] for e in enrollments_docs})
+    courses_cursor = db[col.COURSES].find({"_id": {"$in": course_ids}})
+    course_docs = await courses_cursor.to_list(length=1000)
+    course_map = {c["_id"]: c for c in course_docs}
+
+    student_summary = EnrollmentStudentSummary(
+        id=user_doc.get("_id", uid_str) if user_doc else uid_str,
+        email=user_doc.get("email", current_user.email) if user_doc else current_user.email,
+        full_name=user_doc.get("full_name", current_user.full_name) if user_doc else current_user.full_name,
+        role=user_doc.get("role", current_user.role) if user_doc else current_user.role,
+        profile=user_doc.get("profile") if user_doc else None,
+    )
 
     results = []
     for enr in enrollments_docs:
         cid_str = enr["course_id"]
-        course_doc = await db.courses.find_one({"_id": cid_str}) or await db.courses.find_one({"id": cid_str})
-        if course_doc:
-            enr["course"] = EnrollmentCourseSummary(
-                id=course_doc["_id"],
-                title=course_doc["title"],
-                description=course_doc.get("description"),
-                lecturer_id=course_doc["lecturer_id"],
-                is_published=course_doc["is_published"],
-                created_at=course_doc["created_at"],
+        c_doc = course_map.get(cid_str)
+        c_summary = None
+        if c_doc:
+            c_summary = EnrollmentCourseSummary(
+                id=c_doc["_id"],
+                title=c_doc["title"],
+                description=c_doc.get("description"),
+                lecturer_id=c_doc.get("lecturer_id"),
+                is_published=c_doc.get("is_published", True),
+                created_at=c_doc.get("created_at", datetime.now(timezone.utc)),
             )
-        results.append(EnrollmentResponse(**enr))
+        enrolled_dt = enr.get("enrolment_start") or datetime.now(timezone.utc)
+        results.append(
+            EnrollmentResponse(
+                id=str(enr["_id"]),
+                student_id=user_doc.get("_id", uid_str) if user_doc else uid_str,
+                course_id=cid_str,
+                status=enr.get("status", "active"),
+                enrolled_at=enrolled_dt,
+                updated_at=enr.get("updated_at") or enrolled_dt,
+                course=c_summary,
+                student=student_summary,
+            )
+        )
 
     return results
 
@@ -144,12 +199,12 @@ async def get_my_enrollments(
     description="Returns the complete list of enrolled students for a given course from MongoDB.",
 )
 async def get_course_roster(
-    course_id: uuid.UUID,
+    course_id: str,
     current_user: User = Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN)),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> List[EnrollmentResponse]:
-    cid_str = str(course_id)
-    course_doc = await db.courses.find_one({"_id": cid_str}) or await db.courses.find_one({"id": cid_str})
+    cid_str = str(course_id).strip()
+    course_doc = await db[col.COURSES].find_one({"_id": cid_str})
     if not course_doc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -162,30 +217,55 @@ async def get_course_roster(
             detail="You can only access student rosters for courses you instruct.",
         )
 
-    cursor = db.enrollments.find({"course_id": cid_str}).sort("enrolled_at", -1)
+    cursor = db[col.ENROLMENTS].find({"course_id": cid_str}).sort("enrolment_start", -1)
     roster_docs = await cursor.to_list(length=1000)
 
     course_summary = EnrollmentCourseSummary(
         id=course_doc["_id"],
         title=course_doc["title"],
         description=course_doc.get("description"),
-        lecturer_id=course_doc["lecturer_id"],
-        is_published=course_doc["is_published"],
-        created_at=course_doc["created_at"],
+        lecturer_id=course_doc.get("lecturer_id"),
+        is_published=course_doc.get("is_published", True),
+        created_at=course_doc.get("created_at", datetime.now(timezone.utc)),
     )
+
+    # Batch query users for all PIDs in ONE single query
+    pids = list({enr["pid"] for enr in roster_docs if enr.get("pid")})
+    user_map = {}
+    if pids:
+        users_cursor = db.users.find({"pid": {"$in": pids}})
+        users_docs = await users_cursor.to_list(length=1000)
+        for u in users_docs:
+            if u.get("pid"):
+                user_map[u["pid"]] = u
 
     results = []
     for enr in roster_docs:
-        enr["course"] = course_summary
-        user_doc = await db.users.find_one({"_id": enr["student_id"]}) or await db.users.find_one({"id": enr["student_id"]})
+        pid = enr.get("pid")
+        user_doc = user_map.get(pid)
+        student_summary = None
+        student_id_val = str(user_doc["_id"]) if user_doc else pid
         if user_doc:
-            enr["student"] = EnrollmentStudentSummary(
+            student_summary = EnrollmentStudentSummary(
                 id=user_doc["_id"],
-                email=user_doc["email"],
-                full_name=user_doc["full_name"],
-                role=user_doc["role"],
+                email=user_doc.get("email", ""),
+                full_name=user_doc.get("full_name", ""),
+                role=user_doc.get("role", UserRole.STUDENT),
                 profile=user_doc.get("profile"),
             )
-        results.append(EnrollmentResponse(**enr))
+        enrolled_dt = enr.get("enrolment_start") or datetime.now(timezone.utc)
+        results.append(
+            EnrollmentResponse(
+                id=str(enr["_id"]),
+                student_id=student_id_val,
+                course_id=cid_str,
+                status=enr.get("status", "active"),
+                enrolled_at=enrolled_dt,
+                updated_at=enr.get("updated_at") or enrolled_dt,
+                course=course_summary,
+                student=student_summary,
+            )
+        )
 
     return results
+

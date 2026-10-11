@@ -217,3 +217,9 @@ Contracts evolve under semantic versioning principles (`major.minor`):
 ## 9. Changelog
 
 - **v1.0 (2026-10-10)**: Initial formal release of Feature 24 data contract models, generic envelope, PII safety net, and schema synchronization tooling.
+
+---
+
+## 10. Related Specifications & Outbound Endpoints
+
+- [Component Data Export API Specification (Feature 21)](../docs/EXPORT_API.md): Technical specification for the LMS outbound export endpoints serving C1, C2, and C3.
