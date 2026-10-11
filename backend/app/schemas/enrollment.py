@@ -6,7 +6,7 @@ Pydantic v2 schemas for Enrollment management (Feature 4).
 
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -19,10 +19,10 @@ from app.schemas.profile import ProfileResponse
 class EnrollmentCourseSummary(BaseModel):
     """Concise course representation embedded within an enrollment."""
 
-    id: uuid.UUID
+    id: Union[uuid.UUID, str]
     title: str
     description: Optional[str] = None
-    lecturer_id: uuid.UUID
+    lecturer_id: Optional[Union[uuid.UUID, str]] = None
     is_published: bool
     created_at: datetime
 
@@ -32,7 +32,7 @@ class EnrollmentCourseSummary(BaseModel):
 class EnrollmentStudentSummary(BaseModel):
     """Student account & profile details embedded in an enrollment roster."""
 
-    id: uuid.UUID
+    id: Union[uuid.UUID, str]
     email: str
     full_name: str
     role: UserRole
@@ -66,9 +66,9 @@ class EnrollmentUpdate(BaseModel):
 class EnrollmentResponse(BaseModel):
     """Serialised enrollment entity with nested course and student details."""
 
-    id: uuid.UUID
-    student_id: uuid.UUID
-    course_id: uuid.UUID
+    id: Union[uuid.UUID, str]
+    student_id: Union[uuid.UUID, str]
+    course_id: str
     status: str
     enrolled_at: datetime
     updated_at: datetime

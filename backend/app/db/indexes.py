@@ -104,6 +104,10 @@ COLLECTION_INDEXES: Dict[str, List[IndexModel]] = {
             [("course_id", ASCENDING), ("week_index", ASCENDING), ("source_type", ASCENDING)],
             name="idx_messages_course_week_source",
         ),
+        IndexModel(
+            [("course_id", ASCENDING), ("week_index", ASCENDING)],
+            name="idx_messages_course_week",
+        ),
         IndexModel([("message_id", ASCENDING)], unique=True, name="idx_messages_message_id_unique"),
     ],
     col.GRADES: [
@@ -132,6 +136,10 @@ COLLECTION_INDEXES: Dict[str, List[IndexModel]] = {
             [("pid", ASCENDING), ("course_id", ASCENDING), ("week_index", ASCENDING)],
             unique=True,
             name="idx_behavior_weekly_compound_unique",
+        ),
+        IndexModel(
+            [("course_id", ASCENDING), ("week_index", ASCENDING)],
+            name="idx_behavior_weekly_course_week",
         ),
     ],
     col.AFFECTIVE_WEEKLY: [
