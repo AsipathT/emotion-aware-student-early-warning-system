@@ -9,6 +9,8 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { CourseCatalogPage } from './pages/CourseCatalogPage';
 import { CourseDetailPage } from './pages/CourseDetailPage';
+import { CourseAssignmentsPage } from './pages/CourseAssignmentsPage';
+import { AssignmentDetailPage } from './pages/AssignmentDetailPage';
 import { MyEnrollmentsPage } from './pages/MyEnrollmentsPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 
@@ -57,6 +59,22 @@ export const App: React.FC = () => {
                 element={
                   <ProtectedRoute>
                     <CourseDetailPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/courses/:courseId/assignments"
+                element={
+                  <ProtectedRoute>
+                    <CourseAssignmentsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/courses/:courseId/assignments/:assignmentId"
+                element={
+                  <ProtectedRoute>
+                    <AssignmentDetailPage />
                   </ProtectedRoute>
                 }
               />

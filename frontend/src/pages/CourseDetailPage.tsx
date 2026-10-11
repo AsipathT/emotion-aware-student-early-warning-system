@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   Mail,
   UserCheck,
+  FileText,
 } from 'lucide-react';
 
 export const CourseDetailPage: React.FC = () => {
@@ -320,6 +321,15 @@ export const CourseDetailPage: React.FC = () => {
               </div>
             )}
 
+            {/* Assignments Navigation Button */}
+            <Link
+              to={`/courses/${courseId}/assignments`}
+              className="inline-flex items-center px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-sm rounded-xl border border-indigo-200 shadow-sm transition"
+            >
+              <FileText className="w-4 h-4 mr-1.5" />
+              Course Assignments
+            </Link>
+
             {/* Instructor Actions */}
             {isInstructor && (
               <button
@@ -364,6 +374,13 @@ export const CourseDetailPage: React.FC = () => {
             <Users className="w-4 h-4 mr-2" />
             Enrolled Students Roster ({roster.length})
           </button>
+          <Link
+            to={`/courses/${courseId}/assignments`}
+            className="pb-3 text-sm font-semibold flex items-center transition border-b-2 -mb-px border-transparent text-slate-500 hover:text-indigo-600"
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Assignments
+          </Link>
         </div>
       )}
 
