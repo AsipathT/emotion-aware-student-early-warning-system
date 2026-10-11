@@ -102,6 +102,21 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception as exc:
         print(f"[startup]  Warning: chat index creation failed: {exc}")
 
+    # --- Dushan: journal indexes ---
+    try:
+        from app.core.database import db as _db3
+        await _db3.journal_entries.create_index(
+            [("author_id", 1), ("course_id", 1), ("week_start", 1)],
+            unique=True,
+            background=True,
+        )
+        await _db3.journal_entries.create_index(
+            [("course_id", 1), ("week_start", 1)],
+            background=True,
+        )
+    except Exception as exc:
+        print(f"[startup]  Warning: journal index creation failed: {exc}")
+
     yield
     # ---- shutdown ----
     from app.core.database import client
@@ -221,6 +236,9 @@ def create_app() -> FastAPI:
 
     from app.routers import chat  # noqa: E402
     app.include_router(chat.router)
+
+    from app.routers import journal  # noqa: E402
+    app.include_router(journal.router)
 
     return app
 

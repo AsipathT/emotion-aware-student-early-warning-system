@@ -83,6 +83,21 @@ export const Navbar: React.FC = () => {
                     </Link>
                   )}
 
+                  {/* Dushan: Journal link for students */}
+                  {user.role === 'student' && (
+                    <Link
+                      to="/journal"
+                      className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                        isCurrent('/journal')
+                          ? 'text-indigo-600 bg-indigo-50/80 font-semibold'
+                          : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <BookOpen className="w-4 h-4 mr-1.5" />
+                      Journal
+                    </Link>
+                  )}
+
                   {/* Dushan: Messages link for chat-allowed roles */}
                   {(user.role === 'student' || user.role === 'lecturer' || user.role === 'counsellor') && (
                     <Link
