@@ -34,6 +34,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         from app.core.database import client
         await client.admin.command('ping')
         print("[startup]  MongoDB Atlas connected successfully.")
+        from app.core.schema_mapping import ensure_lms_indexes
+        await ensure_lms_indexes(client[settings.mongo_db_name])
     except Exception as exc:
         print(f"[startup]  Warning: MongoDB ping failed: {exc}")
     yield
@@ -88,6 +90,18 @@ def create_app() -> FastAPI:
 
     from app.routers import assignments  # noqa: E402
     app.include_router(assignments.router)
+
+    from app.routers import course_content  # noqa: E402
+    app.include_router(course_content.router)
+
+    from app.routers import quizzes  # noqa: E402
+    app.include_router(quizzes.router)
+
+    from app.routers import gradebook  # noqa: E402
+    app.include_router(gradebook.router)
+
+    from app.routers import attendance  # noqa: E402
+    app.include_router(attendance.router)
 
     return app
 
