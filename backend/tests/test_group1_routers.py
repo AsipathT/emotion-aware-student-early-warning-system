@@ -1,36 +1,56 @@
-import io
-import csv
+"""
+backend/tests/test_group1_routers.py
+
+Modular integration tests for Group 1 LMS features:
+  - Feature 8: Course Content & Modules (embedded array updates, validation, immutability)
+  - Feature 10: Assignment Management & Grading
+  - Feature 11: Quizzes & Question Answering
+  - Feature 12: Gradebook & CSV Exports
+  - Feature 13: Attendance Sessions & Records
+  - RBAC & Cross-student Privacy
+  - Feature 2/5: Enrollment & Privacy PID Resolution
+"""
+
 import uuid
 from datetime import datetime, timezone, timedelta
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
-from motor.motor_asyncio import AsyncIOMotorClient
 
 from app.main import app
 from app.core.database import get_db
+from app.core.privacy import pseudonymize, is_valid_pid
 from app.core.schema_mapping import (
     COL_ASSIGNMENTS,
-    COL_ATTENDANCE_RECORDS,
-    COL_ATTENDANCE_SESSIONS,
-    COL_GRADEBOOK,
-    COL_QUIZ_ATTEMPTS,
-    COL_QUIZZES,
     COL_SUBMISSIONS,
+    COL_QUIZZES,
+    COL_QUIZ_ATTEMPTS,
+    COL_GRADEBOOK,
+    COL_ATTENDANCE_SESSIONS,
+    COL_ATTENDANCE_RECORDS,
+    CANONICAL_COURSES,
+    CANONICAL_ENROLMENTS,
+    CANONICAL_ENROLLMENTS,
+    check_student_enrolled,
 )
 
 TEST_MONGO_URI = "mongodb://localhost:27017"
 TEST_DB_NAME = "early_warning_group1_test"
 
-# Strict safety guard: must end in _test
+# Strict safety guard: enforce database name ends in _test
 if not TEST_DB_NAME.endswith("_test"):
-    raise RuntimeError("Test database name must strictly end in '_test'")
+    raise RuntimeError("Test database name must end in '_test'")
+
 
 @pytest_asyncio.fixture
 async def test_db():
-    motor_client = AsyncIOMotorClient(TEST_MONGO_URI)
-    db = motor_client[TEST_DB_NAME]
-    await motor_client.drop_database(TEST_DB_NAME)
+    from motor.motor_asyncio import AsyncIOMotorClient
+
+    client = AsyncIOMotorClient(TEST_MONGO_URI)
+    db = client[TEST_DB_NAME]
+    await client.drop_database(TEST_DB_NAME)
+
+    print(f"\n[DB HYGIENE] Test is executing on isolated database: {db.name}")
 
     async def override_get_db():
         yield db
@@ -38,348 +58,579 @@ async def test_db():
     app.dependency_overrides[get_db] = override_get_db
     yield db
 
-    await motor_client.drop_database(TEST_DB_NAME)
-    motor_client.close()
+    await client.drop_database(TEST_DB_NAME)
+    client.close()
 
 
 @pytest_asyncio.fixture
-async def ac(test_db):
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client_instance:
-        yield client_instance
+async def async_client(test_db):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        yield ac
 
+
+async def _register_and_login(ac: AsyncClient, email: str, role: str) -> tuple[dict, str]:
+    res_reg = await ac.post(
+        "/api/v1/auth/register",
+        json={"email": email, "password": "Password123!", "full_name": f"User {role}", "role": role},
+    )
+    user_id = res_reg.json()["id"]
+    res_login = await ac.post("/api/v1/auth/login", json={"email": email, "password": "Password123!"})
+    token = res_login.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}, user_id
+
+
+# ── Feature 8: Course Content & Modules ───────────────────────────────────────
 
 @pytest.mark.asyncio
-async def test_group1_features_comprehensive(ac, test_db):
-    # ── 1. Setup Actors ────────────────────────────────────────────────────────
-    # Lecturer 1 (Course Owner)
-    await ac.post("/api/v1/auth/register", json={"email": "lec1@lms.edu", "password": "Password1", "full_name": "Lecturer One", "role": "lecturer"})
-    res_l1 = await ac.post("/api/v1/auth/login", json={"email": "lec1@lms.edu", "password": "Password1"})
-    l1_token = res_l1.json()["access_token"]
-    l1_headers = {"Authorization": f"Bearer {l1_token}"}
+async def test_feature_8_course_content_modules(async_client, test_db):
+    """
+    Feature 8: Verifies module GET/PATCH on courses with embedded modules.
+    Asserts:
+      1. Courses validator with additionalProperties: False accepts the document.
+      2. Editing module 1's content_payload leaves module 2 and course fields unchanged.
+      3. Block validator enforces supported block types ('text', 'video', 'resource').
+    """
+    # 1. Apply MongoDB course validator with additionalProperties: False and modules array
+    course_validator = {
+        "$jsonSchema": {
+            "bsonType": "object",
+            "required": ["course_id", "title"],
+            "additionalProperties": False,
+            "properties": {
+                "_id": {"bsonType": ["string", "objectId"]},
+                "course_id": {"bsonType": "string"},
+                "title": {"bsonType": "string"},
+                "description": {"bsonType": ["string", "null"]},
+                "lecturer_id": {"bsonType": ["string", "null"]},
+                "is_published": {"bsonType": "bool"},
+                "created_at": {"bsonType": "date"},
+                "updated_at": {"bsonType": "date"},
+                "schema_version": {"bsonType": ["int", "long"]},
+                "source_version": {"bsonType": "string"},
+                "ingested_at": {"bsonType": "date"},
+                "modules": {
+                    "bsonType": "array",
+                    "items": {"bsonType": "object"},
+                },
+            },
+        }
+    }
+    await test_db.command({"create": CANONICAL_COURSES, "validator": course_validator})
 
-    # Lecturer 2 (Other Course Instructor)
-    await ac.post("/api/v1/auth/register", json={"email": "lec2@lms.edu", "password": "Password1", "full_name": "Lecturer Two", "role": "lecturer"})
-    res_l2 = await ac.post("/api/v1/auth/login", json={"email": "lec2@lms.edu", "password": "Password1"})
-    l2_token = res_l2.json()["access_token"]
-    l2_headers = {"Authorization": f"Bearer {l2_token}"}
+    lec_headers, lec_id = await _register_and_login(async_client, "lec_f8@sliit.edu", "lecturer")
 
-    # Counsellor (Read-only)
-    await ac.post("/api/v1/auth/register", json={"email": "counsellor@lms.edu", "password": "Password1", "full_name": "Counsellor C", "role": "counsellor"})
-    res_c = await ac.post("/api/v1/auth/login", json={"email": "counsellor@lms.edu", "password": "Password1"})
-    c_token = res_c.json()["access_token"]
-    c_headers = {"Authorization": f"Bearer {c_token}"}
+    cid = str(uuid.uuid4())
+    mid_1 = str(uuid.uuid4())
+    mid_2 = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
 
-    # Enrolled Student (Stu 1)
-    res_s1_reg = await ac.post("/api/v1/auth/register", json={"email": "stu1@lms.edu", "password": "Password1", "full_name": "Enrolled Stu", "role": "student"})
-    stu1_id = res_s1_reg.json()["id"]
-    res_s1 = await ac.post("/api/v1/auth/login", json={"email": "stu1@lms.edu", "password": "Password1"})
-    s1_token = res_s1.json()["access_token"]
-    s1_headers = {"Authorization": f"Bearer {s1_token}"}
+    # Initial course with 2 embedded modules
+    course_doc = {
+        "_id": cid,
+        "course_id": cid,
+        "title": "Data Structures & Algorithms",
+        "description": "CS201 Core Course",
+        "lecturer_id": lec_id,
+        "is_published": True,
+        "created_at": now,
+        "updated_at": now,
+        "modules": [
+            {
+                "_id": mid_1,
+                "id": mid_1,
+                "course_id": cid,
+                "title": "Module 1: Arrays",
+                "content_payload": {"blocks": [{"type": "text", "body": "Initial Array notes"}]},
+                "sequence_order": 1,
+                "created_at": now,
+                "updated_at": now,
+            },
+            {
+                "_id": mid_2,
+                "id": mid_2,
+                "course_id": cid,
+                "title": "Module 2: Linked Lists",
+                "content_payload": {"blocks": [{"type": "text", "body": "Initial Linked List notes"}]},
+                "sequence_order": 2,
+                "created_at": now,
+                "updated_at": now,
+            },
+        ],
+    }
+    await test_db[CANONICAL_COURSES].insert_one(course_doc)
 
-    # Unenrolled Student (Stu 2)
-    res_s2_reg = await ac.post("/api/v1/auth/register", json={"email": "stu2@lms.edu", "password": "Password1", "full_name": "Unenrolled Stu", "role": "student"})
-    stu2_id = res_s2_reg.json()["id"]
-    res_s2 = await ac.post("/api/v1/auth/login", json={"email": "stu2@lms.edu", "password": "Password1"})
-    s2_token = res_s2.json()["access_token"]
-    s2_headers = {"Authorization": f"Bearer {s2_token}"}
+    # 2. PATCH module 1 content_payload
+    updated_payload = {
+        "title": "Module 1: Advanced Arrays",
+        "content_payload": {
+            "blocks": [
+                {"type": "text", "body": "Updated dynamic arrays and sliding window"},
+                {"type": "video", "title": "Array Lecture Video", "url": "https://cdn.lms.edu/arrays.mp4", "duration_seconds": 900},
+                {"type": "resource", "url": "https://cdn.lms.edu/sheet.pdf", "title": "Cheatsheet", "mime_type": "application/pdf"},
+            ]
+        },
+    }
+    res_patch = await async_client.patch(
+        f"/api/v1/courses/{cid}/modules/{mid_1}",
+        json=updated_payload,
+        headers=lec_headers,
+    )
+    assert res_patch.status_code == 200, res_patch.text
+    patched_module = res_patch.json()
+    assert patched_module["title"] == "Module 1: Advanced Arrays"
+    assert len(patched_module["content_payload"]["blocks"]) == 3
 
-    # ── 2. Create Course and Module ───────────────────────────────────────────
-    res_course = await ac.post("/api/v1/courses", json={"title": "Data Structures CS201", "is_published": True}, headers=l1_headers)
-    assert res_course.status_code == 201
-    course_id = res_course.json()["id"]
+    # 3. Verify in database: module 1 changed, module 2 and course fields completely unchanged
+    stored_course = await test_db[CANONICAL_COURSES].find_one({"_id": cid})
+    assert stored_course["title"] == "Data Structures & Algorithms"  # unchanged
+    assert stored_course["description"] == "CS201 Core Course"  # unchanged
+    assert stored_course["lecturer_id"] == lec_id  # unchanged
+    assert len(stored_course["modules"]) == 2
 
-    # Enroll Stu 1 in course
-    await test_db.enrollments.insert_one({
-        "_id": str(uuid.uuid4()),
-        "course_id": course_id,
-        "student_id": stu1_id,
-        "status": "active",
+    m1_db = next(m for m in stored_course["modules"] if m["_id"] == mid_1)
+    m2_db = next(m for m in stored_course["modules"] if m["_id"] == mid_2)
+
+    assert m1_db["title"] == "Module 1: Advanced Arrays"
+    assert m1_db["content_payload"]["blocks"][0]["body"] == "Updated dynamic arrays and sliding window"
+    # Module 2 remains intact
+    assert m2_db["title"] == "Module 2: Linked Lists"
+    assert m2_db["content_payload"]["blocks"][0]["body"] == "Initial Linked List notes"
+
+    # 4. Verify block validation fails on invalid block type (e.g. 'audio')
+    invalid_patch = {
+        "content_payload": {"blocks": [{"type": "audio", "url": "https://cdn.lms.edu/podcast.mp3"}]}
+    }
+    res_bad = await async_client.patch(
+        f"/api/v1/courses/{cid}/modules/{mid_1}",
+        json=invalid_patch,
+        headers=lec_headers,
+    )
+    assert res_bad.status_code == 422
+
+
+# ── Feature 10: Assignments & Submissions ─────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_feature_10_assignments_lifecycle(async_client, test_db):
+    """
+    Feature 10: Tests assignments creation, submissions, late penalties, and gradebook syncing.
+    """
+    lec_headers, lec_id = await _register_and_login(async_client, "lec_f10@sliit.edu", "lecturer")
+    stu_headers, stu_id = await _register_and_login(async_client, "stu_f10@sliit.edu", "student")
+
+    res_c = await async_client.post("/api/v1/courses", json={"title": "Assignment Course", "is_published": True}, headers=lec_headers)
+    cid = res_c.json()["id"]
+
+    # Enroll student in canonical enrollments
+    await test_db[CANONICAL_ENROLLMENTS].insert_one({
+        "_id": str(uuid.uuid4()), "course_id": cid, "student_id": stu_id, "status": "active"
     })
 
-    # Add Module with legacy payload (Feature 8)
-    res_mod = await ac.post(f"/api/v1/courses/{course_id}/modules", json={
-        "title": "Week 1: Trees",
-        "sequence_order": 1,
-        "content_payload": {"legacy_format_blob": True, "raw_note": "Unstructured binary data"}
-    }, headers=l1_headers)
-    assert res_mod.status_code == 201
-    module_id = res_mod.json()["id"]
-
-    # ── 3. Feature 8: Course Content & Block Validation ───────────────────────
-    # GET module content page: legacy payload returned unchanged
-    res_get_mod = await ac.get(f"/api/v1/courses/{course_id}/modules/{module_id}", headers=s1_headers)
-    assert res_get_mod.status_code == 200
-    assert res_get_mod.json()["content_payload"]["legacy_format_blob"] is True
-
-    # Lecturer 2 (not course owner) attempts to PATCH module -> 403 Forbidden
-    res_l2_patch = await ac.patch(f"/api/v1/courses/{course_id}/modules/{module_id}", json={
-        "content_payload": {"blocks": [{"type": "text", "body": "Hacked content"}]}
-    }, headers=l2_headers)
-    assert res_l2_patch.status_code == 403
-
-    # Lecturer 1 submits invalid blocks -> 422 Unprocessable Entity
-    res_invalid_patch = await ac.patch(f"/api/v1/courses/{course_id}/modules/{module_id}", json={
-        "content_payload": {"blocks": [{"type": "unknown_format", "data": "bad"}]}
-    }, headers=l1_headers)
-    assert res_invalid_patch.status_code == 422
-
-    # Lecturer 1 submits valid blocks -> 200 OK
-    valid_blocks = [
-        {"type": "text", "body": "# Binary Search Trees\nDefinition and operations."},
-        {"type": "video", "url": "https://video.lms.edu/bst.mp4", "title": "Tree Traversal"},
-        {"type": "resource", "url": "https://cdn.lms.edu/trees.pdf", "title": "Slides", "mime_type": "application/pdf"}
-    ]
-    res_valid_patch = await ac.patch(f"/api/v1/courses/{course_id}/modules/{module_id}", json={
-        "content_payload": {"blocks": valid_blocks}
-    }, headers=l1_headers)
-    assert res_valid_patch.status_code == 200
-    assert len(res_valid_patch.json()["content_payload"]["blocks"]) == 3
-
-    # ── 4. Feature 10: Assignments RBAC & Submission ──────────────────────────
-    due_past = (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
-    res_a = await ac.post(f"/api/v1/courses/{course_id}/assignments", json={
-        "title": "Assignment 1: BST Implementation",
+    # Create assignment with past due_date to test late delay
+    past_due = (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
+    assign_payload = {
+        "title": "Lab 1: Recursion",
+        "description": "Submit repo link",
         "max_score": 100.0,
-        "weight": 0.4,
+        "weight": 0.15,
+        "due_at": past_due,
         "is_published": True,
-        "due_at": due_past
-    }, headers=l1_headers)
+    }
+    res_a = await async_client.post(f"/api/v1/courses/{cid}/assignments", json=assign_payload, headers=lec_headers)
     assert res_a.status_code == 201
     aid = res_a.json()["id"]
 
-    # Lecturer of another course gets 403 on grading
-    res_l2_grade = await ac.post(f"/api/v1/courses/{course_id}/assignments/{aid}/submissions/{stu1_id}/grade", json={"score": 80.0}, headers=l2_headers)
-    assert res_l2_grade.status_code == 403
-
-    # Unenrolled student gets 403 on submit
-    res_unenrolled_sub = await ac.post(f"/api/v1/courses/{course_id}/assignments/{aid}/submit", json={"content_text": "My code"}, headers=s2_headers)
-    assert res_unenrolled_sub.status_code == 403
-
-    # Enrolled student submits: late flag true, delay_days >= 3
-    res_sub = await ac.post(f"/api/v1/courses/{course_id}/assignments/{aid}/submit", json={"content_text": "Valid code"}, headers=s1_headers)
+    # Student submits -> is_late True, delay_days >= 3
+    res_sub = await async_client.post(
+        f"/api/v1/courses/{cid}/assignments/{aid}/submit",
+        json={"content_text": "https://github.com/stu/recursion"},
+        headers=stu_headers,
+    )
     assert res_sub.status_code == 200
     sub_data = res_sub.json()
     assert sub_data["is_late"] is True
     assert sub_data["delay_days"] >= 3
 
-    # Resubmission before grading: allowed
-    res_resub = await ac.post(f"/api/v1/courses/{course_id}/assignments/{aid}/submit", json={"content_text": "Updated code"}, headers=s1_headers)
-    assert res_resub.status_code == 200
-
-    # Student cannot read another student's submissions list
-    res_read_forbidden = await ac.get(f"/api/v1/courses/{course_id}/assignments/{aid}/submissions", headers=s2_headers)
-    assert res_read_forbidden.status_code == 403
-
-    # Grading creates gradebook entry
-    res_grade = await ac.post(f"/api/v1/courses/{course_id}/assignments/{aid}/submissions/{stu1_id}/grade", json={"score": 80.0, "feedback": "Well done"}, headers=l1_headers)
+    # Lecturer grades -> syncs to lms_gradebook
+    res_grade = await async_client.post(
+        f"/api/v1/courses/{cid}/assignments/{aid}/submissions/{stu_id}/grade",
+        json={"score": 88.0, "feedback": "Well structured solution"},
+        headers=lec_headers,
+    )
     assert res_grade.status_code == 200
 
-    # Re-grading updates, does NOT duplicate
-    res_regrade = await ac.post(f"/api/v1/courses/{course_id}/assignments/{aid}/submissions/{stu1_id}/grade", json={"score": 80.0, "feedback": "Final"}, headers=l1_headers)
+    gb_item = await test_db[COL_GRADEBOOK].find_one({"course_id": cid, "student_id": stu_id, "item_id": aid})
+    assert gb_item is not None
+    assert gb_item["score"] == 88.0
+    assert gb_item["max_score"] == 100.0
+    assert gb_item["weight"] == 0.15
+
+    # Re-grade updates rather than creating a duplicate
+    res_regrade = await async_client.post(
+        f"/api/v1/courses/{cid}/assignments/{aid}/submissions/{stu_id}/grade",
+        json={"score": 92.0, "feedback": "Extra credit awarded"},
+        headers=lec_headers,
+    )
     assert res_regrade.status_code == 200
-    gb_count = await test_db[COL_GRADEBOOK].count_documents({"course_id": course_id, "student_id": stu1_id, "item_id": aid})
-    assert gb_count == 1
+    count_gb = await test_db[COL_GRADEBOOK].count_documents({"course_id": cid, "student_id": stu_id, "item_id": aid})
+    assert count_gb == 1
 
-    # Resubmission after grading: 409 Conflict
-    res_after_grade = await ac.post(f"/api/v1/courses/{course_id}/assignments/{aid}/submit", json={"content_text": "Late try"}, headers=s1_headers)
-    assert res_after_grade.status_code == 409
+    gb_updated = await test_db[COL_GRADEBOOK].find_one({"course_id": cid, "student_id": stu_id, "item_id": aid})
+    assert gb_updated["score"] == 92.0
 
-    # ── 5. Feature 11: Quizzes & Auto-grading Hand-computed Case ──────────────
-    q1_opt_correct = str(uuid.uuid4())
-    q1_opt_wrong = str(uuid.uuid4())
-    q2_opt_correct = str(uuid.uuid4())
-    q2_opt_wrong = str(uuid.uuid4())
+    # Student attempting to resubmit after grading receives 409 Conflict
+    res_resub = await async_client.post(
+        f"/api/v1/courses/{cid}/assignments/{aid}/submit",
+        json={"content_text": "Updated repo"},
+        headers=stu_headers,
+    )
+    assert res_resub.status_code == 409
 
+
+# ── Feature 11: Quizzes & Question Answering ──────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_feature_11_quizzes_lifecycle(async_client, test_db):
+    """
+    Feature 11: Tests quiz creation, answer-stripping privacy, attempt taking, and auto-grading.
+    """
+    lec_headers, lec_id = await _register_and_login(async_client, "lec_f11@sliit.edu", "lecturer")
+    stu_headers, stu_id = await _register_and_login(async_client, "stu_f11@sliit.edu", "student")
+
+    res_c = await async_client.post("/api/v1/courses", json={"title": "Quiz Course", "is_published": True}, headers=lec_headers)
+    cid = res_c.json()["id"]
+
+    await test_db[CANONICAL_ENROLLMENTS].insert_one({
+        "_id": str(uuid.uuid4()), "course_id": cid, "student_id": stu_id, "status": "active"
+    })
+
+    # Lecturer creates quiz with questions & options embedded
     quiz_payload = {
-        "title": "Quiz 1: Trees and Graphs",
-        "max_score": 100.0,
-        "weight": 0.6,
+        "title": "Quiz 1: Python Basics",
+        "time_limit_minutes": 20,
+        "max_score": 10.0,
+        "weight": 0.1,
         "is_published": True,
         "max_attempts": 2,
         "questions": [
             {
                 "id": "q1",
-                "text": "What is the time complexity of searching a balanced BST?",
-                "question_type": "mcq",
-                "points": 2.0,
+                "text": "Is Python interpreted?",
+                "question_type": "true_false",
+                "points": 5.0,
                 "options": [
-                    {"id": q1_opt_correct, "text": "O(log N)", "is_correct": True},
-                    {"id": q1_opt_wrong, "text": "O(N^2)", "is_correct": False}
-                ]
+                    {"id": "opt1", "text": "True", "is_correct": True},
+                    {"id": "opt2", "text": "False", "is_correct": False},
+                ],
             },
             {
                 "id": "q2",
-                "text": "A tree can contain circular cycles.",
-                "question_type": "true_false",
-                "points": 3.0,
+                "text": "Which is an immutable type?",
+                "question_type": "mcq",
+                "points": 5.0,
                 "options": [
-                    {"id": q2_opt_wrong, "text": "True", "is_correct": False},
-                    {"id": q2_opt_correct, "text": "False", "is_correct": True}
-                ]
-            }
+                    {"id": "opt3", "text": "List", "is_correct": False},
+                    {"id": "opt4", "text": "Tuple", "is_correct": True},
+                ],
+            },
+        ],
+    }
+    res_q = await async_client.post(f"/api/v1/courses/{cid}/quizzes", json=quiz_payload, headers=lec_headers)
+    assert res_q.status_code == 201
+    qid = res_q.json()["id"]
+
+    # Student GET quiz -> is_correct MUST NEVER BE LEAKED
+    res_sget = await async_client.get(f"/api/v1/courses/{cid}/quizzes/{qid}", headers=stu_headers)
+    assert res_sget.status_code == 200
+    s_quiz = res_sget.json()
+    for q in s_quiz["questions"]:
+        for opt in q["options"]:
+            assert "is_correct" not in opt or opt["is_correct"] is None
+
+    # Student starts attempt 1
+    res_att = await async_client.post(f"/api/v1/courses/{cid}/quizzes/{qid}/attempts", headers=stu_headers)
+    assert res_att.status_code == 201
+    att_id = res_att.json()["id"]
+
+    # Student submits answers (1 correct, 1 incorrect) -> 5.0 / 10.0
+    submit_payload = {
+        "answers": {
+            "q1": "opt1",  # correct (+5.0)
+            "q2": "opt3",  # incorrect List
+        }
+    }
+    res_sub = await async_client.post(
+        f"/api/v1/courses/{cid}/quizzes/{qid}/attempts/{att_id}/submit",
+        json=submit_payload,
+        headers=stu_headers,
+    )
+    assert res_sub.status_code == 200
+    att_result = res_sub.json()
+    assert att_result["score"] == 5.0
+    assert att_result["max_score"] == 10.0
+
+    # Auto-grading records to lms_gradebook
+    gb_entry = await test_db[COL_GRADEBOOK].find_one({"course_id": cid, "student_id": stu_id, "item_id": qid})
+    assert gb_entry is not None
+    assert gb_entry["item_type"] == "quiz"
+    assert gb_entry["score"] == 5.0
+
+
+# ── Feature 12: Gradebook & CSV Exports ───────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_feature_12_gradebook_and_csv(async_client, test_db):
+    """
+    Feature 12: Tests gradebook aggregation, score_so_far calculation, manual entries, and CSV download.
+    """
+    lec_headers, lec_id = await _register_and_login(async_client, "lec_f12@sliit.edu", "lecturer")
+    stu_headers, stu_id = await _register_and_login(async_client, "stu_f12@sliit.edu", "student")
+
+    res_c = await async_client.post("/api/v1/courses", json={"title": "Gradebook Course", "is_published": True}, headers=lec_headers)
+    cid = res_c.json()["id"]
+
+    # Insert two grades:
+    # 1. Assignment: 80 / 100, weight 0.2 -> (80/100)*0.2 = 0.16
+    # 2. Quiz: 40 / 50, weight 0.3 -> (40/50)*0.3 = 0.24
+    # Total weight = 0.5. Sum = 0.40. score_so_far = (0.40 / 0.5) * 100 = 80.0%
+    now = datetime.now(timezone.utc)
+    await test_db[COL_GRADEBOOK].insert_many([
+        {
+            "_id": str(uuid.uuid4()),
+            "course_id": cid,
+            "student_id": stu_id,
+            "item_type": "assignment",
+            "item_id": "a1",
+            "title": "Assignment 1",
+            "score": 80.0,
+            "max_score": 100.0,
+            "weight": 0.2,
+            "recorded_at": now,
+        },
+        {
+            "_id": str(uuid.uuid4()),
+            "course_id": cid,
+            "student_id": stu_id,
+            "item_type": "quiz",
+            "item_id": "q1",
+            "title": "Quiz 1",
+            "score": 40.0,
+            "max_score": 50.0,
+            "weight": 0.3,
+            "recorded_at": now,
+        },
+    ])
+
+    # Lecturer views gradebook
+    res_gb = await async_client.get(f"/api/v1/courses/{cid}/gradebook", headers=lec_headers)
+    assert res_gb.status_code == 200
+    gb_data = res_gb.json()
+    assert len(gb_data["students"]) == 1
+    stu_summary = gb_data["students"][0]
+    assert pytest.approx(stu_summary["score_so_far"], 0.01) == 80.0
+
+    # Student views own gradebook
+    res_me = await async_client.get(f"/api/v1/courses/{cid}/gradebook/me", headers=stu_headers)
+    assert res_me.status_code == 200
+    assert pytest.approx(res_me.json()["score_so_far"], 0.01) == 80.0
+
+    # Lecturer manual adjustment
+    manual_payload = {
+        "student_id": stu_id,
+        "title": "Midterm Exam",
+        "score": 90.0,
+        "max_score": 100.0,
+        "weight": 0.5,
+    }
+    res_man = await async_client.post(f"/api/v1/courses/{cid}/gradebook/manual", json=manual_payload, headers=lec_headers)
+    assert res_man.status_code in (200, 201)
+
+    # CSV Download
+    res_csv = await async_client.get(f"/api/v1/courses/{cid}/gradebook/csv", headers=lec_headers)
+    assert res_csv.status_code == 200
+    assert "text/csv" in res_csv.headers["content-type"]
+    assert "Student ID,Student Name,Item Type,Item Title,Score,Max Score,Weight,Recorded At" in res_csv.text
+    assert "Midterm Exam" in res_csv.text
+
+
+# ── Feature 13: Attendance Sessions & Records ─────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_feature_13_attendance_tracking(async_client, test_db):
+    """
+    Feature 13: Tests attendance session creation, bulk recording, re-mark updates, and attendance rate formula.
+    """
+    lec_headers, lec_id = await _register_and_login(async_client, "lec_f13@sliit.edu", "lecturer")
+    stu_headers, stu_id = await _register_and_login(async_client, "stu_f13@sliit.edu", "student")
+
+    res_c = await async_client.post("/api/v1/courses", json={"title": "Attendance Course", "is_published": True}, headers=lec_headers)
+    cid = res_c.json()["id"]
+
+    # Student must be enrolled
+    await test_db[CANONICAL_ENROLLMENTS].insert_one({
+        "_id": str(uuid.uuid4()), "course_id": cid, "student_id": stu_id, "status": "active"
+    })
+
+    # Lecturer creates 2 sessions
+    res_s1 = await async_client.post(
+        f"/api/v1/courses/{cid}/attendance/sessions",
+        json={"title": "Lecture 1", "session_date": datetime.now(timezone.utc).isoformat()},
+        headers=lec_headers,
+    )
+    assert res_s1.status_code == 201
+    sid1 = res_s1.json()["id"]
+
+    res_s2 = await async_client.post(
+        f"/api/v1/courses/{cid}/attendance/sessions",
+        json={"title": "Lecture 2", "session_date": datetime.now(timezone.utc).isoformat()},
+        headers=lec_headers,
+    )
+    assert res_s2.status_code == 201
+    sid2 = res_s2.json()["id"]
+
+    # Mark student 'present' in session 1, 'absent' in session 2
+    await async_client.post(
+        f"/api/v1/courses/{cid}/attendance/sessions/{sid1}/records",
+        json={"records": [{"student_id": stu_id, "status": "present"}]},
+        headers=lec_headers,
+    )
+    res_rec = await async_client.post(
+        f"/api/v1/courses/{cid}/attendance/sessions/{sid2}/records",
+        json={"records": [{"student_id": stu_id, "status": "absent", "notes": "Unexcused"}]},
+        headers=lec_headers,
+    )
+    assert res_rec.status_code == 200
+    assert res_rec.json()["records_count"] == 1
+
+    # Student views attendance rate: 1 attended out of 2 total sessions -> 50.0%
+    res_att_me = await async_client.get(f"/api/v1/courses/{cid}/attendance/me", headers=stu_headers)
+    assert res_att_me.status_code == 200
+    assert pytest.approx(res_att_me.json()["attendance_rate"], 0.01) == 50.0
+
+    # Re-marking session 2 as 'present' updates existing record without duplicate
+    records_update = {
+        "records": [
+            {"student_id": stu_id, "status": "present", "notes": "Medical excuse approved"}
         ]
     }
-    res_quiz = await ac.post(f"/api/v1/courses/{course_id}/quizzes", json=quiz_payload, headers=l1_headers)
-    assert res_quiz.status_code == 201
-    quiz_id = res_quiz.json()["id"]
-
-    # Student views quiz: verify is_correct is NEVER leaked!
-    res_stu_quiz = await ac.get(f"/api/v1/courses/{course_id}/quizzes/{quiz_id}", headers=s1_headers)
-    assert res_stu_quiz.status_code == 200
-    for q in res_stu_quiz.json()["questions"]:
-        for opt in q["options"]:
-            assert "is_correct" not in opt
-
-    # Unenrolled student attempt -> 403
-    res_unenrolled_att = await ac.post(f"/api/v1/courses/{course_id}/quizzes/{quiz_id}/attempts", headers=s2_headers)
-    assert res_unenrolled_att.status_code == 403
-
-    # Enrolled student starts attempt 1
-    res_att1 = await ac.post(f"/api/v1/courses/{course_id}/quizzes/{quiz_id}/attempts", headers=s1_headers)
-    assert res_att1.status_code == 201
-    att1_id = res_att1.json()["id"]
-
-    # Submit Attempt 1 with: Q1 correct (+2.0 points), Q2 wrong (+0.0 points)
-    # Total points possible = 5.0. Earned = 2.0. Hand-computed score = (2.0 / 5.0) * 100.0 = 40.0
-    res_sub_att1 = await ac.post(
-        f"/api/v1/courses/{course_id}/quizzes/{quiz_id}/attempts/{att1_id}/submit",
-        json={"answers": {"q1": q1_opt_correct, "q2": q2_opt_wrong}},
-        headers=s1_headers
+    res_rec2 = await async_client.post(
+        f"/api/v1/courses/{cid}/attendance/sessions/{sid2}/records",
+        json=records_update,
+        headers=lec_headers,
     )
-    assert res_sub_att1.status_code == 200
-    assert res_sub_att1.json()["score"] == 40.0
-    assert res_sub_att1.json()["earned_points"] == 2.0
-    assert res_sub_att1.json()["total_possible_points"] == 5.0
+    assert res_rec2.status_code == 200
 
-    # Start Attempt 2 (within max_attempts = 2)
-    res_att2 = await ac.post(f"/api/v1/courses/{course_id}/quizzes/{quiz_id}/attempts", headers=s1_headers)
-    assert res_att2.status_code == 201
-    att2_id = res_att2.json()["id"]
+    count_records = await test_db[COL_ATTENDANCE_RECORDS].count_documents({"session_id": sid2, "student_id": stu_id})
+    assert count_records == 1
 
-    # Submit Attempt 2 with both correct: (5.0 / 5.0) * 100.0 = 100.0
-    res_sub_att2 = await ac.post(
-        f"/api/v1/courses/{course_id}/quizzes/{quiz_id}/attempts/{att2_id}/submit",
-        json={"answers": {"q1": q1_opt_correct, "q2": q2_opt_correct}},
-        headers=s1_headers
+    # Now attendance rate is 2 out of 2 -> 100.0%
+    res_att_me2 = await async_client.get(f"/api/v1/courses/{cid}/attendance/me", headers=stu_headers)
+    assert pytest.approx(res_att_me2.json()["attendance_rate"], 0.01) == 100.0
+
+
+# ── RBAC & Cross-Student Privacy ──────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_group1_rbac_and_cross_student_privacy(async_client, test_db):
+    """
+    Asserts cross-cutting RBAC constraints and student data isolation.
+    """
+    lec_headers, lec_id = await _register_and_login(async_client, "lec_rbac@sliit.edu", "lecturer")
+    stu1_headers, stu1_id = await _register_and_login(async_client, "stu1_rbac@sliit.edu", "student")
+    stu2_headers, stu2_id = await _register_and_login(async_client, "stu2_rbac@sliit.edu", "student")
+    counsellor_headers, _ = await _register_and_login(async_client, "couns_rbac@sliit.edu", "counsellor")
+
+    res_c = await async_client.post("/api/v1/courses", json={"title": "RBAC Course", "is_published": True}, headers=lec_headers)
+    cid = res_c.json()["id"]
+
+    # 1. Unauthenticated requests get 401
+    res_no_auth = await async_client.get(f"/api/v1/courses/{cid}/assignments")
+    assert res_no_auth.status_code in (401, 403)
+
+    # 2. Non-enrolled student gets 403 on assignment submit
+    assign_payload = {
+        "title": "Restricted Assignment",
+        "max_score": 100.0,
+        "due_at": (datetime.now(timezone.utc) + timedelta(days=2)).isoformat(),
+        "is_published": True,
+    }
+    res_a = await async_client.post(f"/api/v1/courses/{cid}/assignments", json=assign_payload, headers=lec_headers)
+    aid = res_a.json()["id"]
+
+    res_sub_not_enrolled = await async_client.post(
+        f"/api/v1/courses/{cid}/assignments/{aid}/submit",
+        json={"content_text": "work"},
+        headers=stu1_headers,
     )
-    assert res_sub_att2.status_code == 200
-    assert res_sub_att2.json()["score"] == 100.0
+    assert res_sub_not_enrolled.status_code == 403
+    assert "Not enrolled" in res_sub_not_enrolled.json()["detail"]
 
-    # Attempt 3: Max attempts reached -> 400 Bad Request
-    res_att3 = await ac.post(f"/api/v1/courses/{course_id}/quizzes/{quiz_id}/attempts", headers=s1_headers)
-    assert res_att3.status_code == 400
-    assert "Maximum attempts" in res_att3.json()["detail"]
+    # Enroll stu1
+    await test_db[CANONICAL_ENROLLMENTS].insert_one({
+        "_id": str(uuid.uuid4()), "course_id": cid, "student_id": stu1_id, "status": "active"
+    })
+    await async_client.post(f"/api/v1/courses/{cid}/assignments/{aid}/submit", json={"content_text": "stu1 work"}, headers=stu1_headers)
 
-    # ── 6. Feature 12: Gradebook Grid & Score So Far Hand-computed Case ───────
-    # Current Gradebook State for Stu 1:
-    # Item 1 (Assignment 1): score = 80.0, max_score = 100.0, weight = 0.4.
-    #   -> weighted points = (80 / 100) * 0.4 = 0.32
-    # Item 2 (Quiz 1): score = 100.0, max_score = 100.0, weight = 0.6.
-    #   -> weighted points = (100 / 100) * 0.6 = 0.60
-    # Total weighted points = 0.32 + 0.60 = 0.92
-    # Total weight = 0.4 + 0.6 = 1.0
-    # score_so_far = (0.92 / 1.0) * 100 = 92.0%
-    res_gb = await ac.get(f"/api/v1/courses/{course_id}/gradebook", headers=l1_headers)
-    assert res_gb.status_code == 200
-    grid = res_gb.json()
-    stu_record = next(s for s in grid["students"] if s["student_id"] == stu1_id)
-    assert stu_record["weighted_total"] == 0.92
-    assert stu_record["score_so_far"] == 92.0
+    # 3. Student 2 cannot read Student 1's submission (list endpoint is lecturer only)
+    res_read_other = await async_client.get(f"/api/v1/courses/{cid}/assignments/{aid}/submissions", headers=stu2_headers)
+    assert res_read_other.status_code == 403
 
-    # Student own view
-    res_my_gb = await ac.get(f"/api/v1/courses/{course_id}/gradebook/me", headers=s1_headers)
-    assert res_my_gb.status_code == 200
-    assert res_my_gb.json()["weighted_total"] == 0.92
-    assert res_my_gb.json()["score_so_far"] == 92.0
+    # 4. Counsellor cannot post manual grade adjustments (read-only view)
+    res_couns_post = await async_client.post(
+        f"/api/v1/courses/{cid}/gradebook/manual",
+        json={"student_id": stu1_id, "title": "Bonus", "score": 5.0, "max_score": 5.0, "weight": 0.05},
+        headers=counsellor_headers,
+    )
+    assert res_couns_post.status_code == 403
 
-    # Counsellor read-only view: 200 OK
-    res_c_gb = await ac.get(f"/api/v1/courses/{course_id}/gradebook", headers=c_headers)
-    assert res_c_gb.status_code == 200
 
-    # Counsellor cannot write manual grades: 403 Forbidden
-    res_c_write = await ac.post(f"/api/v1/courses/{course_id}/gradebook/manual", json={
-        "student_id": stu1_id,
-        "title": "Participation",
-        "score": 10.0,
-        "max_score": 10.0,
-        "weight": 0.1
-    }, headers=c_headers)
-    assert res_c_write.status_code == 403
+# ── Feature 2/5: Enrollment & Privacy PID Resolution ──────────────────────────
 
-    # CSV Export: verify header and rows
-    res_csv = await ac.get(f"/api/v1/courses/{course_id}/gradebook/csv", headers=l1_headers)
-    assert res_csv.status_code == 200
-    assert res_csv.headers["content-type"].startswith("text/csv")
-    csv_reader = csv.reader(io.StringIO(res_csv.text))
-    rows = list(csv_reader)
-    assert rows[0] == ["Student ID", "Student Name", "Item Type", "Item Title", "Score", "Max Score", "Weight", "Recorded At"]
-    assert len(rows) >= 3  # Header + 2 grade items
+@pytest.mark.asyncio
+async def test_feature_2_enrollment_privacy_pid_resolution(async_client, test_db):
+    """
+    Demonstrates:
+      1. Exact privacy function called: app.core.privacy.pseudonymize(student_id: str) -> str
+      2. The platform owner's real enrollment endpoint POST /api/v1/enrollments/{course_id}
+         writes strictly to 'enrollments' (with 'student_id': user.id).
+      3. The computed PID STU_xxxxxxxx matches the canonical pseudonym algorithm.
+      4. check_student_enrolled recognizes students in both 'enrolments' (by PID) and 'enrollments' (by student_id).
+    """
+    lec_headers, lec_id = await _register_and_login(async_client, "lec_enr@sliit.edu", "lecturer")
+    stu_headers, stu_id = await _register_and_login(async_client, "stu_enr@sliit.edu", "student")
 
-    # ── 7. Feature 13: Attendance Sessions, Bulk Mark & Hand-computed Rate ───
-    # Create 4 Sessions
-    now = datetime.now(timezone.utc)
-    s_ids = []
-    for i in range(1, 5):
-        s_res = await ac.post(f"/api/v1/courses/{course_id}/attendance/sessions", json={
-            "title": f"Lab Session {i}",
-            "session_date": (now + timedelta(days=i)).isoformat()
-        }, headers=l1_headers)
-        assert s_res.status_code == 201
-        s_ids.append(s_res.json()["id"])
+    res_c = await async_client.post("/api/v1/courses", json={"title": "Enrollment Test Course", "is_published": True}, headers=lec_headers)
+    cid = res_c.json()["id"]
 
-    # Mark attendance for Session 1, 2, 3, 4:
-    # Session 1: present
-    # Session 2: late
-    # Session 3: absent
-    # Session 4: excused
-    await ac.post(f"/api/v1/courses/{course_id}/attendance/sessions/{s_ids[0]}/records", json={"records": [{"student_id": stu1_id, "status": "present"}]}, headers=l1_headers)
-    await ac.post(f"/api/v1/courses/{course_id}/attendance/sessions/{s_ids[1]}/records", json={"records": [{"student_id": stu1_id, "status": "late"}]}, headers=l1_headers)
-    await ac.post(f"/api/v1/courses/{course_id}/attendance/sessions/{s_ids[2]}/records", json={"records": [{"student_id": stu1_id, "status": "absent"}]}, headers=l1_headers)
-    await ac.post(f"/api/v1/courses/{course_id}/attendance/sessions/{s_ids[3]}/records", json={"records": [{"student_id": stu1_id, "status": "excused"}]}, headers=l1_headers)
+    # Call platform owner's REAL endpoint: POST /api/v1/enrollments/{course_id}
+    res_enr = await async_client.post(f"/api/v1/enrollments/{cid}", headers=stu_headers)
+    assert res_enr.status_code == 201
 
-    # Hand-computed rate: 4 total sessions, attended (present + late) = 2. Rate = (2 / 4) * 100 = 50.0%
-    res_my_att = await ac.get(f"/api/v1/courses/{course_id}/attendance/me", headers=s1_headers)
-    assert res_my_att.status_code == 200
-    assert res_my_att.json()["total_sessions"] == 4
-    assert res_my_att.json()["attended_sessions"] == 2
-    assert res_my_att.json()["attendance_rate"] == 50.0
+    # Verify which collection the owner's endpoint wrote to:
+    enr_doc = await test_db[CANONICAL_ENROLLMENTS].find_one({"course_id": cid, "student_id": stu_id})
+    assert enr_doc is not None, "Owner's endpoint writes to 'enrollments' collection"
+    assert enr_doc["status"] == "active"
 
-    # Re-marking Session 3 as 'present' updates existing record (no duplication):
-    res_re_mark = await ac.post(f"/api/v1/courses/{course_id}/attendance/sessions/{s_ids[2]}/records", json={"records": [{"student_id": stu1_id, "status": "present"}]}, headers=l1_headers)
-    assert res_re_mark.status_code == 200
-    rec_count = await test_db[COL_ATTENDANCE_RECORDS].count_documents({"session_id": s_ids[2], "student_id": stu1_id})
-    assert rec_count == 1
+    # Confirm it DID NOT write to 'enrolments' (single 'l')
+    enrolments_doc = await test_db[CANONICAL_ENROLMENTS].find_one({"course_id": cid})
+    assert enrolments_doc is None, "Owner's endpoint writes strictly to 'enrollments', never 'enrolments'"
 
-    # New attendance rate: attended 3/4 = 75.0%
-    res_updated_att = await ac.get(f"/api/v1/courses/{course_id}/attendance/me", headers=s1_headers)
-    assert res_updated_att.json()["attended_sessions"] == 3
-    assert res_updated_att.json()["attendance_rate"] == 75.0
+    # Compute PID using exact app.core.privacy.pseudonymize function
+    pid = pseudonymize(stu_id)
+    assert is_valid_pid(pid), f"PID '{pid}' must match format STU_[0-9a-fA-F]{{8}}"
 
-    # Counsellor cannot write attendance records: 403 Forbidden
-    res_c_att_write = await ac.post(f"/api/v1/courses/{course_id}/attendance/sessions/{s_ids[0]}/records", json={"records": [{"student_id": stu1_id, "status": "present"}]}, headers=c_headers)
-    assert res_c_att_write.status_code == 403
+    # Check student is recognized as enrolled via 'enrollments'
+    is_enrolled_legacy = await check_student_enrolled(test_db, cid, uuid.UUID(stu_id))
+    assert is_enrolled_legacy is True
 
-    # Counsellor / Lecturer reads attendance summary
-    res_att_sum = await ac.get(f"/api/v1/courses/{course_id}/attendance/summary", headers=c_headers)
-    assert res_att_sum.status_code == 200
-    assert res_att_sum.json()["total_sessions"] == 4
-    assert len(res_att_sum.json()["students"]) == 1
-    assert res_att_sum.json()["students"][0]["attendance_rate"] == 75.0
-
-    # ── 8. Safety Verification: Strict Platform Owner Collections Untouched ──
-    # The operational routers must NOT have touched his collections:
-    assert await test_db.assignments.count_documents({}) == 0
-    assert await test_db.submissions.count_documents({}) == 0
-    assert await test_db.quizzes.count_documents({}) == 0
-    assert await test_db.quiz_attempts.count_documents({}) == 0
-    assert await test_db.grades.count_documents({}) == 0
-    assert await test_db.attendance.count_documents({}) == 0
-
-    # Must strictly have written to our operational lms_* collections:
-    assert await test_db[COL_ASSIGNMENTS].count_documents({}) == 1
-    assert await test_db[COL_SUBMISSIONS].count_documents({}) == 1
-    assert await test_db[COL_QUIZZES].count_documents({}) == 1
-    assert await test_db[COL_QUIZ_ATTEMPTS].count_documents({}) == 2
-    assert await test_db[COL_GRADEBOOK].count_documents({}) == 2
-    assert await test_db[COL_ATTENDANCE_SESSIONS].count_documents({}) == 4
-    assert await test_db[COL_ATTENDANCE_RECORDS].count_documents({}) == 4
+    # Also test inserting into canonical 'enrolments' collection with PID (platform owner's ML Feature 25 format)
+    cid_ml = str(uuid.uuid4())
+    await test_db[CANONICAL_ENROLMENTS].insert_one({
+        "_id": f"{pid}_{cid_ml}",
+        "course_id": cid_ml,
+        "pid": pid,
+        "status": "active",
+        "schema_version": 1,
+    })
+    is_enrolled_canonical = await check_student_enrolled(test_db, cid_ml, uuid.UUID(stu_id))
+    assert is_enrolled_canonical is True

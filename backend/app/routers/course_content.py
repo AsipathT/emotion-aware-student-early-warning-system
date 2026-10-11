@@ -163,9 +163,19 @@ async def update_module_content(
     target_module["updated_at"] = now
     modules[target_idx] = target_module
 
+    # Atomic MongoDB arrayFilters update expression ensuring only target module is updated
     await db[CANONICAL_COURSES].update_one(
         {"_id": course_doc["_id"]},
-        {"$set": {"modules": modules, "updated_at": now}},
+        {
+            "$set": {
+                "modules.$[elem].title": target_module["title"],
+                "modules.$[elem].sequence_order": target_module["sequence_order"],
+                "modules.$[elem].content_payload": target_module.get("content_payload", {}),
+                "modules.$[elem].updated_at": now,
+                "updated_at": now,
+            }
+        },
+        array_filters=[{"$or": [{"elem._id": mid_str}, {"elem.id": mid_str}]}],
     )
 
     res = dict(target_module)

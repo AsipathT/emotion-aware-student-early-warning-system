@@ -7,6 +7,7 @@ Restricted solely to collection naming, PID translation, and authorization helpe
 
 import hashlib
 import hmac
+import uuid
 from typing import Any, Dict, Optional
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.core.config import settings
@@ -27,16 +28,13 @@ CANONICAL_COURSES = "courses"
 CANONICAL_USERS = "users"
 
 
-def pseudonymize_id(identifier: str) -> str:
-    """Deterministic HMAC-SHA256 pseudonym generation matching Feature 5."""
-    secret = getattr(settings, "secret_key", "replace_with_a_long_random_secret_key_min_32_chars").encode("utf-8")
-    data = str(identifier).strip().encode("utf-8")
-    digest = hmac.new(secret, data, hashlib.sha256).hexdigest()
-    return f"STU_{digest[:8]}"
+from app.core.privacy import pseudonymize, pseudonymize as pseudonymize_id
 
 
 async def resolve_student_pid(user: Any, db: Optional[AsyncIOMotorDatabase] = None) -> str:
-    """Resolves a User instance or dict to a student PID."""
+    """Resolves a User instance, UUID, string, or dict to a student PID."""
+    if isinstance(user, (uuid.UUID, str)):
+        return pseudonymize(str(user))
     if hasattr(user, "pid") and getattr(user, "pid"):
         return getattr(user, "pid")
     if isinstance(user, dict) and user.get("pid"):
@@ -44,10 +42,10 @@ async def resolve_student_pid(user: Any, db: Optional[AsyncIOMotorDatabase] = No
 
     student_id = getattr(user, "student_id", None) or (user.get("student_id") if isinstance(user, dict) else None)
     if student_id:
-        return pseudonymize_id(student_id)
+        return pseudonymize(student_id)
 
     uid = getattr(user, "id", None) or (user.get("_id") or user.get("id") if isinstance(user, dict) else None)
-    return pseudonymize_id(str(uid))
+    return pseudonymize(str(uid))
 
 
 async def check_student_enrolled(db: AsyncIOMotorDatabase, course_id: str, user: Any) -> bool:
@@ -55,7 +53,13 @@ async def check_student_enrolled(db: AsyncIOMotorDatabase, course_id: str, user:
     Verifies that a student has an active enrollment in the course.
     Checks platform owner's enrolments collection (by pid) and enrollments (by student_id / uid).
     """
-    uid_str = str(getattr(user, "id", None) or (user.get("_id") or user.get("id") if isinstance(user, dict) else ""))
+    if isinstance(user, (uuid.UUID, str)):
+        uid_str = str(user)
+    elif isinstance(user, dict):
+        uid_str = str(user.get("_id") or user.get("id") or "")
+    else:
+        uid_str = str(getattr(user, "id", None) or "")
+
     pid = await resolve_student_pid(user, db)
 
     # 1. Check enrolments (Feature 25 schema: pid + course_id)

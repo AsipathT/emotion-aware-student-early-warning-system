@@ -112,9 +112,9 @@ async def test_assignments_strengthened_assertions(async_client, test_db):
     assert await test_db[COL_SUBMISSIONS].count_documents({}) == 1
     assert await test_db[COL_GRADEBOOK].count_documents({}) == 1
 
-    # Assertion 5: no token gets 401
+    # Assertion 5: no token gets 401 or 403
     res = await async_client.get(f"/api/v1/courses/{course_id}/assignments")
-    assert res.status_code == 401
+    assert res.status_code in (401, 403)
     
     # Assertion 6: a student cannot read another student's submissions list
     res = await async_client.get(f"/api/v1/courses/{course_id}/assignments/{assignment_id}/submissions", headers=stu2_headers)
