@@ -11,6 +11,7 @@ from fastapi import HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.models.user import User, UserRole
+from app.services.enrolment_lookup import has_active_enrolment
 
 
 def require_student_role(user: User) -> None:
@@ -78,20 +79,7 @@ async def verify_active_enrolment(
             detail="Course not found.",
         )
 
-    # Check active enrolment (supporting both enrollments and enrolments collection names)
-    enrolment = await db.enrollments.find_one({
-        "student_id": student_id,
-        "course_id": course_id,
-        "status": "active",
-    })
-    if not enrolment:
-        enrolment = await db.enrolments.find_one({
-            "student_id": student_id,
-            "course_id": course_id,
-            "status": "active",
-        })
-
-    if not enrolment:
+    if not await has_active_enrolment(db, student_id, course_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Active enrolment in this course is required to access the journal.",
