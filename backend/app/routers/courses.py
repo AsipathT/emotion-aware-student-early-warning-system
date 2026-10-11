@@ -69,6 +69,7 @@ async def create_course(
     course_doc = {
         "_id": cid,
         "id": cid,
+        "course_id": cid,
         "title": body.title,
         "description": body.description,
         "lecturer_id": str(target_lecturer_id),
@@ -130,7 +131,7 @@ async def list_courses(
     description="Fetches a course and its embedded modules from MongoDB.",
 )
 async def get_course(
-    course_id: uuid.UUID,
+    course_id: str,
     current_user: User = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> CourseResponse:
@@ -175,7 +176,7 @@ async def get_course(
     description="Pushes a new module into the course's modules array in MongoDB.",
 )
 async def add_module(
-    course_id: uuid.UUID,
+    course_id: str,
     body: ModuleCreate,
     current_user: User = Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN)),
     db: AsyncIOMotorDatabase = Depends(get_db),

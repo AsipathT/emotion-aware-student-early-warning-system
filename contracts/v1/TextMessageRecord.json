@@ -1,0 +1,111 @@
+{
+  "$defs": {
+    "SourceType": {
+      "description": "Source medium where the LMS text interaction occurred.",
+      "enum": [
+        "forum",
+        "chat",
+        "journal"
+      ],
+      "title": "SourceType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Individual text interaction message extracted from LMS discussion forums,\ncourse chats, or reflective learning journals.\nTransmitted from LMS to Component 1 (Affective State Detection).\nStrictly redacted: raw_text and identifying tokens are prohibited.",
+  "properties": {
+    "clean_text": {
+      "description": "Scrubbed and de-identified text payload (free of names, emails, reg IDs)",
+      "minLength": 1,
+      "title": "Clean Text",
+      "type": "string"
+    },
+    "course_id": {
+      "description": "Course institutional identifier (e.g. CS101)",
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Course Id",
+      "type": "string"
+    },
+    "message_id": {
+      "description": "Unique identifier of the communication item within LMS",
+      "minLength": 1,
+      "title": "Message Id",
+      "type": "string"
+    },
+    "message_length_chars": {
+      "description": "Character count of the scrubbed message text",
+      "minimum": 0,
+      "title": "Message Length Chars",
+      "type": "integer"
+    },
+    "message_length_words": {
+      "description": "Word count of the scrubbed message text",
+      "minimum": 0,
+      "title": "Message Length Words",
+      "type": "integer"
+    },
+    "pid": {
+      "description": "Pseudonymized student identifier (Feature 5 format)",
+      "pattern": "^STU_[0-9a-fA-F]{8}$",
+      "title": "Pid",
+      "type": "string"
+    },
+    "reply_to_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Message ID this post replies to, if part of a thread",
+      "title": "Reply To Id"
+    },
+    "response_latency_seconds": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Elapsed seconds before a reply/post was made, if applicable",
+      "title": "Response Latency Seconds"
+    },
+    "source_type": {
+      "$ref": "#/$defs/SourceType",
+      "description": "Communication medium (forum, chat, or journal)"
+    },
+    "timestamp": {
+      "description": "UTC timestamp when the student posted the message",
+      "format": "date-time",
+      "title": "Timestamp",
+      "type": "string"
+    },
+    "week_index": {
+      "description": "Zero-indexed academic week in which message was submitted",
+      "minimum": 0,
+      "title": "Week Index",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "message_id",
+    "pid",
+    "course_id",
+    "week_index",
+    "source_type",
+    "clean_text",
+    "timestamp",
+    "message_length_chars",
+    "message_length_words"
+  ],
+  "title": "TextMessageRecord",
+  "type": "object"
+}

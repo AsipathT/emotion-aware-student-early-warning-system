@@ -1,0 +1,80 @@
+{
+  "additionalProperties": false,
+  "description": "Weekly academic performance, milestone grades, and attendance metrics.\nTransmitted from LMS to Component 3 (Multimodal Risk Prediction).",
+  "properties": {
+    "attendance_pct": {
+      "description": "Cumulative attendance percentage to date (0.0 to 100.0)",
+      "maximum": 100.0,
+      "minimum": 0.0,
+      "title": "Attendance Pct",
+      "type": "number"
+    },
+    "ca_marks": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Continuous assessment cumulative marks recorded so far",
+      "title": "Ca Marks"
+    },
+    "course_id": {
+      "description": "Course institutional identifier",
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Course Id",
+      "type": "string"
+    },
+    "midterm_mark": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Midterm examination score if completed in this or prior weeks",
+      "title": "Midterm Mark"
+    },
+    "pid": {
+      "description": "Pseudonymized student identifier (Feature 5 format)",
+      "pattern": "^STU_[0-9a-fA-F]{8}$",
+      "title": "Pid",
+      "type": "string"
+    },
+    "quiz_scores": {
+      "description": "Individual quiz percentage or point scores recorded in this week",
+      "items": {
+        "type": "number"
+      },
+      "title": "Quiz Scores",
+      "type": "array"
+    },
+    "submission_delay_hours": {
+      "description": "Academic assignment deadline offset (negative = early, positive = late)",
+      "title": "Submission Delay Hours",
+      "type": "number"
+    },
+    "week_index": {
+      "description": "Zero-indexed academic week of assessment",
+      "minimum": 0,
+      "title": "Week Index",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "pid",
+    "course_id",
+    "week_index",
+    "attendance_pct",
+    "submission_delay_hours"
+  ],
+  "title": "AcademicRecord",
+  "type": "object"
+}

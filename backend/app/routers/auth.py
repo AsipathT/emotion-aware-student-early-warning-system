@@ -2,8 +2,11 @@
 backend/app/routers/auth.py
 
 Authentication endpoints – register, login, and token refresh (MongoDB backed).
+Integrated with Feature 5 Identity Vault for student pseudonymization.
 """
 
+import hashlib
+import hmac
 import uuid
 from datetime import datetime, timezone
 
@@ -11,7 +14,9 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from jose import JWTError
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
+from app.core.config import settings
 from app.core.database import get_db
+from app.core.privacy import pseudonymize
 from app.core.security import (
     ACCESS_TOKEN_TYPE,
     REFRESH_TOKEN_TYPE,
@@ -21,6 +26,7 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
+from app.schemas.audit import AuditAction, AuditOutcome
 from app.schemas.auth import (
     LoginRequest,
     RegisterRequest,
@@ -28,8 +34,10 @@ from app.schemas.auth import (
     TokenResponse,
     UserResponse,
 )
+from app.services.audit import log_event
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
+
 
 # ── Shared exception ──────────────────────────────────────────────────────────
 _INVALID_CREDENTIALS = HTTPException(
@@ -45,7 +53,7 @@ _INVALID_CREDENTIALS = HTTPException(
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Register a new user account",
-    description="Creates a new user account and stores document in MongoDB 'users' collection.",
+    description="Creates a new user account. For students, writes pseudonymized records to identity_vault.",
 )
 async def register(
     body: RegisterRequest,
@@ -76,6 +84,28 @@ async def register(
         "updated_at": now,
         "profile": None,
     }
+
+    # Feature 5: If role is student, generate deterministic PID and store in identity_vault
+    if role_val == "student":
+        student_id = body.student_id or f"IT{abs(hash(uid)) % 100000000:08d}"
+        pid = pseudonymize(student_id)
+        user_doc["student_id"] = student_id
+        user_doc["pid"] = pid
+
+        vault_doc = {
+            "_id": pid,
+            "pid": pid,
+            "student_id": student_id,
+            "name": body.full_name,
+            "email": body.email,
+            "created_at": now,
+            "updated_at": now,
+        }
+        await db.identity_vault.update_one(
+            {"pid": pid},
+            {"$set": vault_doc},
+            upsert=True,
+        )
 
     await db.users.insert_one(user_doc)
     return UserResponse(**user_doc)
@@ -108,16 +138,34 @@ async def login(
         except Exception:
             raise _INVALID_CREDENTIALS
 
+    secret = settings.PSEUDONYM_SECRET_KEY.encode("utf-8")
+
+    async def _log_failure(identifier: str) -> None:
+        user_bytes = identifier.strip().lower().encode("utf-8")
+        attempted_hmac = hmac.new(secret, user_bytes, hashlib.sha256).hexdigest()
+        await log_event(
+            request=request,
+            db=db,
+            action=AuditAction.LOGIN_FAILED,
+            actor_id="anonymous",
+            actor_role="anonymous",
+            outcome=AuditOutcome.FAILED,
+            details={"attempted_user_hmac": attempted_hmac},
+        )
+
     if not email or not password:
+        await _log_failure(email or "empty")
         raise _INVALID_CREDENTIALS
 
     user_doc = await db.users.find_one({"email": email})
 
     # Generic error message to prevent enumeration
     if not user_doc or not verify_password(password, user_doc.get("hashed_password", "")):
+        await _log_failure(email)
         raise _INVALID_CREDENTIALS
 
     if not user_doc.get("is_active", True):
+        await _log_failure(email)
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="This account has been deactivated. Contact your administrator.",
@@ -126,10 +174,42 @@ async def login(
     user_id_str = str(user_doc["_id"])
     role_str = str(user_doc.get("role", "student"))
 
+    # Feature 6: Check whether student must provide consent for active notice
+    consent_required = False
+    if role_str == "student":
+        active_notice = await db.consent_notices.find_one({"is_active": True})
+        if active_notice:
+            pid = user_doc.get("pid")
+            if not pid:
+                student_id = user_doc.get("student_id") or user_id_str
+                pid = pseudonymize(student_id)
+                await db.users.update_one({"_id": user_doc["_id"]}, {"$set": {"pid": pid}})
+
+            active_version = active_notice.get("version", 1)
+            record = await db.consent_records.find_one({
+                "pid": pid,
+                "notice_version": active_version,
+            })
+            if not record:
+                consent_required = True
+
+    # Feature 7: Log successful login
+    await log_event(
+        request=request,
+        db=db,
+        action=AuditAction.LOGIN_SUCCESS,
+        actor_id=user_id_str,
+        actor_role=role_str,
+        outcome=AuditOutcome.SUCCESS,
+        details={"consent_required": consent_required},
+    )
+
     return TokenResponse(
         access_token=create_access_token(user_id_str, role_str),
         refresh_token=create_refresh_token(user_id_str, role_str),
+        consent_required=consent_required,
     )
+
 
 
 # ── POST /api/v1/auth/refresh ─────────────────────────────────────────────────
@@ -170,7 +250,27 @@ async def refresh_tokens(
     user_id_str = str(user_doc["_id"])
     role_str = str(user_doc.get("role", "student"))
 
+    consent_required = False
+    if role_str == "student":
+        active_notice = await db.consent_notices.find_one({"is_active": True})
+        if active_notice:
+            pid = user_doc.get("pid")
+            if not pid:
+                student_id = user_doc.get("student_id") or user_id_str
+                pid = pseudonymize(student_id)
+                await db.users.update_one({"_id": user_doc["_id"]}, {"$set": {"pid": pid}})
+
+            active_version = active_notice.get("version", 1)
+            record = await db.consent_records.find_one({
+                "pid": pid,
+                "notice_version": active_version,
+            })
+            if not record:
+                consent_required = True
+
     return TokenResponse(
         access_token=create_access_token(user_id_str, role_str),
         refresh_token=create_refresh_token(user_id_str, role_str),
+        consent_required=consent_required,
     )
+

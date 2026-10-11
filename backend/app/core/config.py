@@ -34,6 +34,37 @@ class Settings(BaseSettings):
     )
     mongo_db_name: str = "lms_db"
 
+    # Optional test database overrides
+    test_mongo_uri: str = ""
+    test_db_name: str = ""
+
+    @property
+    def MONGODB_URI(self) -> str:
+        """Alias for mongo_uri."""
+        return self.mongo_uri
+
+    @property
+    def DB_NAME(self) -> str:
+        """Alias for mongo_db_name."""
+        return self.mongo_db_name
+
+    # ── Feature 5: Pseudonymization & Privacy ─────────────────────────────────
+    pseudonym_secret_key: str = "lms_pseudonym_hmac_secret_key_2026_super_secure"
+
+    @property
+    def PSEUDONYM_SECRET_KEY(self) -> str:
+        """Upper-case accessor for Feature 5 privacy hashing."""
+        return self.pseudonym_secret_key
+
+    # ── Feature 7: Audit Logging & Proxy Trust ────────────────────────────────
+    trusted_proxy: bool = False
+
+    @property
+    def TRUSTED_PROXY(self) -> bool:
+        """Accessor for trusted proxy configuration."""
+        return self.trusted_proxy
+
+
     # ── CORS ──────────────────────────────────────────────────────────────────
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
 
