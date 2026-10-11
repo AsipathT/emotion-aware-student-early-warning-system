@@ -14,7 +14,7 @@ Schema map
 
 import uuid
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -54,8 +54,8 @@ class ModuleCreate(BaseModel):
 class ModuleResponse(BaseModel):
     """Public representation of a course module."""
 
-    id: uuid.UUID
-    course_id: uuid.UUID
+    id: Union[uuid.UUID, str]
+    course_id: Union[uuid.UUID, str]
     title: str
     content_payload: Optional[Any] = None
     sequence_order: int
@@ -85,7 +85,7 @@ class CourseCreate(BaseModel):
         default=False,
         description="Whether the course is visible to enrolled students or public catalog.",
     )
-    lecturer_id: Optional[uuid.UUID] = Field(
+    lecturer_id: Optional[Union[uuid.UUID, str]] = Field(
         default=None,
         description="Instructor ID. Defaults to current user if lecturer. Admins can assign to any lecturer.",
     )
@@ -119,7 +119,7 @@ class CourseUpdate(BaseModel):
     is_published: Optional[bool] = Field(
         default=None,
     )
-    lecturer_id: Optional[uuid.UUID] = Field(
+    lecturer_id: Optional[Union[uuid.UUID, str]] = Field(
         default=None,
     )
 
@@ -137,10 +137,10 @@ class CourseUpdate(BaseModel):
 class CourseResponse(BaseModel):
     """Detailed course representation including its modules."""
 
-    id: uuid.UUID
+    id: Union[uuid.UUID, str]
     title: str
     description: Optional[str] = None
-    lecturer_id: uuid.UUID
+    lecturer_id: Optional[Union[uuid.UUID, str]] = None
     is_published: bool
     created_at: datetime
     updated_at: datetime

@@ -2,19 +2,11 @@
 backend/app/schemas/auth.py
 
 Pydantic v2 request / response schemas for the authentication endpoints.
-
-Schema map
-----------
-  RegisterRequest      →  POST /api/v1/auth/register  (body)
-  LoginRequest         →  POST /api/v1/auth/login      (body)
-  TokenResponse        →  POST /api/v1/auth/login      (response)
-                          POST /api/v1/auth/refresh     (response)
-  TokenRefreshRequest  →  POST /api/v1/auth/refresh    (body)
-  UserResponse         →  POST /api/v1/auth/register  (response)
 """
 
 import uuid
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -47,6 +39,10 @@ class RegisterRequest(BaseModel):
     role: UserRole = Field(
         default=UserRole.STUDENT,
         description="Account role. Defaults to 'student'.",
+    )
+    student_id: Optional[str] = Field(
+        default=None,
+        description="Optional institutional student registration ID (e.g. IT12345678).",
     )
 
     @field_validator("password")
@@ -89,6 +85,7 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+    consent_required: bool = False
 
 
 class UserResponse(BaseModel):
@@ -101,5 +98,6 @@ class UserResponse(BaseModel):
     is_active: bool
     is_verified: bool
     created_at: datetime
+    pid: Optional[str] = None
 
     model_config = {"from_attributes": True}

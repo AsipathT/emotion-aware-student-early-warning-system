@@ -1,0 +1,102 @@
+{
+  "additionalProperties": false,
+  "description": "Weekly behavioral telemetry aggregated from LMS logs, video player events,\nand assignment submissions.\nTransmitted from LMS to Component 2 (Behavioral Engagement Trajectory).",
+  "properties": {
+    "avg_submission_delay_hours": {
+      "description": "Average hours relative to deadline. Negative value indicates early submission (e.g. -4.5 = 4.5 hours early); positive value indicates late submission.",
+      "title": "Avg Submission Delay Hours",
+      "type": "number"
+    },
+    "clicks": {
+      "description": "Total interaction events (clicks, navigations, downloads)",
+      "minimum": 0,
+      "title": "Clicks",
+      "type": "integer"
+    },
+    "course_id": {
+      "description": "Course institutional identifier",
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Course Id",
+      "type": "string"
+    },
+    "login_count": {
+      "description": "Total distinct logins/sessions started during the week",
+      "minimum": 0,
+      "title": "Login Count",
+      "type": "integer"
+    },
+    "pid": {
+      "description": "Pseudonymized student identifier (Feature 5 format)",
+      "pattern": "^STU_[0-9a-fA-F]{8}$",
+      "title": "Pid",
+      "type": "string"
+    },
+    "session_minutes": {
+      "description": "Total active time spent on the platform in minutes",
+      "minimum": 0.0,
+      "title": "Session Minutes",
+      "type": "number"
+    },
+    "submissions_count": {
+      "description": "Number of assignments or lab tasks submitted during the week",
+      "minimum": 0,
+      "title": "Submissions Count",
+      "type": "integer"
+    },
+    "video_completion_pct": {
+      "description": "Average video completion percentage across assigned lectures (0.0 to 100.0)",
+      "maximum": 100.0,
+      "minimum": 0.0,
+      "title": "Video Completion Pct",
+      "type": "number"
+    },
+    "video_pause_count": {
+      "description": "Number of video pause events triggered",
+      "minimum": 0,
+      "title": "Video Pause Count",
+      "type": "integer"
+    },
+    "video_play_count": {
+      "description": "Number of video play events triggered",
+      "minimum": 0,
+      "title": "Video Play Count",
+      "type": "integer"
+    },
+    "video_rewind_count": {
+      "description": "Number of backward seek / rewind events (indicator of difficulty)",
+      "minimum": 0,
+      "title": "Video Rewind Count",
+      "type": "integer"
+    },
+    "video_skip_count": {
+      "description": "Number of forward seek / skip events",
+      "minimum": 0,
+      "title": "Video Skip Count",
+      "type": "integer"
+    },
+    "week_index": {
+      "description": "Zero-indexed academic week of observation",
+      "minimum": 0,
+      "title": "Week Index",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "pid",
+    "course_id",
+    "week_index",
+    "login_count",
+    "session_minutes",
+    "clicks",
+    "video_play_count",
+    "video_pause_count",
+    "video_rewind_count",
+    "video_skip_count",
+    "video_completion_pct",
+    "submissions_count",
+    "avg_submission_delay_hours"
+  ],
+  "title": "BehaviorWeeklyRecord",
+  "type": "object"
+}
