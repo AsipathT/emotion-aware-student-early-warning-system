@@ -16,6 +16,7 @@ import { AuditLogPage } from './pages/admin/AuditLogPage';
 import { ForumPage } from './pages/ForumPage';
 import { ForumThreadPage } from './pages/ForumThreadPage';
 import { ChatPage } from './pages/ChatPage';
+import { JournalPage } from './pages/JournalPage';
 
 
 const queryClient = new QueryClient({
@@ -133,6 +134,16 @@ export const App: React.FC = () => {
                 element={
                   <ProtectedRoute allowedRoles={['student', 'lecturer', 'counsellor']}>
                     <ChatPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Dushan: journal */}
+              <Route
+                path="/journal"
+                element={
+                  <ProtectedRoute allowedRoles={['student']}>
+                    <JournalPage />
                   </ProtectedRoute>
                 }
               />
