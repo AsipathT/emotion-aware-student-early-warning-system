@@ -220,6 +220,8 @@ class IdentityVaultStorage(StorageDocument):
     name: str = Field(..., min_length=1)
     email: str = Field(..., min_length=3)
     is_imported: Optional[bool] = Field(default=False, description="Flag indicating externally imported identity")
+    source: Optional[str] = Field(default=None, description="Provenance tag e.g. oulad, internal")
+    ingestion_run_id: Optional[str] = Field(default=None, description="Ingestion run identifier")
     created_at: Optional[UtcDatetime] = None
     updated_at: Optional[UtcDatetime] = None
 
@@ -265,6 +267,8 @@ class CourseStorage(LegacyIdStorageDocument):
     lecturer_id: Optional[str] = Field(default=None, description="ID of the lecturer in charge")
     is_published: bool = False
     presentation_length_days: Optional[int] = Field(default=None, ge=1, description="OULAD presentation duration in days")
+    source: Optional[str] = Field(default=None, description="Course source provenance tag (e.g. oulad, demo, internal)")
+    ingestion_run_id: Optional[str] = Field(default=None, description="Ingestion run identifier")
     modules: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Course modules list")
     created_at: UtcDatetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: UtcDatetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -395,3 +399,70 @@ class IngestionRunStorage(StorageDocument):
     error_message: Optional[str] = None
     details: Optional[Dict[str, Any]] = Field(default=None, description="Detailed run metrics and collection counts")
     dry_run: Optional[bool] = Field(default=False, description="Whether run was a dry run")
+
+
+class PipelineStageStorage(BaseModel):
+    """Sub-document tracking an individual component stage within a pipeline run."""
+    status: str = Field(
+        default="waiting",
+        description="Stage status: waiting, ready, notified, receiving, complete, timed_out, skipped, failed",
+    )
+    since: UtcDatetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="UTC timestamp when stage transitioned to current status",
+    )
+    updated_at: UtcDatetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="UTC timestamp of last status or progress update",
+    )
+    note: Optional[str] = Field(default=None, description="Diagnostic, error, or completion summary note")
+    coverage: Optional[float] = Field(default=None, description="Coverage ratio (received / eligible)")
+    eligible: int = Field(default=0, ge=0, description="Total count of eligible students")
+    received: int = Field(default=0, ge=0, description="Count of received component records")
+    notified_at: Optional[UtcDatetime] = Field(default=None, description="UTC timestamp when webhook was dispatched")
+    notify_attempts: int = Field(default=0, ge=0, description="Webhook delivery attempt count")
+    notify_error: Optional[str] = Field(default=None, description="Last webhook error message")
+
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+        str_strip_whitespace=True,
+    )
+
+
+class PipelineRunStorage(StorageDocument):
+    """Storage model for pipeline_runs collection."""
+    run_id: str = Field(..., min_length=1, description="Unique pipeline run execution identifier")
+    course_id: CourseId = Field(..., description="Target course identifier")
+    week_index: WeekIndex = Field(..., description="Zero-indexed academic week")
+    week_end: UtcDatetime = Field(..., description="UTC end timestamp of the academic week")
+    status: str = Field(
+        default="pending",
+        description="Run status: pending, running, complete, partial, failed",
+    )
+    trigger: str = Field(
+        default="scheduler",
+        description="Execution trigger: scheduler, manual",
+    )
+    triggered_by: str = Field(
+        default="system:scheduler",
+        description="Actor who initiated run (e.g. system:scheduler or user ID)",
+    )
+    started_at: UtcDatetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    ended_at: Optional[UtcDatetime] = None
+    stages: Dict[str, PipelineStageStorage] = Field(
+        default_factory=dict,
+        description="Stage states keyed by stage name: lms_aggregation, c1, c2, c3, c4",
+    )
+
+
+class SchedulerLockStorage(StorageDocument):
+    """Storage model for scheduler_locks collection."""
+    id: str = Field(
+        default="weekly_pipeline",
+        alias="_id",
+        description="Fixed lock identifier ('weekly_pipeline')",
+    )
+    owner: str = Field(..., min_length=1, description="Hostname/PID/Instance that holds lock lease")
+    acquired_at: UtcDatetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    expires_at: UtcDatetime = Field(..., description="UTC timestamp when lock lease expires")

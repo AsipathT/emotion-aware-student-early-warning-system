@@ -205,4 +205,12 @@ COLLECTION_INDEXES: Dict[str, List[IndexModel]] = {
         IndexModel([("run_id", ASCENDING)], unique=True, name="idx_ingestion_runs_id_unique"),
         IndexModel([("component", ASCENDING), ("started_at", DESCENDING)], name="idx_ingestion_runs_component_started"),
     ],
+    col.PIPELINE_RUNS: [
+        IndexModel([("course_id", ASCENDING), ("week_index", ASCENDING)], unique=True, name="idx_pipeline_runs_course_week_unique"),
+        IndexModel([("status", ASCENDING), ("started_at", ASCENDING)], name="idx_pipeline_runs_status_started"),
+        IndexModel([("course_id", ASCENDING), ("started_at", DESCENDING)], name="idx_pipeline_runs_course_started_desc"),
+    ],
+    col.SCHEDULER_LOCKS: [
+        IndexModel([("expires_at", ASCENDING)], name="idx_scheduler_locks_expires_at"),
+    ],
 }

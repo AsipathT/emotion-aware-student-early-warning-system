@@ -129,8 +129,25 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         except Exception as exc:
             print(f"[startup]  Warning: failed to start scheduler: {exc}")
 
+    # Feature 22: Pipeline scheduler lifecycle
+    if getattr(settings, "SCHEDULER_ENABLED", False):
+        try:
+            from app.pipeline.scheduler import start_pipeline_scheduler
+            start_pipeline_scheduler()
+            print("[startup]  Feature 22 Pipeline scheduler started.")
+        except Exception as exc:
+            print(f"[startup]  Warning: failed to start pipeline scheduler: {exc}")
+
     yield
     # ---- shutdown ----
+    if getattr(settings, "SCHEDULER_ENABLED", False):
+        try:
+            from app.pipeline.scheduler import stop_pipeline_scheduler
+            stop_pipeline_scheduler()
+            print("[shutdown] Feature 22 Pipeline scheduler stopped.")
+        except Exception:
+            pass
+
     if getattr(settings, "ENABLE_SCHEDULER", False):
         try:
             from app.jobs.scheduler import stop_scheduler
