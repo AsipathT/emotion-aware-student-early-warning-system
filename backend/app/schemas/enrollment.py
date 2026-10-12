@@ -32,7 +32,7 @@ class EnrollmentCourseSummary(BaseModel):
 class EnrollmentStudentSummary(BaseModel):
     """Student account & profile details embedded in an enrollment roster."""
 
-    id: uuid.UUID
+    id: Union[uuid.UUID, str]
     email: str
     full_name: str
     role: UserRole
@@ -66,8 +66,8 @@ class EnrollmentUpdate(BaseModel):
 class EnrollmentResponse(BaseModel):
     """Serialised enrollment entity with nested course and student details."""
 
-    id: uuid.UUID
-    student_id: uuid.UUID
+    id: Union[uuid.UUID, str]
+    student_id: Union[uuid.UUID, str]
     course_id: Union[uuid.UUID, str]
     status: str
     enrolled_at: datetime

@@ -69,6 +69,7 @@ async def create_course(
     course_doc = {
         "_id": cid,
         "id": cid,
+        "course_id": cid,
         "title": body.title,
         "description": body.description,
         "lecturer_id": str(target_lecturer_id),

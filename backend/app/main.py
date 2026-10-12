@@ -17,8 +17,11 @@ from typing import AsyncGenerator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from datetime import datetime, timezone
+
 from app.core.config import settings
 from app.routers import health
+
 
 
 # ── Lifespan ──────────────────────────────────────────────────────────────────
@@ -31,13 +34,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     print(f"[startup]  environment : {settings.app_env}")
     print(f"[startup]  database    : MongoDB Atlas ({settings.mongo_db_name})")
     try:
-        from app.core.database import client
+        from app.core.database import client, db
         await client.admin.command('ping')
         print("[startup]  MongoDB Atlas connected successfully.")
-        from app.core.schema_mapping import ensure_lms_indexes
-        await ensure_lms_indexes(client[settings.mongo_db_name])
     except Exception as exc:
-        print(f"[startup]  Warning: MongoDB ping failed: {exc}")
+        print(f"[startup]  Warning: journal index creation failed: {exc}")
+
     yield
     # ---- shutdown ----
     from app.core.database import client
@@ -61,6 +63,10 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    # ── Feature 7: Request Tracking Middleware ────────────────────────────────
+    from app.core.middleware import RequestTrackingMiddleware  # noqa: E402
+    app.add_middleware(RequestTrackingMiddleware)
+
     # ── CORS ──────────────────────────────────────────────────────────────────
     app.add_middleware(
         CORSMiddleware,
@@ -69,6 +75,53 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # ── Feature 7: Global 401 / 403 ACCESS_DENIED Exception Handler ───────────
+    from fastapi import HTTPException, Request  # noqa: E402
+    from fastapi.responses import JSONResponse  # noqa: E402
+    from app.core.security import decode_token  # noqa: E402
+    from app.schemas.audit import AuditAction, AuditOutcome  # noqa: E402
+    from app.services.audit import log_event  # noqa: E402
+
+    @app.exception_handler(HTTPException)
+    async def audit_access_denied_handler(request: Request, exc: HTTPException):
+        if exc.status_code in (401, 403):
+            actor_id = "anonymous"
+            actor_role = "anonymous"
+            auth_header = request.headers.get("authorization", "")
+            if auth_header.startswith("Bearer "):
+                token = auth_header.split(" ", 1)[1].strip()
+                try:
+                    payload = decode_token(token)
+                    actor_id = str(payload.get("sub") or "anonymous")
+                    actor_role = str(payload.get("role") or "anonymous")
+                except Exception:
+                    pass
+
+            try:
+                from app.core.database import db
+                await log_event(
+                    request=request,
+                    db=db,
+                    action=AuditAction.ACCESS_DENIED,
+                    actor_id=actor_id,
+                    actor_role=actor_role,
+                    outcome=AuditOutcome.DENIED,
+                    details={
+                        "status_code": exc.status_code,
+                        "endpoint": request.url.path,
+                        "reason": str(exc.detail)[:120],
+                    },
+                )
+            except Exception:
+                pass  # Non-critical: never suppress response
+
+        headers = getattr(exc, "headers", None)
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail},
+            headers=headers,
+        )
 
     # ── Routers ───────────────────────────────────────────────────────────────
     app.include_router(health.router)
@@ -87,21 +140,6 @@ def create_app() -> FastAPI:
 
     from app.routers import enrollments  # noqa: E402
     app.include_router(enrollments.router)
-
-    from app.routers import assignments  # noqa: E402
-    app.include_router(assignments.router)
-
-    from app.routers import course_content  # noqa: E402
-    app.include_router(course_content.router)
-
-    from app.routers import quizzes  # noqa: E402
-    app.include_router(quizzes.router)
-
-    from app.routers import gradebook  # noqa: E402
-    app.include_router(gradebook.router)
-
-    from app.routers import attendance  # noqa: E402
-    app.include_router(attendance.router)
 
     return app
 

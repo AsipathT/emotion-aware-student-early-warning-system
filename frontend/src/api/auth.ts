@@ -1,6 +1,7 @@
 import { apiClient } from './client';
 
-export type UserRole = 'student' | 'lecturer' | 'counsellor' | 'admin';
+export type UserRole = 'student' | 'lecturer' | 'counsellor' | 'admin' | 'auditor';
+
 
 export interface LoginPayload {
   email: string;
@@ -18,7 +19,9 @@ export interface TokenResponse {
   access_token: string;
   refresh_token: string;
   token_type: string;
+  consent_required?: boolean;
 }
+
 
 export interface UserProfile {
   id: string;

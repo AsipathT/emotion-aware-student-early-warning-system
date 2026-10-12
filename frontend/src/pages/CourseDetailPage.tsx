@@ -24,6 +24,7 @@ import {
   UserCheck,
   FileText,
   Award,
+  MessagesSquare,
 } from 'lucide-react';
 
 export const CourseDetailPage: React.FC = () => {
@@ -79,6 +80,8 @@ export const CourseDetailPage: React.FC = () => {
   });
 
   const isEnrolled = isStudent && myEnrollments.some((e) => e.course_id === courseId);
+
+  const canAccessForum = isInstructor || isEnrolled || user?.role === 'counsellor';
 
   // 3. Fetch course roster (for instructors / admins)
   const {
@@ -348,6 +351,17 @@ export const CourseDetailPage: React.FC = () => {
                 <Plus className="w-4 h-4 mr-1.5" />
                 Add Module
               </button>
+            )}
+
+            {/* Dushan: Discussion Forum Link */}
+            {canAccessForum && (
+              <Link
+                to={`/courses/${courseId}/forum`}
+                className="inline-flex items-center px-4 py-2.5 bg-white border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 font-semibold text-sm rounded-xl shadow-sm transition"
+              >
+                <MessagesSquare className="w-4 h-4 mr-1.5" />
+                Discussion Forum
+              </Link>
             )}
 
             <div className="inline-flex items-center px-3 py-1.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-slate-600 font-medium">

@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Navbar } from './components/Navbar';
+import { ConsentGate } from './components/consent/ConsentGate';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
@@ -14,6 +15,12 @@ import { AssignmentDetailPage } from './pages/AssignmentDetailPage';
 import { CourseGradebookPage } from './pages/CourseGradebookPage';
 import { MyEnrollmentsPage } from './pages/MyEnrollmentsPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { AuditLogPage } from './pages/admin/AuditLogPage';
+import { ForumPage } from './pages/ForumPage';
+import { ForumThreadPage } from './pages/ForumThreadPage';
+import { ChatPage } from './pages/ChatPage';
+import { JournalPage } from './pages/JournalPage';
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,8 +36,10 @@ export const App: React.FC = () => {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+          <ConsentGate />
           <Navbar />
           <main className="flex-1">
+
             <Routes>
               {/* Public Authentication Routes */}
               <Route path="/login" element={<LoginPage />} />
@@ -114,6 +123,54 @@ export const App: React.FC = () => {
                 element={
                   <ProtectedRoute allowedRoles={['admin']}>
                     <AdminDashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Feature 7: Protected Compliance Audit Log (Admin & Auditor Only) */}
+              <Route
+                path="/admin/audit"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'auditor']}>
+                    <AuditLogPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Dushan: forum */}
+              <Route
+                path="/courses/:courseId/forum"
+                element={
+                  <ProtectedRoute>
+                    <ForumPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/courses/:courseId/forum/:threadId"
+                element={
+                  <ProtectedRoute>
+                    <ForumThreadPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Dushan: chat */}
+              <Route
+                path="/messages"
+                element={
+                  <ProtectedRoute allowedRoles={['student', 'lecturer', 'counsellor']}>
+                    <ChatPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Dushan: journal */}
+              <Route
+                path="/journal"
+                element={
+                  <ProtectedRoute allowedRoles={['student']}>
+                    <JournalPage />
                   </ProtectedRoute>
                 }
               />

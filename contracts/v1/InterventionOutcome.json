@@ -1,0 +1,61 @@
+{
+  "$defs": {
+    "Decision": {
+      "description": "Staff decision recorded for an intervention recommendation.",
+      "enum": [
+        "approved",
+        "modified",
+        "rejected"
+      ],
+      "title": "Decision",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Operational disposition and evaluation of an intervention recommendation.\nFeeds back from LMS / academic staff back into Component 4 for model refinement.\nNOTE: Never stores raw counsellor or staff narrative note text to safeguard privacy.\nOnly records the boolean indicator `notes_present`.",
+  "properties": {
+    "completed": {
+      "description": "Whether the selected intervention was delivered and finalized",
+      "title": "Completed",
+      "type": "boolean"
+    },
+    "decision": {
+      "$ref": "#/$defs/Decision",
+      "description": "Staff decision on the recommendation (approved, modified, rejected)"
+    },
+    "notes_present": {
+      "description": "Indicates whether staff added detailed internal counseling notes. Staff note text is strictly forbidden from entering contract data.",
+      "title": "Notes Present",
+      "type": "boolean"
+    },
+    "observed_change": {
+      "anyOf": [
+        {
+          "description": "Scrubbed text safe from personal identifiers",
+          "maxLength": 500,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Optional brief observation of academic or affective shift post-intervention (max 500 chars)",
+      "title": "Observed Change"
+    },
+    "recommendation_id": {
+      "description": "Referenced intervention recommendation identifier",
+      "minLength": 1,
+      "title": "Recommendation Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "recommendation_id",
+    "decision",
+    "completed",
+    "notes_present"
+  ],
+  "title": "InterventionOutcome",
+  "type": "object"
+}

@@ -85,7 +85,7 @@ class CourseCreate(BaseModel):
         default=False,
         description="Whether the course is visible to enrolled students or public catalog.",
     )
-    lecturer_id: Optional[uuid.UUID] = Field(
+    lecturer_id: Optional[Union[uuid.UUID, str]] = Field(
         default=None,
         description="Instructor ID. Defaults to current user if lecturer. Admins can assign to any lecturer.",
     )
@@ -119,7 +119,7 @@ class CourseUpdate(BaseModel):
     is_published: Optional[bool] = Field(
         default=None,
     )
-    lecturer_id: Optional[uuid.UUID] = Field(
+    lecturer_id: Optional[Union[uuid.UUID, str]] = Field(
         default=None,
     )
 
