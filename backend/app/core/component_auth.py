@@ -35,6 +35,20 @@ class ExportActor(BaseModel):
     is_admin: bool = False
 
 
+EXPORT_SCOPE_MAP: dict[str, set[str]] = {
+    "messages": {"c1"},
+    "c1": {"c1"},
+    "behavior": {"c2"},
+    "c2": {"c2"},
+    "academic": {"c3"},
+    "c3": {"c3"},
+    "affective": {"c3", "c4"},
+    "trajectory": {"c3", "c4"},
+    "risk": {"c4"},
+    "outcomes": {"c4"},
+}
+
+
 # Type alias for general component actors
 ComponentActor = ExportActor
 
@@ -45,13 +59,15 @@ def component_actor(scope: str, action_type: str = "export") -> Callable:
     `action_type` describes the operation category (e.g. 'export' or 'ingest') for audit logging.
     Accepts:
       1. 'X-Component-Key' header matching configured secret key for the requested scope.
+         Supported scopes map to allowed component sets (e.g. affective -> {c3, c4}).
       2. Authenticated Admin user Bearer JWT token (for verification/testing).
     Raises:
       - 503 Service Unavailable if COMPONENT_API_KEYS is not configured.
       - 401 Unauthorized if key is missing, invalid, or bearer token is invalid.
-      - 403 Forbidden if key belongs to another component scope.
+      - 403 Forbidden if key belongs to an unauthorized component scope.
     """
     target_scope = scope.lower().strip()
+    allowed_components = EXPORT_SCOPE_MAP.get(target_scope, {target_scope})
 
     async def _authenticate(
         request: Request,
@@ -131,7 +147,7 @@ def component_actor(scope: str, action_type: str = "export") -> Callable:
             )
 
         # 4. Check scope matching
-        if matched_scope != target_scope:
+        if matched_scope not in allowed_components:
             await log_event(
                 request=request,
                 db=db,
@@ -285,3 +301,37 @@ def ingest_actor(scope: str) -> Callable:
         )
 
     return _authenticate
+
+
+def validate_component_api_keys(keys_map: Optional[dict[str, str]], app_env: str) -> None:
+    """
+    Validates component API keys at startup:
+    - If unconfigured, logs a clear warning.
+    - If any key is empty, shorter than 24 characters, or contains 'change_in_production':
+      * In production (app_env in {'production', 'prod'}), raises RuntimeError refusing to start.
+      * In development/testing, logs a clear warning.
+    """
+    if not keys_map:
+        logger.warning(
+            "COMPONENT_API_KEYS is not configured. Component export/ingest endpoints will return HTTP 503."
+        )
+        return
+
+    is_prod = str(app_env).lower().strip() in {"production", "prod"}
+    issues: list[str] = []
+
+    for comp, key in keys_map.items():
+        if not key:
+            issues.append(f"Component '{comp}' key is empty.")
+        elif len(key) < 24:
+            issues.append(f"Component '{comp}' key length ({len(key)}) is shorter than 24 characters.")
+        elif "change_in_production" in key.lower():
+            issues.append(f"Component '{comp}' key contains placeholder 'change_in_production'.")
+
+    if issues:
+        summary = "Insecure COMPONENT_API_KEYS configuration detected: " + "; ".join(issues)
+        if is_prod:
+            logger.error("[STARTUP REJECTED] %s", summary)
+            raise RuntimeError(f"Startup rejected in production: {summary}")
+        else:
+            logger.warning("[STARTUP WARNING] %s", summary)

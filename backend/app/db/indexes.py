@@ -108,6 +108,7 @@ COLLECTION_INDEXES: Dict[str, List[IndexModel]] = {
             [("course_id", ASCENDING), ("week_index", ASCENDING)],
             name="idx_messages_course_week",
         ),
+        IndexModel([("ingested_at", ASCENDING)], name="idx_messages_ingested_at"),
         IndexModel([("message_id", ASCENDING)], unique=True, name="idx_messages_message_id_unique"),
     ],
     col.GRADES: [
@@ -141,6 +142,7 @@ COLLECTION_INDEXES: Dict[str, List[IndexModel]] = {
             [("course_id", ASCENDING), ("week_index", ASCENDING)],
             name="idx_behavior_weekly_course_week",
         ),
+        IndexModel([("ingested_at", ASCENDING)], name="idx_behavior_weekly_ingested_at"),
     ],
     col.AFFECTIVE_WEEKLY: [
         IndexModel(
@@ -148,6 +150,11 @@ COLLECTION_INDEXES: Dict[str, List[IndexModel]] = {
             unique=True,
             name="idx_affective_weekly_compound_unique",
         ),
+        IndexModel(
+            [("course_id", ASCENDING), ("week_index", ASCENDING)],
+            name="idx_affective_weekly_course_week",
+        ),
+        IndexModel([("ingested_at", ASCENDING)], name="idx_affective_weekly_ingested_at"),
     ],
     col.ENGAGEMENT_TRAJECTORIES: [
         IndexModel(
@@ -155,6 +162,11 @@ COLLECTION_INDEXES: Dict[str, List[IndexModel]] = {
             unique=True,
             name="idx_engagement_trajectories_compound_unique",
         ),
+        IndexModel(
+            [("course_id", ASCENDING), ("week_index", ASCENDING)],
+            name="idx_engagement_trajectories_course_week",
+        ),
+        IndexModel([("ingested_at", ASCENDING)], name="idx_engagement_trajectories_ingested_at"),
     ],
     col.RISK_ASSESSMENTS: [
         IndexModel(
@@ -166,6 +178,7 @@ COLLECTION_INDEXES: Dict[str, List[IndexModel]] = {
             [("course_id", ASCENDING), ("week_index", ASCENDING), ("risk_tier", ASCENDING)],
             name="idx_risk_assessments_course_week_tier",
         ),
+        IndexModel([("ingested_at", ASCENDING)], name="idx_risk_assessments_ingested_at"),
     ],
 
     # ── Recommendations & Interventions (Decision Loop) ──────────────────────
@@ -181,6 +194,7 @@ COLLECTION_INDEXES: Dict[str, List[IndexModel]] = {
     col.INTERVENTION_OUTCOMES: [
         IndexModel([("recommendation_id", ASCENDING)], unique=True, name="idx_intervention_outcomes_rec_id_unique"),
         IndexModel([("pid", ASCENDING), ("week_index", ASCENDING)], name="idx_intervention_outcomes_pid_week"),
+        IndexModel([("ingested_at", ASCENDING)], name="idx_intervention_outcomes_ingested_at"),
     ],
 
     # ── Administrative & Pipeline Metadata ────────────────────────────────────

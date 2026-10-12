@@ -68,14 +68,14 @@ def get_configured_keys() -> Dict[str, str]:
 
 
 def remove_demo_records(mongo_uri: str, db_name: str) -> None:
-    """Removes all documents created with source='demo' across ingestion collections."""
+    """Removes all documents created with source='demo_ingest' across ingestion collections."""
     print(f"Connecting to MongoDB database '{db_name}' for cleanup...")
     client = MongoClient(mongo_uri, tz_aware=True)
     try:
         db = client[db_name]
         total_deleted = 0
         for collection_name in INGEST_COLLECTIONS:
-            res = db[collection_name].delete_many({"source": "demo"})
+            res = db[collection_name].delete_many({"source": "demo_ingest"})
             if res.deleted_count > 0:
                 print(f"  [-] Deleted {res.deleted_count} demo doc(s) from '{collection_name}'.")
                 total_deleted += res.deleted_count
@@ -85,19 +85,29 @@ def remove_demo_records(mongo_uri: str, db_name: str) -> None:
 
 
 def find_consenting_enrolled_student(mongo_uri: str, db_name: str) -> Dict[str, str]:
-    """Finds or creates a student PID and course that has identity vault, active consent, and active enrolment."""
+    """Finds or targets demo students and demo courses from seed_export_demo.py."""
     client = MongoClient(mongo_uri, tz_aware=True)
     try:
         db = client[db_name]
         notice = db[col.CONSENT_NOTICES].find_one({"is_active": True})
         notice_ver = notice["version"] if notice else 1
 
+        # Target the seeded demo students (PIDs for demo index 1..3 with accepted consent)
+        seed_demo_pids = [generate_pid(i) for i in range(1, 4)]
+        seed_candidate = db[col.ENROLMENTS].find_one({
+            "pid": {"$in": seed_demo_pids},
+            "course_id": {"$in": ["DEMO101", "DEMO202"]},
+            "status": {"$in": ["active", "completed"]},
+        })
+        if seed_candidate:
+            return {"pid": seed_candidate["pid"], "course_id": str(seed_candidate["course_id"])}
+
+        # Otherwise check any consenting & enrolled student in identity vault
         vault_pids = set(db[col.IDENTITY_VAULT].distinct("pid"))
         if vault_pids:
             consenting_pids = set(
                 db[col.CONSENT_RECORDS].distinct("pid", {"notice_version": notice_ver, "decision": "accepted"})
             )
-            # Find enrolled student with consent and vault
             candidate = db[col.ENROLMENTS].find_one({
                 "pid": {"$in": list(consenting_pids & vault_pids)},
                 "status": {"$in": ["active", "completed"]},
@@ -105,33 +115,7 @@ def find_consenting_enrolled_student(mongo_uri: str, db_name: str) -> Dict[str, 
             if candidate:
                 return {"pid": candidate["pid"], "course_id": str(candidate["course_id"])}
 
-            # Or find enrolled student in vault and add accepted consent
-            enrolled_in_vault = db[col.ENROLMENTS].find_one({
-                "pid": {"$in": list(vault_pids)},
-                "status": {"$in": ["active", "completed"]},
-            })
-            if enrolled_in_vault:
-                pid = enrolled_in_vault["pid"]
-                cid = str(enrolled_in_vault["course_id"])
-                now_utc = datetime.now(timezone.utc)
-                db[col.CONSENT_RECORDS].update_one(
-                    {"_id": f"demo_consent_{pid}"},
-                    {
-                        "$set": {
-                            "_id": f"demo_consent_{pid}",
-                            "pid": pid,
-                            "notice_version": notice_ver,
-                            "decision": "accepted",
-                            "timestamp": now_utc,
-                            "ip_or_client": "127.0.0.1",
-                            "source": "demo",
-                        }
-                    },
-                    upsert=True,
-                )
-                return {"pid": pid, "course_id": cid}
-
-        # Fallback: create complete demo student with source='demo'
+        # Fallback: create standalone demo ingest student with source='demo_ingest'
         demo_pid = generate_pid(0)
         demo_cid = "DEMO101"
         now_utc = datetime.now(timezone.utc)
@@ -147,39 +131,38 @@ def find_consenting_enrolled_student(mongo_uri: str, db_name: str) -> Dict[str, 
                     "schema_version": 1,
                     "ingested_at": now_utc,
                     "source_version": "1.0",
-                    "source": "demo",
+                    "source": "demo_ingest",
                 }
             },
             upsert=True,
         )
         db[col.CONSENT_RECORDS].update_one(
-            {"_id": f"demo_consent_{demo_pid}"},
+            {"_id": f"demo_ingest_consent_{demo_pid}"},
             {
                 "$set": {
-                    "_id": f"demo_consent_{demo_pid}",
+                    "_id": f"demo_ingest_consent_{demo_pid}",
                     "pid": demo_pid,
                     "notice_version": notice_ver,
                     "decision": "accepted",
                     "timestamp": now_utc,
                     "ip_or_client": "127.0.0.1",
-                    "source": "demo",
+                    "source": "demo_ingest",
                 }
             },
             upsert=True,
         )
         db[col.ENROLMENTS].update_one(
-            {"_id": f"{demo_pid}_{demo_cid}"},
+            {"_id": f"enr_{demo_pid}_{demo_cid}"},
             {
                 "$set": {
-                    "_id": f"{demo_pid}_{demo_cid}",
+                    "_id": f"enr_{demo_pid}_{demo_cid}",
                     "pid": demo_pid,
                     "course_id": demo_cid,
-                    "enrolment_start": now_utc,
                     "status": "active",
                     "schema_version": 1,
                     "ingested_at": now_utc,
                     "source_version": "1.0",
-                    "source": "demo",
+                    "source": "demo_ingest",
                 }
             },
             upsert=True,
@@ -187,7 +170,7 @@ def find_consenting_enrolled_student(mongo_uri: str, db_name: str) -> Dict[str, 
         return {"pid": demo_pid, "course_id": demo_cid}
     except Exception as exc:
         print(f"[WARN] Error querying MongoDB for demo student: {exc}. Using deterministic fallback.")
-        return {"pid": generate_pid(0), "course_id": "DEMO101"}
+        return {"pid": generate_pid(1), "course_id": "DEMO101"}
     finally:
         client.close()
 
@@ -334,7 +317,7 @@ def send_samples(base_url: str, dry_run: bool, student_info: Dict[str, str]) -> 
             print(f"[SKIP] Key for component '{comp_id}' not configured in COMPONENT_API_KEYS.")
             continue
 
-        url = f"{item['path']}?source=demo"
+        url = f"{item['path']}?source=demo_ingest"
         if dry_run:
             url += "&dry_run=true"
 

@@ -37,6 +37,40 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         from app.core.database import client, db
         await client.admin.command('ping')
         print("[startup]  MongoDB Atlas connected successfully.")
+<<<<<<< HEAD
+
+        # Feature 6: Seed initial default consent notice if collection is empty
+        notice_count = await db.consent_notices.count_documents({})
+        if notice_count == 0:
+            import uuid
+            DEFAULT_NOTICE_TEXT = (
+                "To help us notice when students may need support, this LMS records how you use it: "
+                "logins, page and video activity, submissions, grades, attendance and the messages you post. "
+                "Messages and activity are processed with your identity replaced by a code before any analysis. "
+                "Results are only seen by authorised counsellors and academic staff, who use them to offer help. "
+                "They are never used for grading or disciplinary action. "
+                "You can withdraw at any time in your profile, and this will not affect your access to your courses."
+            )
+            now = datetime.now(timezone.utc)
+            seed_doc = {
+                "_id": str(uuid.uuid4()),
+                "id": str(uuid.uuid4()),
+                "version": 1,
+                "text": DEFAULT_NOTICE_TEXT,
+                "effective_from": now,
+                "is_active": True,
+            }
+            await db.consent_notices.insert_one(seed_doc)
+        # Feature 7: Ensure audit log collection indexes
+        from app.repositories.audit_repo import ensure_indexes
+        await ensure_indexes(db)
+        print("[startup]  Feature 7: Audit log indexes ensured.")
+
+        # Feature 21/23/Readback: Validate component API keys on startup
+        from app.core.component_auth import validate_component_api_keys
+        validate_component_api_keys(settings.COMPONENT_API_KEYS, settings.app_env)
+=======
+>>>>>>> 9dee1d1dd2e27b06a2b9e7c1f8b1805e05fd8099
     except Exception as exc:
         print(f"[startup]  Warning: journal index creation failed: {exc}")
 
