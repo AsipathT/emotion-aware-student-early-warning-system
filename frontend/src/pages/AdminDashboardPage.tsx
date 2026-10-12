@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi, SystemStatsResponse, AdminUserResponse } from '../api/admin';
 import { UserRole } from '../api/auth';
@@ -18,6 +19,9 @@ import {
   ToggleLeft,
   ToggleRight,
   ShieldAlert,
+  Database,
+  ShieldCheck,
+  ArrowRight,
 } from 'lucide-react';
 
 export const AdminDashboardPage: React.FC = () => {
@@ -149,9 +153,25 @@ export const AdminDashboardPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center space-x-2 px-3.5 py-2 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 font-mono">
-          <ShieldAlert className="w-4 h-4 text-purple-600" />
-          <span>Admin: {currentAdmin?.email}</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            to="/cohort-risk"
+            className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl border border-rose-200 text-xs font-bold flex items-center space-x-1.5 transition-colors shadow-2xs"
+          >
+            <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
+            <span>Cohort Risk (F27)</span>
+          </Link>
+          <Link
+            to="/export"
+            className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl border border-indigo-200 text-xs font-bold flex items-center space-x-1.5 transition-colors shadow-2xs"
+          >
+            <Database className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Export & Pipeline (F42/F20)</span>
+          </Link>
+          <div className="flex items-center space-x-2 px-3.5 py-2 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 font-mono">
+            <Shield className="w-3.5 h-3.5 text-purple-600" />
+            <span>Admin: {currentAdmin?.email}</span>
+          </div>
         </div>
       </div>
 
@@ -256,6 +276,41 @@ export const AdminDashboardPage: React.FC = () => {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Quick Access Tools: Export & Pipeline + Compliance */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Link
+          to="/export"
+          className="p-5 bg-gradient-to-r from-indigo-50/70 to-purple-50/70 border border-indigo-200/80 rounded-2xl flex items-center justify-between hover:border-indigo-400 hover:shadow-sm transition group"
+        >
+          <div className="flex items-center space-x-3.5">
+            <div className="p-3 bg-indigo-600 text-white rounded-xl shadow-sm group-hover:scale-105 transition">
+              <Database className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-bold text-slate-900 text-sm">Research Data Export & Telemetry Pipeline</h4>
+              <p className="text-xs text-slate-500">Export ML datasets (F42) & trigger weekly aggregations (F20)</p>
+            </div>
+          </div>
+          <ArrowRight className="w-4 h-4 text-indigo-600 group-hover:translate-x-1 transition" />
+        </Link>
+
+        <Link
+          to="/admin/audit"
+          className="p-5 bg-gradient-to-r from-purple-50/70 to-indigo-50/70 border border-purple-200/80 rounded-2xl flex items-center justify-between hover:border-purple-400 hover:shadow-sm transition group"
+        >
+          <div className="flex items-center space-x-3.5">
+            <div className="p-3 bg-purple-600 text-white rounded-xl shadow-sm group-hover:scale-105 transition">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-bold text-slate-900 text-sm">Compliance & Audit Log Center</h4>
+              <p className="text-xs text-slate-500">Inspect system access, exports, and integrity logs (F7)</p>
+            </div>
+          </div>
+          <ArrowRight className="w-4 h-4 text-purple-600 group-hover:translate-x-1 transition" />
+        </Link>
       </div>
 
       {/* Main Section: User Management Table */}

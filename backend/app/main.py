@@ -207,6 +207,9 @@ def create_app() -> FastAPI:
 
     from app.routers import telemetry  # noqa: E402
     app.include_router(telemetry.router)
+
+    from app.routers import analytics  # noqa: E402
+    app.include_router(analytics.router)
     return app
 
 

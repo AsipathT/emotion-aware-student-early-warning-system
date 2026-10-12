@@ -12,6 +12,8 @@ import {
   ShieldCheck,
   BookmarkCheck,
   MessageCircle,
+  Database,
+  ShieldAlert,
 } from 'lucide-react';
 
 
@@ -150,6 +152,34 @@ export const Navbar: React.FC = () => {
                     >
                       <ShieldCheck className="w-4 h-4 mr-1.5 text-indigo-600" />
                       Audit Log
+                    </Link>
+                  )}
+
+                  {(user.role === 'admin' || user.role === 'lecturer') && (
+                    <Link
+                      to="/cohort-risk"
+                      className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                        isCurrent('/cohort-risk')
+                          ? 'text-rose-600 bg-rose-50 font-semibold'
+                          : 'text-slate-600 hover:text-rose-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <ShieldAlert className="w-4 h-4 mr-1.5 text-rose-600" />
+                      Cohort Risk
+                    </Link>
+                  )}
+
+                  {(user.role === 'admin' || user.role === 'lecturer') && (
+                    <Link
+                      to="/export"
+                      className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                        isCurrent('/export')
+                          ? 'text-indigo-600 bg-indigo-50 font-semibold'
+                          : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <Database className="w-4 h-4 mr-1.5 text-indigo-600" />
+                      Data & Pipeline
                     </Link>
                   )}
                 </div>

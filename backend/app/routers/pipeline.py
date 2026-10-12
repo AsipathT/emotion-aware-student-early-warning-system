@@ -12,11 +12,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_admin
+from app.core.dependencies import require_roles
 from app.db import collections as col
 from app.jobs.scheduler import get_scheduler_status
 from app.jobs.weekly_aggregation import run_weekly_pipeline
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.audit import AuditAction, AuditOutcome
 from app.services.audit import log_event
 
@@ -33,7 +33,7 @@ async def trigger_weekly_pipeline(
     request: Request,
     course_id: Optional[str] = Query(None, description="Optional target course identifier (processes all if omitted)"),
     week_index: Optional[int] = Query(None, ge=0, description="Optional academic week index (defaults to 1)"),
-    admin: User = Depends(get_current_admin),
+    admin: User = Depends(require_roles(UserRole.ADMIN, UserRole.LECTURER)),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
     try:
@@ -86,7 +86,7 @@ async def trigger_weekly_pipeline(
     description="Returns current state of background scheduler and latest pipeline execution details.",
 )
 async def get_pipeline_status(
-    admin: User = Depends(get_current_admin),
+    admin: User = Depends(require_roles(UserRole.ADMIN, UserRole.LECTURER)),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
     scheduler_info = get_scheduler_status()
