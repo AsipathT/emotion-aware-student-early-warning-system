@@ -40,7 +40,11 @@ async def enroll_in_course(
     db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> EnrollmentResponse:
     cid_str = str(course_id).strip()
-    course_doc = await db[col.COURSES].find_one({"_id": cid_str})
+    course_doc = (
+        await db[col.COURSES].find_one({"_id": cid_str})
+        or await db[col.COURSES].find_one({"id": cid_str})
+        or await db[col.COURSES].find_one({"course_id": cid_str})
+    )
     if not course_doc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -93,12 +97,12 @@ async def enroll_in_course(
     await db[col.ENROLMENTS].insert_one(enr_doc)
 
     course_summary = EnrollmentCourseSummary(
-        id=course_doc["_id"],
+        id=course_doc.get("id") or course_doc["_id"],
         title=course_doc["title"],
         description=course_doc.get("description"),
         lecturer_id=course_doc.get("lecturer_id"),
         is_published=course_doc.get("is_published", True),
-        created_at=course_doc.get("created_at", now),
+        created_at=course_doc.get("created_at") or now,
     )
     student_summary = EnrollmentStudentSummary(
         id=user_doc.get("_id", uid_str) if user_doc else uid_str,
@@ -147,9 +151,21 @@ async def get_my_enrollments(
         return []
 
     course_ids = list({e["course_id"] for e in enrollments_docs})
-    courses_cursor = db[col.COURSES].find({"_id": {"$in": course_ids}})
+    courses_cursor = db[col.COURSES].find({
+        "$or": [
+            {"_id": {"$in": course_ids}},
+            {"id": {"$in": course_ids}},
+            {"course_id": {"$in": course_ids}},
+        ]
+    })
     course_docs = await courses_cursor.to_list(length=1000)
-    course_map = {c["_id"]: c for c in course_docs}
+    course_map = {}
+    for c in course_docs:
+        course_map[str(c["_id"])] = c
+        if c.get("id"):
+            course_map[str(c["id"])] = c
+        if c.get("course_id"):
+            course_map[str(c["course_id"])] = c
 
     student_summary = EnrollmentStudentSummary(
         id=user_doc.get("_id", uid_str) if user_doc else uid_str,
@@ -166,12 +182,12 @@ async def get_my_enrollments(
         c_summary = None
         if c_doc:
             c_summary = EnrollmentCourseSummary(
-                id=c_doc["_id"],
+                id=c_doc.get("id") or c_doc["_id"],
                 title=c_doc["title"],
                 description=c_doc.get("description"),
                 lecturer_id=c_doc.get("lecturer_id"),
                 is_published=c_doc.get("is_published", True),
-                created_at=c_doc.get("created_at", datetime.now(timezone.utc)),
+                created_at=c_doc.get("created_at") or datetime.now(timezone.utc),
             )
         enrolled_dt = enr.get("enrolment_start") or datetime.now(timezone.utc)
         results.append(
@@ -204,7 +220,11 @@ async def get_course_roster(
     db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> List[EnrollmentResponse]:
     cid_str = str(course_id).strip()
-    course_doc = await db[col.COURSES].find_one({"_id": cid_str})
+    course_doc = (
+        await db[col.COURSES].find_one({"_id": cid_str})
+        or await db[col.COURSES].find_one({"id": cid_str})
+        or await db[col.COURSES].find_one({"course_id": cid_str})
+    )
     if not course_doc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -221,30 +241,41 @@ async def get_course_roster(
     roster_docs = await cursor.to_list(length=1000)
 
     course_summary = EnrollmentCourseSummary(
-        id=course_doc["_id"],
+        id=course_doc.get("id") or course_doc["_id"],
         title=course_doc["title"],
         description=course_doc.get("description"),
         lecturer_id=course_doc.get("lecturer_id"),
         is_published=course_doc.get("is_published", True),
-        created_at=course_doc.get("created_at", datetime.now(timezone.utc)),
+        created_at=course_doc.get("created_at") or datetime.now(timezone.utc),
     )
 
     # Batch query users for all PIDs in ONE single query
     pids = list({enr["pid"] for enr in roster_docs if enr.get("pid")})
+    student_ids = list({enr["student_id"] for enr in roster_docs if enr.get("student_id")})
     user_map = {}
-    if pids:
-        users_cursor = db.users.find({"pid": {"$in": pids}})
+    if pids or student_ids:
+        query_clauses = []
+        if pids:
+            query_clauses.append({"pid": {"$in": pids}})
+        if student_ids:
+            query_clauses.append({"_id": {"$in": student_ids}})
+            query_clauses.append({"id": {"$in": student_ids}})
+        users_cursor = db.users.find({"$or": query_clauses}) if len(query_clauses) > 1 else db.users.find(query_clauses[0])
         users_docs = await users_cursor.to_list(length=1000)
         for u in users_docs:
             if u.get("pid"):
                 user_map[u["pid"]] = u
+            user_map[str(u.get("_id"))] = u
+            if u.get("id"):
+                user_map[str(u.get("id"))] = u
 
     results = []
     for enr in roster_docs:
         pid = enr.get("pid")
-        user_doc = user_map.get(pid)
+        sid = enr.get("student_id")
+        user_doc = user_map.get(pid) or (user_map.get(sid) if sid else None)
         student_summary = None
-        student_id_val = str(user_doc["_id"]) if user_doc else pid
+        student_id_val = str(user_doc["_id"]) if user_doc else (pid or sid)
         if user_doc:
             student_summary = EnrollmentStudentSummary(
                 id=user_doc["_id"],
@@ -268,4 +299,3 @@ async def get_course_roster(
         )
 
     return results
-

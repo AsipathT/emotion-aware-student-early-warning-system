@@ -14,6 +14,7 @@ from fastapi import HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.models.user import User, UserRole
+from app.services.enrolment_lookup import has_active_enrolment
 
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
@@ -36,12 +37,8 @@ async def _load_course(db: AsyncIOMotorDatabase, course_id: str) -> dict:
 
 async def _is_enrolled(db: AsyncIOMotorDatabase, student_id: str, course_id: str) -> bool:
     """Return True if the student has an active enrollment in the course."""
-    enrollment = await db.enrollments.find_one({
-        "student_id": student_id,
-        "course_id": course_id,
-        "status": "active",
-    })
-    return enrollment is not None
+    return await has_active_enrolment(db, student_id, course_id)
+
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
