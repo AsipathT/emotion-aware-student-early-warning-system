@@ -68,7 +68,7 @@ class EnrollmentResponse(BaseModel):
 
     id: Union[uuid.UUID, str]
     student_id: Union[uuid.UUID, str]
-    course_id: str
+    course_id: Union[uuid.UUID, str]
     status: str
     enrolled_at: datetime
     updated_at: datetime
