@@ -9,7 +9,7 @@ import io
 import csv
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -32,7 +32,7 @@ router = APIRouter(prefix="/api/v1/courses", tags=["gradebook"])
 # ── Schemas ───────────────────────────────────────────────────────────────────
 
 class ManualGradeEntryIn(BaseModel):
-    student_id: uuid.UUID
+    student_id: Union[uuid.UUID, str]
     title: str = Field(..., max_length=255)
     score: float = Field(..., ge=0)
     max_score: float = Field(..., gt=0)
@@ -70,7 +70,7 @@ def compute_student_summary(entries: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 @router.get("/{course_id}/gradebook")
 async def get_course_gradebook(
-    course_id: uuid.UUID,
+    course_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN, UserRole.COUNSELLOR)),
 ) -> Dict[str, Any]:
@@ -82,9 +82,11 @@ async def get_course_gradebook(
     role_val = current_user.role.value if hasattr(current_user.role, "value") else str(current_user.role)
 
     # Check course existence & ownership
-    course_doc = await db[CANONICAL_COURSES].find_one({"_id": cid_str})
-    if not course_doc:
-        course_doc = await db[CANONICAL_COURSES].find_one({"id": cid_str})
+    course_doc = (
+        await db[CANONICAL_COURSES].find_one({"_id": cid_str})
+        or await db[CANONICAL_COURSES].find_one({"id": cid_str})
+        or await db[CANONICAL_COURSES].find_one({"course_id": cid_str})
+    )
     if not course_doc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found.")
 
@@ -141,7 +143,7 @@ async def get_course_gradebook(
 
 @router.get("/{course_id}/gradebook/me")
 async def get_my_gradebook(
-    course_id: uuid.UUID,
+    course_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.STUDENT)),
 ) -> Dict[str, Any]:
@@ -164,7 +166,7 @@ async def get_my_gradebook(
 
 @router.post("/{course_id}/gradebook/manual", status_code=status.HTTP_201_CREATED)
 async def add_manual_grade(
-    course_id: uuid.UUID,
+    course_id: str,
     body: ManualGradeEntryIn,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN)),
@@ -203,7 +205,7 @@ async def add_manual_grade(
 
 @router.get("/{course_id}/gradebook/csv")
 async def export_gradebook_csv(
-    course_id: uuid.UUID,
+    course_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN)),
 ) -> Response:

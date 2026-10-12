@@ -23,6 +23,7 @@ import {
   Mail,
   UserCheck,
   FileText,
+  Award,
 } from 'lucide-react';
 
 export const CourseDetailPage: React.FC = () => {
@@ -321,13 +322,21 @@ export const CourseDetailPage: React.FC = () => {
               </div>
             )}
 
-            {/* Assignments Navigation Button */}
+            {/* Assignments & Gradebook Navigation Buttons */}
             <Link
               to={`/courses/${courseId}/assignments`}
-              className="inline-flex items-center px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-sm rounded-xl border border-indigo-200 shadow-sm transition"
+              className="inline-flex items-center px-3.5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-sm rounded-xl border border-indigo-200 shadow-sm transition"
             >
               <FileText className="w-4 h-4 mr-1.5" />
-              Course Assignments
+              Assignments
+            </Link>
+
+            <Link
+              to={`/courses/${courseId}/gradebook`}
+              className="inline-flex items-center px-3.5 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold text-sm rounded-xl border border-emerald-200 shadow-sm transition"
+            >
+              <Award className="w-4 h-4 mr-1.5" />
+              Gradebook
             </Link>
 
             {/* Instructor Actions */}
@@ -380,6 +389,13 @@ export const CourseDetailPage: React.FC = () => {
           >
             <FileText className="w-4 h-4 mr-2" />
             Assignments
+          </Link>
+          <Link
+            to={`/courses/${courseId}/gradebook`}
+            className="pb-3 text-sm font-semibold flex items-center transition border-b-2 -mb-px border-transparent text-slate-500 hover:text-indigo-600"
+          >
+            <Award className="w-4 h-4 mr-2" />
+            Gradebook
           </Link>
         </div>
       )}

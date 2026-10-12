@@ -98,6 +98,8 @@ async def check_course_ownership(db: AsyncIOMotorDatabase, course_id: str, user:
     if not course_doc:
         course_doc = await db[CANONICAL_COURSES].find_one({"id": cid_str})
     if not course_doc:
+        course_doc = await db[CANONICAL_COURSES].find_one({"course_id": cid_str})
+    if not course_doc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found.")
 
     role_val = user.role.value if hasattr(user.role, "value") else str(user.role)
