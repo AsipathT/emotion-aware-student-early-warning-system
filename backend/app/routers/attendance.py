@@ -39,7 +39,7 @@ class AttendanceSessionCreateIn(BaseModel):
 
 
 class AttendanceRecordItem(BaseModel):
-    student_id: uuid.UUID
+    student_id: str
     status: str = Field(..., pattern="^(present|late|absent|excused)$")
 
 
@@ -51,7 +51,7 @@ class BulkAttendanceMarkIn(BaseModel):
 
 @router.post("/{course_id}/attendance/sessions", status_code=status.HTTP_201_CREATED)
 async def create_attendance_session(
-    course_id: uuid.UUID,
+    course_id: str,
     body: AttendanceSessionCreateIn,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN)),
@@ -80,7 +80,7 @@ async def create_attendance_session(
 
 @router.get("/{course_id}/attendance/sessions")
 async def list_attendance_sessions(
-    course_id: uuid.UUID,
+    course_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN, UserRole.COUNSELLOR)),
 ) -> List[Dict[str, Any]]:
@@ -95,8 +95,8 @@ async def list_attendance_sessions(
 
 @router.post("/{course_id}/attendance/sessions/{session_id}/records")
 async def bulk_mark_attendance(
-    course_id: uuid.UUID,
-    session_id: uuid.UUID,
+    course_id: str,
+    session_id: str,
     body: BulkAttendanceMarkIn,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN)),
@@ -172,7 +172,7 @@ async def bulk_mark_attendance(
 
 @router.get("/{course_id}/attendance/me")
 async def get_my_attendance(
-    course_id: uuid.UUID,
+    course_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.STUDENT)),
 ) -> Dict[str, Any]:
@@ -202,7 +202,7 @@ async def get_my_attendance(
 
 @router.get("/{course_id}/attendance/summary")
 async def get_course_attendance_summary(
-    course_id: uuid.UUID,
+    course_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN, UserRole.COUNSELLOR)),
 ) -> Dict[str, Any]:

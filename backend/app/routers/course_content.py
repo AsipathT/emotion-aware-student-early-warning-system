@@ -85,10 +85,32 @@ def validate_blocks(content_payload: Dict[str, Any]) -> None:
             )
 
 
+@router.get("/{course_id}/content", response_model=List[Dict[str, Any]])
+async def get_course_modules(
+    course_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> List[Dict[str, Any]]:
+    """
+    Get all modules for a course.
+    """
+    course_doc = await db[CANONICAL_COURSES].find_one({"$or": [{"_id": course_id}, {"course_id": course_id}, {"id": course_id}]})
+    if not course_doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found.")
+
+    modules = course_doc.get("modules", [])
+    result = []
+    for m in modules:
+        m_dict = dict(m)
+        m_dict["id"] = str(m.get("_id") or m.get("id"))
+        result.append(m_dict)
+    return result
+
+
 @router.get("/{course_id}/modules/{module_id}", response_model=Dict[str, Any])
 async def get_module_content(
-    course_id: uuid.UUID,
-    module_id: uuid.UUID,
+    course_id: str,
+    module_id: str,
     current_user: User = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> Dict[str, Any]:
@@ -127,8 +149,8 @@ async def get_module_content(
 
 @router.patch("/{course_id}/modules/{module_id}", response_model=Dict[str, Any])
 async def update_module_content(
-    course_id: uuid.UUID,
-    module_id: uuid.UUID,
+    course_id: str,
+    module_id: str,
     payload: ModuleContentUpdate,
     current_user: User = Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN)),
     db: AsyncIOMotorDatabase = Depends(get_db),

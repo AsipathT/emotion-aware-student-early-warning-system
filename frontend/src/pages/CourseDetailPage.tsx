@@ -25,6 +25,7 @@ import {
   FileText,
   Award,
   MessagesSquare,
+  PlayCircle,
 } from 'lucide-react';
 
 export const CourseDetailPage: React.FC = () => {
@@ -324,6 +325,33 @@ export const CourseDetailPage: React.FC = () => {
                 )}
               </div>
             )}
+
+            {/* Feature 8: Course Content & Modules */}
+            <Link
+              to={`/courses/${courseId}/content`}
+              className="inline-flex items-center px-3.5 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-sm rounded-xl border border-blue-200 shadow-sm transition"
+            >
+              <BookOpen className="w-4 h-4 mr-1.5" />
+              Content & Modules
+            </Link>
+
+            {/* Feature 9: Video Lectures */}
+            <Link
+              to={`/courses/${courseId}/video`}
+              className="inline-flex items-center px-3.5 py-2.5 bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold text-sm rounded-xl border border-purple-200 shadow-sm transition"
+            >
+              <PlayCircle className="w-4 h-4 mr-1.5" />
+              Video Lectures
+            </Link>
+
+            {/* Feature 13: Attendance Tracker */}
+            <Link
+              to={`/courses/${courseId}/attendance`}
+              className="inline-flex items-center px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 font-semibold text-sm rounded-xl border border-amber-200 shadow-sm transition"
+            >
+              <UserCheck className="w-4 h-4 mr-1.5" />
+              Attendance
+            </Link>
 
             {/* Assignments & Gradebook Navigation Buttons */}
             <Link
