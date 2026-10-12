@@ -85,30 +85,45 @@ async def register(
         "profile": None,
     }
 
-    # Feature 5: If role is student, generate deterministic PID and store in identity_vault
-    if role_val == "student":
-        student_id = body.student_id or f"IT{abs(hash(uid)) % 100000000:08d}"
-        pid = pseudonymize(student_id)
-        user_doc["student_id"] = student_id
-        user_doc["pid"] = pid
+    try:
+        # Feature 5: If role is student, generate deterministic PID and store in identity_vault
+        if role_val == "student":
+            student_id = body.student_id or f"IT{abs(hash(uid)) % 100000000:08d}"
+            pid = pseudonymize(student_id)
+            user_doc["student_id"] = student_id
+            user_doc["pid"] = pid
 
-        vault_doc = {
-            "_id": pid,
-            "pid": pid,
-            "student_id": student_id,
-            "name": body.full_name,
-            "email": body.email,
-            "created_at": now,
-            "updated_at": now,
-        }
-        await db.identity_vault.update_one(
-            {"pid": pid},
-            {"$set": vault_doc},
-            upsert=True,
+            vault_set = {
+                "pid": pid,
+                "student_id": student_id,
+                "name": body.full_name,
+                "email": body.email,
+                "updated_at": now,
+            }
+            await db.identity_vault.update_one(
+                {"pid": pid},
+                {
+                    "$set": vault_set,
+                    "$setOnInsert": {
+                        "_id": pid,
+                        "created_at": now,
+                        "is_imported": False,
+                    },
+                },
+                upsert=True,
+            )
+
+        await db.users.insert_one(user_doc)
+        return UserResponse(**user_doc)
+    except HTTPException:
+        raise
+    except Exception as e:
+        import logging
+        logging.error(f"Registration failure: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Registration failed: {str(e)}",
         )
-
-    await db.users.insert_one(user_doc)
-    return UserResponse(**user_doc)
 
 
 # ── POST /api/v1/auth/login ───────────────────────────────────────────────────
