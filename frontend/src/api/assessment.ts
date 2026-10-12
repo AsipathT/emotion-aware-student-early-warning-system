@@ -58,6 +58,22 @@ export interface AssignmentSubmissionGradePayload {
   feedback?: string | null;
 }
 
+export interface QuizOption {
+  id?: string;
+  text: string;
+  is_correct?: boolean;
+  order?: number;
+}
+
+export interface QuizQuestion {
+  id?: string;
+  text: string;
+  question_type: 'mcq' | 'true_false';
+  points: number;
+  order?: number;
+  options: QuizOption[];
+}
+
 export interface Quiz {
   id: string;
   course_id: string;
@@ -70,6 +86,55 @@ export interface Quiz {
   max_score: number;
   weight: number;
   is_published: boolean;
+  created_at?: string;
+  updated_at?: string;
+  questions?: QuizQuestion[];
+}
+
+export interface QuizCreatePayload {
+  title: string;
+  description?: string | null;
+  open_at?: string | null;
+  close_at?: string | null;
+  time_limit_minutes?: number | null;
+  max_attempts?: number;
+  max_score?: number;
+  weight?: number;
+  is_published?: boolean;
+  questions?: QuizQuestion[];
+}
+
+export interface QuizUpdatePayload {
+  title?: string;
+  description?: string | null;
+  open_at?: string | null;
+  close_at?: string | null;
+  time_limit_minutes?: number | null;
+  max_attempts?: number;
+  max_score?: number;
+  weight?: number;
+  is_published?: boolean;
+  questions?: QuizQuestion[];
+}
+
+export interface QuizAttempt {
+  id: string;
+  quiz_id: string;
+  course_id: string;
+  student_id: string;
+  started_at: string;
+  time_limit_minutes: number | null;
+  submitted: boolean;
+  completed_at: string | null;
+  answers: Record<string, string>;
+  score: number | null;
+  earned_points?: number;
+  total_possible_points?: number;
+  max_score: number;
+}
+
+export interface QuizAttemptSubmitPayload {
+  answers: Record<string, string>;
 }
 
 export interface Module {
@@ -157,6 +222,53 @@ export const assessmentApi = {
 
   getQuizzes: async (courseId: string): Promise<Quiz[]> => {
     const res = await apiClient.get<Quiz[]>(`/courses/${courseId}/quizzes`);
+    return res.data;
+  },
+
+  getQuiz: async (courseId: string, quizId: string): Promise<Quiz> => {
+    const res = await apiClient.get<Quiz>(`/courses/${courseId}/quizzes/${quizId}`);
+    return res.data;
+  },
+
+  createQuiz: async (courseId: string, payload: QuizCreatePayload): Promise<Quiz> => {
+    const res = await apiClient.post<Quiz>(`/courses/${courseId}/quizzes`, payload);
+    return res.data;
+  },
+
+  updateQuiz: async (courseId: string, quizId: string, payload: QuizUpdatePayload): Promise<Quiz> => {
+    const res = await apiClient.patch<Quiz>(`/courses/${courseId}/quizzes/${quizId}`, payload);
+    return res.data;
+  },
+
+  deleteQuiz: async (courseId: string, quizId: string): Promise<void> => {
+    await apiClient.delete(`/courses/${courseId}/quizzes/${quizId}`);
+  },
+
+  startQuizAttempt: async (courseId: string, quizId: string): Promise<QuizAttempt> => {
+    const res = await apiClient.post<QuizAttempt>(`/courses/${courseId}/quizzes/${quizId}/attempts`, {});
+    return res.data;
+  },
+
+  submitQuizAttempt: async (
+    courseId: string,
+    quizId: string,
+    attemptId: string,
+    payload: QuizAttemptSubmitPayload
+  ): Promise<QuizAttempt> => {
+    const res = await apiClient.post<QuizAttempt>(
+      `/courses/${courseId}/quizzes/${quizId}/attempts/${attemptId}/submit`,
+      payload
+    );
+    return res.data;
+  },
+
+  getMyQuizAttempts: async (courseId: string, quizId: string): Promise<QuizAttempt[]> => {
+    const res = await apiClient.get<QuizAttempt[]>(`/courses/${courseId}/quizzes/${quizId}/my-attempts`);
+    return res.data;
+  },
+
+  listQuizAttempts: async (courseId: string, quizId: string): Promise<QuizAttempt[]> => {
+    const res = await apiClient.get<QuizAttempt[]>(`/courses/${courseId}/quizzes/${quizId}/attempts`);
     return res.data;
   },
 };

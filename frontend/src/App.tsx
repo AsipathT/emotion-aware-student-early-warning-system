@@ -21,6 +21,7 @@ import { ForumThreadPage } from './pages/ForumThreadPage';
 import { ChatPage } from './pages/ChatPage';
 import { JournalPage } from './pages/JournalPage';
 import { CourseContentPage } from './pages/CourseContentPage';
+import { CourseQuizzesPage } from './pages/CourseQuizzesPage';
 import { VideoPlayerPage } from './pages/VideoPlayerPage';
 import { AttendancePage } from './pages/AttendancePage';
 import { GradebookPage } from './pages/GradebookPage';
@@ -105,6 +106,14 @@ export const App: React.FC = () => {
                 element={
                   <ProtectedRoute>
                     <CourseContentPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/courses/:courseId/quizzes"
+                element={
+                  <ProtectedRoute>
+                    <CourseQuizzesPage />
                   </ProtectedRoute>
                 }
               />
