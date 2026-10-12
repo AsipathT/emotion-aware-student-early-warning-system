@@ -33,6 +33,7 @@ class AuditAction(str, Enum):
     EXPORT_GENERATED = "EXPORT_GENERATED"
     DATA_IMPORTED = "DATA_IMPORTED"
     DATA_ROLLBACK = "DATA_ROLLBACK"
+    DATA_INGESTED = "DATA_INGESTED"
 
 
 class AuditOutcome(str, Enum):

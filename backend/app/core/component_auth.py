@@ -162,12 +162,126 @@ def component_actor(scope: str, action_type: str = "export") -> Callable:
     return _authenticate
 
 
-def export_actor(scope: str) -> Callable:
-    """Convenience factory for export endpoints."""
-    return component_actor(scope=scope, action_type="export")
+# Export dependency alias
+export_actor = component_actor
+
+
+class IngestActor(BaseModel):
+    """Actor identity representing an authenticated ML component client for data writes."""
+    actor_id: str
+    component: str
+
+
+INGEST_SCOPE_MAP = {
+    "affective": "c1",
+    "c1": "c1",
+    "trajectory": "c2",
+    "c2": "c2",
+    "risk": "c3",
+    "c3": "c3",
+    "recommendations": "c4",
+    "c4": "c4",
+}
 
 
 def ingest_actor(scope: str) -> Callable:
-    """Convenience factory for ingestion endpoints."""
-    return component_actor(scope=scope, action_type="ingest")
+    """
+    Factory creating a dependency that authorizes component API write access for `scope`.
+    Accepts:
+      - 'X-Component-Key' header matching configured secret key for the requested scope.
+      - Strictly NO admin Bearer token fallback for write endpoints.
+    Raises:
+      - 503 Service Unavailable if COMPONENT_API_KEYS is not configured.
+      - 401 Unauthorized if key is missing or invalid.
+      - 403 Forbidden if key belongs to another component scope.
+    """
+    raw_scope = scope.lower().strip()
+    target_scope = INGEST_SCOPE_MAP.get(raw_scope, raw_scope)
 
+    async def _authenticate(
+        request: Request,
+        x_component_key: Optional[str] = Header(None, alias="X-Component-Key"),
+        db: AsyncIOMotorDatabase = Depends(get_db),
+    ) -> IngestActor:
+        keys_map = settings.COMPONENT_API_KEYS
+
+        # 1. Verify that component keys are configured
+        if not keys_map:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Component API keys are not configured on this server.",
+            )
+
+        # 2. Ingestion requires X-Component-Key header (no Bearer token allowed)
+        if not x_component_key:
+            await log_event(
+                request=request,
+                db=db,
+                action=AuditAction.ACCESS_DENIED,
+                actor_id="anonymous",
+                actor_role="unknown",
+                target_type="ingest",
+                target_id=request.url.path,
+                outcome=AuditOutcome.DENIED,
+                reason="Missing X-Component-Key header for component ingestion.",
+                details={"endpoint": request.url.path, "required_scope": target_scope},
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Missing X-Component-Key header for component ingestion.",
+            )
+
+        # 3. Constant-time comparison across configured component keys
+        matched_scope: Optional[str] = None
+        for comp_name, secret_key in keys_map.items():
+            if hmac.compare_digest(x_component_key.encode("utf-8"), secret_key.encode("utf-8")):
+                matched_scope = comp_name
+                break
+
+        if not matched_scope:
+            await log_event(
+                request=request,
+                db=db,
+                action=AuditAction.ACCESS_DENIED,
+                actor_id="anonymous",
+                actor_role="unknown",
+                target_type="ingest",
+                target_id=request.url.path,
+                outcome=AuditOutcome.DENIED,
+                reason="Invalid component API key for ingestion.",
+                details={"endpoint": request.url.path, "required_scope": target_scope},
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid component API key.",
+            )
+
+        # 4. Scope matching
+        if matched_scope != target_scope:
+            await log_event(
+                request=request,
+                db=db,
+                action=AuditAction.ACCESS_DENIED,
+                actor_id=f"component:{matched_scope}",
+                actor_role="component",
+                target_type="ingest",
+                target_id=request.url.path,
+                outcome=AuditOutcome.DENIED,
+                reason=f"Component key scope '{matched_scope}' not authorized for ingestion scope '{target_scope}'.",
+                details={
+                    "endpoint": request.url.path,
+                    "matched_scope": matched_scope,
+                    "required_scope": target_scope,
+                },
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Component '{matched_scope}' is not authorized to ingest into '{target_scope}' endpoint.",
+            )
+
+        return IngestActor(
+            actor_id=f"component:{matched_scope}",
+            component=matched_scope,
+        )
+
+    return _authenticate

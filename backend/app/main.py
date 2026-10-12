@@ -169,6 +169,10 @@ def create_app() -> FastAPI:
     from app.routers import attendance  # noqa: E402
     app.include_router(attendance.router)
 
+    from app.routers import course_content  # noqa: E402
+    app.include_router(course_content.router)
+
+    # --- Communication / interventions ---
     from app.routers import forum  # noqa: E402
     app.include_router(forum.router)
 
@@ -178,6 +182,7 @@ def create_app() -> FastAPI:
     from app.routers import journal  # noqa: E402
     app.include_router(journal.router)
 
+    # --- Compliance, audit, governance ---
     from app.routers import consent  # noqa: E402
     app.include_router(consent.router)
 
@@ -187,15 +192,13 @@ def create_app() -> FastAPI:
     from app.routers import privacy  # noqa: E402
     app.include_router(privacy.router)
 
-    from app.routers import export  # noqa: E402
-    app.include_router(export.router)
-
     from app.routers import contract  # noqa: E402
     app.include_router(contract.router)
 
-    from app.routers import course_content  # noqa: E402
-    app.include_router(course_content.router)
+    from app.routers import export  # noqa: E402
+    app.include_router(export.router)
 
+    # --- ML ingestion, telemetry, and pipeline ---
     from app.routers import ingest  # noqa: E402
     app.include_router(ingest.router)
 
@@ -204,7 +207,6 @@ def create_app() -> FastAPI:
 
     from app.routers import telemetry  # noqa: E402
     app.include_router(telemetry.router)
-
     return app
 
 
