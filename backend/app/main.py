@@ -189,6 +189,9 @@ def create_app() -> FastAPI:
     from app.routers import export  # noqa: E402
     app.include_router(export.router)
 
+    from app.routers import ingest  # noqa: E402
+    app.include_router(ingest.router)
+
     return app
 
 

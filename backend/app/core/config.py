@@ -66,8 +66,10 @@ class Settings(BaseSettings):
         return self.trusted_proxy
 
 
-    # ── Feature 21: Component API Authentication ──────────────────────────────
+    # ── Feature 21 & 23: Component API Authentication & Limits ───────────────
     component_api_keys: str = ""
+    ingest_max_batch: int = 1000
+    ingest_max_body_bytes: int = 5 * 1024 * 1024  # 5 MB
 
     @property
     def COMPONENT_API_KEYS(self) -> Dict[str, str]:
@@ -81,6 +83,16 @@ class Settings(BaseSettings):
         except Exception:
             pass
         return {}
+
+    @property
+    def INGEST_MAX_BATCH(self) -> int:
+        """Maximum number of records accepted in a single ingestion batch."""
+        return self.ingest_max_batch
+
+    @property
+    def INGEST_MAX_BODY_BYTES(self) -> int:
+        """Maximum raw request payload size in bytes for ingestion endpoints."""
+        return self.ingest_max_body_bytes
 
 
     # ── CORS ──────────────────────────────────────────────────────────────────
