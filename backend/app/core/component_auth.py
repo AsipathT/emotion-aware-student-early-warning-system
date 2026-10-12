@@ -49,9 +49,14 @@ EXPORT_SCOPE_MAP: dict[str, set[str]] = {
 }
 
 
-def export_actor(scope: str) -> Callable:
+# Type alias for general component actors
+ComponentActor = ExportActor
+
+
+def component_actor(scope: str, action_type: str = "export") -> Callable:
     """
     Factory creating a dependency that authorizes component API access for `scope`.
+    `action_type` describes the operation category (e.g. 'export' or 'ingest') for audit logging.
     Accepts:
       1. 'X-Component-Key' header matching configured secret key for the requested scope.
          Supported scopes map to allowed component sets (e.g. affective -> {c3, c4}).
@@ -75,7 +80,7 @@ def export_actor(scope: str) -> Callable:
         if not keys_map:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Component export API keys are not configured on this server.",
+                detail=f"Component {action_type} API keys are not configured on this server.",
             )
 
         # 2. Check for optional Admin Bearer token
@@ -105,7 +110,7 @@ def export_actor(scope: str) -> Callable:
                 action=AuditAction.ACCESS_DENIED,
                 actor_id="anonymous",
                 actor_role="unknown",
-                target_type="export",
+                target_type=action_type,
                 target_id=request.url.path,
                 outcome=AuditOutcome.DENIED,
                 reason="Missing X-Component-Key header and no valid admin Bearer token.",
@@ -130,7 +135,7 @@ def export_actor(scope: str) -> Callable:
                 action=AuditAction.ACCESS_DENIED,
                 actor_id="anonymous",
                 actor_role="unknown",
-                target_type="export",
+                target_type=action_type,
                 target_id=request.url.path,
                 outcome=AuditOutcome.DENIED,
                 reason="Invalid component API key.",
@@ -149,7 +154,7 @@ def export_actor(scope: str) -> Callable:
                 action=AuditAction.ACCESS_DENIED,
                 actor_id=f"component:{matched_scope}",
                 actor_role="component",
-                target_type="export",
+                target_type=action_type,
                 target_id=request.url.path,
                 outcome=AuditOutcome.DENIED,
                 reason=f"Component key scope '{matched_scope}' not authorized for scope '{target_scope}'.",
@@ -161,7 +166,7 @@ def export_actor(scope: str) -> Callable:
             )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Component '{matched_scope}' is not authorized to access '{target_scope}' export.",
+                detail=f"Component '{matched_scope}' is not authorized to access '{target_scope}' {action_type}.",
             )
 
         return ExportActor(
@@ -171,6 +176,10 @@ def export_actor(scope: str) -> Callable:
         )
 
     return _authenticate
+
+
+# Export dependency alias
+export_actor = component_actor
 
 
 class IngestActor(BaseModel):
@@ -326,4 +335,3 @@ def validate_component_api_keys(keys_map: Optional[dict[str, str]], app_env: str
             raise RuntimeError(f"Startup rejected in production: {summary}")
         else:
             logger.warning("[STARTUP WARNING] %s", summary)
-
