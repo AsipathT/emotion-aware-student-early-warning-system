@@ -14,7 +14,9 @@ import { CourseAssignmentsPage } from './pages/CourseAssignmentsPage';
 import { AssignmentDetailPage } from './pages/AssignmentDetailPage';
 import { CourseGradebookPage } from './pages/CourseGradebookPage';
 import { MyEnrollmentsPage } from './pages/MyEnrollmentsPage';
-import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { AdminLayout } from './components/admin/AdminLayout';
+import { AdminOverviewPage } from './pages/admin/AdminOverviewPage';
+import { AdminUsersPage } from './pages/admin/AdminUsersPage';
 import { AuditLogPage } from './pages/admin/AuditLogPage';
 import { ForumPage } from './pages/ForumPage';
 import { ForumThreadPage } from './pages/ForumThreadPage';
@@ -153,25 +155,26 @@ export const App: React.FC = () => {
                 }
               />
 
-              {/* Protected Admin Governance Panel (Admin Only) */}
+              {/* Feature 40: Protected Admin & Auditor Governance Console */}
               <Route
                 path="/admin"
                 element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <AdminDashboardPage />
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* Feature 7: Protected Compliance Audit Log (Admin & Auditor Only) */}
-              <Route
-                path="/admin/audit"
-                element={
                   <ProtectedRoute allowedRoles={['admin', 'auditor']}>
-                    <AuditLogPage />
+                    <AdminLayout />
                   </ProtectedRoute>
                 }
-              />
+              >
+                <Route index element={<AdminOverviewPage />} />
+                <Route
+                  path="users"
+                  element={
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <AdminUsersPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="audit" element={<AuditLogPage />} />
+              </Route>
 
               {/* Dushan: forum */}
               <Route
