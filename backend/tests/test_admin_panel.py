@@ -30,6 +30,7 @@ import pytest_asyncio
 
 from app.core.config import settings
 from app.core.database import create_mongo_client, get_db
+from app.core.privacy import pseudonymize
 from app.core.security import create_access_token, hash_password
 from app.db import collections as col
 from app.main import app
@@ -348,3 +349,361 @@ async def test_admin_safeguards_last_admin_and_self_lockout(admin_api_client, th
     })
     assert audit_status is not None
     assert audit_status["target_id"] == str(student["id"])
+
+
+# ── Phase 2: Course Administration Tests ──────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_admin_courses_management(admin_api_client, throwaway_admin_db):
+    db = throwaway_admin_db
+    admin = await _seed_user(db, "admin")
+    auditor = await _seed_user(db, "auditor")
+    lecturer_1 = await _seed_user(db, "lecturer")
+    lecturer_2 = await _seed_user(db, "lecturer")
+
+    admin_headers = _make_auth_header(admin)
+    auditor_headers = _make_auth_header(auditor)
+
+    now = datetime.now(timezone.utc)
+    c1_id = str(uuid.uuid4())
+    c2_id = str(uuid.uuid4())
+
+    await db[col.COURSES].insert_many([
+        {
+            "_id": c1_id,
+            "id": c1_id,
+            "course_id": c1_id,
+            "title": "Machine Learning Fundamentals",
+            "description": "Introductory ML course",
+            "lecturer_id": str(lecturer_1["id"]),
+            "is_published": True,
+            "modules": [{"id": "m1", "title": "Module 1", "sequence_order": 1}],
+            "created_at": now,
+            "updated_at": now,
+        },
+        {
+            "_id": c2_id,
+            "id": c2_id,
+            "course_id": c2_id,
+            "title": "Advanced Neural Networks",
+            "description": "Deep learning models",
+            "lecturer_id": str(lecturer_2["id"]),
+            "is_published": False,
+            "modules": [],
+            "created_at": now,
+            "updated_at": now,
+        },
+    ])
+
+    # 1. Auditor can list courses, but cannot mutate
+    resp = await admin_api_client.get("/api/v1/admin/courses", headers=auditor_headers)
+    assert resp.status_code == 200
+    assert resp.json()["total"] == 2
+
+    resp = await admin_api_client.put(
+        f"/api/v1/admin/courses/{c1_id}/publish",
+        json={"is_published": False},
+        headers=auditor_headers,
+    )
+    assert resp.status_code == 403
+
+    # 2. Admin filters courses
+    resp = await admin_api_client.get("/api/v1/admin/courses?is_published=true", headers=admin_headers)
+    assert resp.status_code == 200
+    assert resp.json()["total"] == 1
+    assert resp.json()["items"][0]["title"] == "Machine Learning Fundamentals"
+    assert resp.json()["items"][0]["lecturer_name"] == lecturer_1["full_name"]
+    assert resp.json()["items"][0]["module_count"] == 1
+
+    resp = await admin_api_client.get("/api/v1/admin/courses?is_published=false", headers=admin_headers)
+    assert resp.status_code == 200
+    assert resp.json()["total"] == 1
+    assert resp.json()["items"][0]["title"] == "Advanced Neural Networks"
+
+    resp = await admin_api_client.get("/api/v1/admin/courses?q=Machine", headers=admin_headers)
+    assert resp.status_code == 200
+    assert resp.json()["total"] == 1
+
+    # 3. Admin toggles publication status with audit log
+    resp = await admin_api_client.put(
+        f"/api/v1/admin/courses/{c1_id}/publish",
+        json={"is_published": False},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["is_published"] is False
+
+    audit_publish = await db[col.AUDIT_LOGS].find_one({"action": AuditAction.COURSE_STATUS_UPDATED.value})
+    assert audit_publish is not None
+    assert audit_publish["target_id"] == c1_id
+    assert audit_publish["details"]["previous_is_published"] is True
+    assert audit_publish["details"]["new_is_published"] is False
+
+    # 4. Admin reassigns lecturer with audit log
+    resp = await admin_api_client.put(
+        f"/api/v1/admin/courses/{c1_id}/lecturer",
+        json={"lecturer_id": str(lecturer_2["id"])},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["lecturer_id"] == str(lecturer_2["id"])
+    assert resp.json()["lecturer_name"] == lecturer_2["full_name"]
+
+    audit_lecturer = await db[col.AUDIT_LOGS].find_one({"action": AuditAction.COURSE_LECTURER_ASSIGNED.value})
+    assert audit_lecturer is not None
+    assert audit_lecturer["target_id"] == c1_id
+    assert audit_lecturer["details"]["previous_lecturer_id"] == str(lecturer_1["id"])
+    assert audit_lecturer["details"]["new_lecturer_id"] == str(lecturer_2["id"])
+
+
+# ── Phase 2: Enrolments Administration Tests ──────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_admin_enrolments_management(admin_api_client, throwaway_admin_db):
+    db = throwaway_admin_db
+    admin = await _seed_user(db, "admin")
+    auditor = await _seed_user(db, "auditor")
+    student_1 = await _seed_user(db, "student")
+    student_2 = await _seed_user(db, "student")
+    student_3 = await _seed_user(db, "student")
+
+    admin_headers = _make_auth_header(admin)
+    auditor_headers = _make_auth_header(auditor)
+
+    cid = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+    await db[col.COURSES].insert_one({
+        "_id": cid,
+        "id": cid,
+        "course_id": cid,
+        "title": "Data Engineering 101",
+        "description": "Pipelines and ETL",
+        "is_published": True,
+        "created_at": now,
+        "updated_at": now,
+    })
+
+    # 1. Admin enrols student 1
+    resp = await admin_api_client.post(
+        "/api/v1/admin/enrolments",
+        json={"course_id": cid, "student_identifier": student_1["email"]},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 201
+    enr_data = resp.json()
+    assert enr_data["course_id"] == cid
+    assert enr_data["status"] == "active"
+    assert enr_data["student_email"] == student_1["email"]
+    enr_id = enr_data["id"]
+
+    # Verify audit log for enrolment creation
+    audit_create = await db[col.AUDIT_LOGS].find_one({"action": AuditAction.ENROLMENT_CREATED.value})
+    assert audit_create is not None
+    assert audit_create["target_id"] == enr_data["pid"]
+
+    # Re-enrolling actively enrolled student returns 409
+    resp = await admin_api_client.post(
+        "/api/v1/admin/enrolments",
+        json={"course_id": cid, "student_identifier": student_1["email"]},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 409
+
+    # 2. Auditor can view enrolments
+    resp = await admin_api_client.get(f"/api/v1/admin/enrolments?course_id={cid}", headers=auditor_headers)
+    assert resp.status_code == 200
+    assert resp.json()["total"] == 1
+
+    # 3. Admin soft-removes student 1 (DELETE marks status='dropped', never deletes records)
+    resp = await admin_api_client.delete(f"/api/v1/admin/enrolments/{enr_id}", headers=admin_headers)
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "dropped"
+
+    enr_doc = await db[col.ENROLMENTS].find_one({"_id": enr_id})
+    assert enr_doc["status"] == "dropped"
+    assert enr_doc.get("enrolment_end") is not None
+
+    audit_remove = await db[col.AUDIT_LOGS].find_one({"action": AuditAction.ENROLMENT_REMOVED.value})
+    assert audit_remove is not None
+    assert audit_remove["details"]["previous_status"] == "active"
+    assert audit_remove["details"]["new_status"] == "dropped"
+
+    # 4. Bulk enrolment with idempotency and row results
+    bulk_payload = {
+        "course_id": cid,
+        "student_identifiers": [
+            student_1["email"],  # Reactivation of dropped
+            student_2["id"],     # New enrolment
+            student_3["email"],  # New enrolment
+            "nonexistent_student@test.com",  # Should fail cleanly
+        ],
+    }
+    resp = await admin_api_client.post(
+        "/api/v1/admin/enrolments/bulk",
+        json=bulk_payload,
+        headers=admin_headers,
+    )
+    assert resp.status_code == 200
+    bulk_resp = resp.json()
+    assert bulk_resp["total"] == 4
+    assert bulk_resp["enrolled_count"] == 3  # student_1 reactivated, student_2 and student_3 enrolled
+    assert bulk_resp["skipped_count"] == 0
+    assert bulk_resp["failed_count"] == 1
+    assert len(bulk_resp["results"]) == 4
+
+    audit_bulk = await db[col.AUDIT_LOGS].find_one({"action": AuditAction.BULK_ENROLMENT.value})
+    assert audit_bulk is not None
+    assert audit_bulk["details"]["enrolled_count"] == 3
+    assert audit_bulk["details"]["failed_count"] == 1
+
+    # Idempotent second run: all already enrolled should now be skipped
+    resp2 = await admin_api_client.post(
+        "/api/v1/admin/enrolments/bulk",
+        json=bulk_payload,
+        headers=admin_headers,
+    )
+    assert resp2.status_code == 200
+    bulk_resp2 = resp2.json()
+    assert bulk_resp2["enrolled_count"] == 0
+    assert bulk_resp2["skipped_count"] == 3
+    assert bulk_resp2["failed_count"] == 1
+
+
+# ── Phase 2: Consent Coverage and Withdrawn Exclusion Tests ───────────────────
+
+@pytest.mark.asyncio
+async def test_admin_consent_coverage_and_withdrawn_exclusion(admin_api_client, throwaway_admin_db):
+    db = throwaway_admin_db
+    admin = await _seed_user(db, "admin")
+    auditor = await _seed_user(db, "auditor")
+    student_a = await _seed_user(db, "student")
+    student_b = await _seed_user(db, "student")
+    student_c = await _seed_user(db, "student")
+
+    admin_headers = _make_auth_header(admin)
+    auditor_headers = _make_auth_header(auditor)
+    student_a_headers = _make_auth_header(student_a)
+    student_b_headers = _make_auth_header(student_b)
+
+    # 1. Setup active consent notice v1
+    notice_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+    await db[col.CONSENT_NOTICES].insert_one({
+        "_id": notice_id,
+        "id": notice_id,
+        "version": 1,
+        "text": "Ethics and Early Warning consent notice v1.",
+        "effective_from": now,
+        "is_active": True,
+    })
+
+    # Seed course and enrol all 3 students
+    cid = str(uuid.uuid4())
+    await db[col.COURSES].insert_one({
+        "_id": cid,
+        "id": cid,
+        "course_id": cid,
+        "title": "Software Architecture",
+        "is_published": True,
+        "created_at": now,
+        "updated_at": now,
+    })
+
+    # Ensure PIDs and enrolments
+    for stu in [student_a, student_b, student_c]:
+        pid = pseudonymize(stu["id"])
+        await db[col.USERS].update_one({"_id": stu["id"]}, {"$set": {"pid": pid}})
+        await db[col.ENROLMENTS].insert_one({
+            "_id": str(uuid.uuid4()),
+            "pid": pid,
+            "course_id": cid,
+            "enrolment_start": now,
+            "status": "active",
+            "schema_version": 1,
+            "ingested_at": now,
+            "source_version": "1.0",
+        })
+
+    # Student A accepts notice v1
+    resp = await admin_api_client.post(
+        "/api/v1/consent/me",
+        json={"decision": "accepted"},
+        headers=student_a_headers,
+    )
+    assert resp.status_code == 201
+
+    # Student B accepts notice v1, then withdraws
+    resp_b = await admin_api_client.post(
+        "/api/v1/consent/me",
+        json={"decision": "accepted"},
+        headers=student_b_headers,
+    )
+    assert resp_b.status_code == 201
+
+    resp = await admin_api_client.post(
+        "/api/v1/consent/me/withdraw",
+        headers=student_b_headers,
+    )
+    assert resp.status_code == 200
+    # Student C has pending consent (no decision)
+
+    # 2. Verify coverage on notice v1: Withdrawn student is NEVER counted as consented!
+    resp = await admin_api_client.get("/api/v1/admin/consent/coverage", headers=admin_headers)
+    assert resp.status_code == 200
+    cov = resp.json()
+
+    assert cov["active_version"] == 1
+    assert cov["total_students"] == 3
+    assert cov["accepted"] == 1      # Student A only
+    assert cov["withdrawn"] == 1     # Student B
+    assert cov["pending"] == 1       # Student C
+    assert cov["declined"] == 0
+    assert cov["coverage_percentage"] == 33.3
+
+    # Verify per-course breakdown
+    assert len(cov["course_breakdown"]) == 1
+    c_break = cov["course_breakdown"][0]
+    assert c_break["course_id"] == cid
+    assert c_break["enrolled_students"] == 3
+    assert c_break["accepted"] == 1
+    assert c_break["withdrawn"] == 1
+    assert c_break["pending"] == 1
+    assert c_break["coverage_percentage"] == 33.3
+
+    # 3. Publish notice version 2: Resets coverage to active notice version only!
+    resp = await admin_api_client.post(
+        "/api/v1/consent/notices",
+        json={"text": "Updated Ethics notice version 2 with revised privacy terms."},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 201
+    assert resp.json()["version"] == 2
+
+    # Query coverage again
+    resp = await admin_api_client.get("/api/v1/admin/consent/coverage", headers=auditor_headers)
+    assert resp.status_code == 200
+    cov2 = resp.json()
+
+    assert cov2["active_version"] == 2
+    assert cov2["total_students"] == 3
+    assert cov2["accepted"] == 0     # Neither A nor B has consented to v2 yet!
+    assert cov2["withdrawn"] == 0
+    assert cov2["pending"] == 3      # All 3 students are pending on the new version
+    assert cov2["coverage_percentage"] == 0.0
+
+    # Notice history contains 2 versions
+    assert len(cov2["notice_history"]) == 2
+    assert cov2["notice_history"][0]["version"] == 2
+    assert cov2["notice_history"][0]["is_active"] is True
+    assert cov2["notice_history"][1]["version"] == 1
+    assert cov2["notice_history"][1]["is_active"] is False
+
+    # 4. Verify export consent exclusion function
+    from app.routers.export import get_eligible_consenting_pids
+    # Under active version 2, neither A nor B is consenting:
+    consenting_pids_v2 = await get_eligible_consenting_pids(db)
+    pid_a = pseudonymize(student_a["id"])
+    pid_b = pseudonymize(student_b["id"])
+    assert pid_a not in consenting_pids_v2
+    assert pid_b not in consenting_pids_v2
+

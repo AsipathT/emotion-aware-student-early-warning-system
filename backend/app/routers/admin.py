@@ -5,6 +5,7 @@ Admin Panel endpoints (MongoDB backed - Feature 40).
 Provides platform governance, overview KPIs, and user management.
 """
 
+import math
 import re
 import time
 import uuid
@@ -22,14 +23,27 @@ from app.core.security import hash_password
 from app.db import collections as col
 from app.models.user import User, UserRole
 from app.schemas.admin import (
+    AdminBulkEnrolmentRequest,
+    AdminBulkEnrolmentResponse,
+    AdminConsentCoverageResponse,
+    AdminConsentNoticeHistoryItem,
     AdminConsentSummary,
+    AdminCourseConsentBreakdown,
+    AdminCourseLecturerUpdate,
+    AdminCoursePublishUpdate,
+    AdminCourseSummary,
+    AdminEnrolmentCreateRequest,
+    AdminEnrolmentItem,
     AdminEnrolmentSummary,
     AdminOverviewResponse,
+    AdminPaginatedCoursesResponse,
+    AdminPaginatedEnrolmentsResponse,
     AdminPaginatedUsersResponse,
     AdminUserCreateRequest,
     AdminUserDetailResponse,
     AdminUserResponse,
     AdminUserUpdateRequest,
+    BulkEnrolmentRowResult,
     SystemStatsResponse,
     UserRoleUpdate,
     UserStatusUpdate,
@@ -698,3 +712,935 @@ async def update_user_profile_by_admin(
 
     updated_doc["id"] = str(updated_doc.get("_id") or updated_doc.get("id"))
     return AdminUserResponse(**updated_doc)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Phase 2: Courses Oversight & Administration
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get(
+    "/courses",
+    response_model=AdminPaginatedCoursesResponse,
+    summary="List courses with admin metadata, pagination, and filters",
+    description="Returns courses enriched with instructor profile, enrolled student count, and module counts.",
+    dependencies=[Depends(require_roles(UserRole.ADMIN, UserRole.AUDITOR))],
+)
+async def list_admin_courses(
+    page: int = Query(1, ge=1, description="1-based page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    q: Optional[str] = Query(None, description="Search query matching title or code"),
+    is_published: Optional[bool] = Query(None, description="Filter by publication status"),
+    lecturer_id: Optional[str] = Query(None, description="Filter by instructor ID"),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> AdminPaginatedCoursesResponse:
+    filter_doc: Dict[str, Any] = {}
+
+    if is_published is not None:
+        filter_doc["is_published"] = is_published
+
+    if lecturer_id:
+        filter_doc["lecturer_id"] = str(lecturer_id).strip()
+
+    if q and q.strip():
+        q_clean = q.strip()
+        regex = re.compile(re.escape(q_clean), re.IGNORECASE)
+        filter_doc["$or"] = [
+            {"title": regex},
+            {"description": regex},
+            {"course_id": regex},
+            {"id": regex},
+            {"_id": regex},
+        ]
+
+    total = await db[col.COURSES].count_documents(filter_doc)
+    skip = (page - 1) * page_size
+    cursor = db[col.COURSES].find(filter_doc).sort("created_at", -1).skip(skip).limit(page_size)
+    courses_docs = await cursor.to_list(length=page_size)
+
+    if not courses_docs:
+        total_pages = math.ceil(total / page_size) if total > 0 else 1
+        return AdminPaginatedCoursesResponse(
+            items=[],
+            total=total,
+            page=page,
+            page_size=page_size,
+            total_pages=total_pages,
+        )
+
+    # 1. Batch resolve instructors
+    lecturer_ids = list({str(c["lecturer_id"]) for c in courses_docs if c.get("lecturer_id")})
+    lecturer_map: Dict[str, Dict[str, Any]] = {}
+    if lecturer_ids:
+        lecturers_cursor = db[col.USERS].find({
+            "$or": [{"_id": {"$in": lecturer_ids}}, {"id": {"$in": lecturer_ids}}]
+        })
+        async for l_doc in lecturers_cursor:
+            l_info = {
+                "name": l_doc.get("full_name") or "Unknown Lecturer",
+                "email": l_doc.get("email") or "",
+            }
+            lecturer_map[str(l_doc.get("_id"))] = l_info
+            if l_doc.get("id"):
+                lecturer_map[str(l_doc.get("id"))] = l_info
+
+    # 2. Batch resolve active enrolment count per course
+    c_keys = []
+    for c in courses_docs:
+        c_keys.append(str(c.get("course_id") or c.get("id") or c.get("_id")))
+        c_keys.append(str(c["_id"]))
+        if c.get("id"):
+            c_keys.append(str(c["id"]))
+    c_keys = list(set(c_keys))
+
+    enrolment_map: Dict[str, int] = {}
+    pipeline = [
+        {"$match": {"course_id": {"$in": c_keys}, "status": "active"}},
+        {"$group": {"_id": "$course_id", "count": {"$sum": 1}}},
+    ]
+    async for agg in db[col.ENROLMENTS].aggregate(pipeline):
+        enrolment_map[str(agg["_id"])] = agg["count"]
+
+    items: List[AdminCourseSummary] = []
+    for c in courses_docs:
+        canonical_cid = str(c.get("course_id") or c.get("id") or c.get("_id"))
+        lid = str(c.get("lecturer_id")) if c.get("lecturer_id") else None
+        linfo = lecturer_map.get(lid, {}) if lid else {}
+        active_enrolled = (
+            enrolment_map.get(canonical_cid, 0)
+            or enrolment_map.get(str(c.get("_id")), 0)
+            or enrolment_map.get(str(c.get("id")), 0)
+        )
+
+        items.append(
+            AdminCourseSummary(
+                id=str(c.get("_id") or c.get("id") or canonical_cid),
+                course_id=canonical_cid,
+                title=c.get("title", "Untitled Course"),
+                description=c.get("description"),
+                lecturer_id=lid,
+                lecturer_name=linfo.get("name"),
+                lecturer_email=linfo.get("email"),
+                is_published=c.get("is_published", True),
+                enrolment_count=active_enrolled,
+                module_count=len(c.get("modules") or []),
+                created_at=c.get("created_at"),
+                updated_at=c.get("updated_at"),
+            )
+        )
+
+    total_pages = math.ceil(total / page_size) if total > 0 else 1
+    return AdminPaginatedCoursesResponse(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+    )
+
+
+@router.put(
+    "/courses/{course_id}/publish",
+    response_model=AdminCourseSummary,
+    summary="Publish or unpublish course with Feature 7 audit logging",
+    description="Updates visibility in the course catalog and records before/after state in audit log.",
+    dependencies=[Depends(get_current_admin)],
+)
+async def update_course_publish_status(
+    course_id: str,
+    body: AdminCoursePublishUpdate,
+    request: Request,
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> AdminCourseSummary:
+    cid_str = str(course_id).strip()
+    course_doc = await db[col.COURSES].find_one({
+        "$or": [{"_id": cid_str}, {"id": cid_str}, {"course_id": cid_str}]
+    })
+    if not course_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Course with ID '{course_id}' was not found.",
+        )
+
+    previous_is_published = course_doc.get("is_published", False)
+    now = datetime.now(timezone.utc)
+
+    updated_doc = await db[col.COURSES].find_one_and_update(
+        {"_id": course_doc["_id"]},
+        {"$set": {"is_published": body.is_published, "updated_at": now}},
+        return_document=True,
+    )
+
+    canonical_cid = str(updated_doc.get("course_id") or updated_doc.get("id") or updated_doc.get("_id"))
+
+    # Feature 7 Audit Logging
+    await log_event(
+        request=request,
+        db=db,
+        action=AuditAction.COURSE_STATUS_UPDATED,
+        actor_id=str(current_admin.id),
+        actor_role="admin",
+        target_type="course",
+        target_id=canonical_cid,
+        outcome=AuditOutcome.SUCCESS,
+        details={
+            "previous_is_published": previous_is_published,
+            "new_is_published": body.is_published,
+        },
+    )
+
+    # Resolve instructor name/email if present
+    lid = str(updated_doc.get("lecturer_id")) if updated_doc.get("lecturer_id") else None
+    linfo: Dict[str, Any] = {}
+    if lid:
+        ldoc = await db[col.USERS].find_one({"$or": [{"_id": lid}, {"id": lid}]})
+        if ldoc:
+            linfo = {"name": ldoc.get("full_name"), "email": ldoc.get("email")}
+
+    enrolment_count = await db[col.ENROLMENTS].count_documents({
+        "course_id": canonical_cid,
+        "status": "active",
+    })
+
+    return AdminCourseSummary(
+        id=str(updated_doc.get("_id") or updated_doc.get("id") or canonical_cid),
+        course_id=canonical_cid,
+        title=updated_doc.get("title", "Untitled Course"),
+        description=updated_doc.get("description"),
+        lecturer_id=lid,
+        lecturer_name=linfo.get("name"),
+        lecturer_email=linfo.get("email"),
+        is_published=updated_doc.get("is_published", True),
+        enrolment_count=enrolment_count,
+        module_count=len(updated_doc.get("modules") or []),
+        created_at=updated_doc.get("created_at"),
+        updated_at=updated_doc.get("updated_at"),
+    )
+
+
+@router.put(
+    "/courses/{course_id}/lecturer",
+    response_model=AdminCourseSummary,
+    summary="Assign or reassign course instructor with Feature 7 audit logging",
+    description="Validates instructor account existence and active state, then records assignment in audit log.",
+    dependencies=[Depends(get_current_admin)],
+)
+async def reassign_course_lecturer(
+    course_id: str,
+    body: AdminCourseLecturerUpdate,
+    request: Request,
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> AdminCourseSummary:
+    cid_str = str(course_id).strip()
+    course_doc = await db[col.COURSES].find_one({
+        "$or": [{"_id": cid_str}, {"id": cid_str}, {"course_id": cid_str}]
+    })
+    if not course_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Course with ID '{course_id}' was not found.",
+        )
+
+    target_lecturer_id = str(body.lecturer_id).strip()
+    lecturer_doc = await db[col.USERS].find_one({
+        "$or": [{"_id": target_lecturer_id}, {"id": target_lecturer_id}]
+    })
+    if not lecturer_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Instructor account with ID '{body.lecturer_id}' does not exist.",
+        )
+    if not lecturer_doc.get("is_active", True):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot assign course to a deactivated instructor account.",
+        )
+
+    previous_lecturer_id = str(course_doc.get("lecturer_id")) if course_doc.get("lecturer_id") else "unassigned"
+    now = datetime.now(timezone.utc)
+
+    updated_doc = await db[col.COURSES].find_one_and_update(
+        {"_id": course_doc["_id"]},
+        {"$set": {"lecturer_id": target_lecturer_id, "updated_at": now}},
+        return_document=True,
+    )
+
+    canonical_cid = str(updated_doc.get("course_id") or updated_doc.get("id") or updated_doc.get("_id"))
+
+    # Feature 7 Audit Logging (no emails or names in details)
+    await log_event(
+        request=request,
+        db=db,
+        action=AuditAction.COURSE_LECTURER_ASSIGNED,
+        actor_id=str(current_admin.id),
+        actor_role="admin",
+        target_type="course",
+        target_id=canonical_cid,
+        outcome=AuditOutcome.SUCCESS,
+        details={
+            "previous_lecturer_id": previous_lecturer_id,
+            "new_lecturer_id": target_lecturer_id,
+        },
+    )
+
+    enrolment_count = await db[col.ENROLMENTS].count_documents({
+        "course_id": canonical_cid,
+        "status": "active",
+    })
+
+    return AdminCourseSummary(
+        id=str(updated_doc.get("_id") or updated_doc.get("id") or canonical_cid),
+        course_id=canonical_cid,
+        title=updated_doc.get("title", "Untitled Course"),
+        description=updated_doc.get("description"),
+        lecturer_id=target_lecturer_id,
+        lecturer_name=lecturer_doc.get("full_name"),
+        lecturer_email=lecturer_doc.get("email"),
+        is_published=updated_doc.get("is_published", True),
+        enrolment_count=enrolment_count,
+        module_count=len(updated_doc.get("modules") or []),
+        created_at=updated_doc.get("created_at"),
+        updated_at=updated_doc.get("updated_at"),
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Phase 2: Enrolments Administration
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get(
+    "/enrolments",
+    response_model=AdminPaginatedEnrolmentsResponse,
+    summary="List course enrolments with student/course details and filters",
+    description="Returns student enrolments enriched with student name/email and course title.",
+    dependencies=[Depends(require_roles(UserRole.ADMIN, UserRole.AUDITOR))],
+)
+async def list_admin_enrolments(
+    page: int = Query(1, ge=1, description="1-based page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    course_id: Optional[str] = Query(None, description="Filter by course ID"),
+    student_id: Optional[str] = Query(None, description="Filter by student ID"),
+    pid: Optional[str] = Query(None, description="Filter by pseudonym identifier (PID)"),
+    status: Optional[str] = Query(None, description="Filter by enrolment status ('active', 'dropped', or 'all')"),
+    q: Optional[str] = Query(None, description="Search by student name, email, or course title"),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> AdminPaginatedEnrolmentsResponse:
+    filter_doc: Dict[str, Any] = {}
+
+    if course_id:
+        filter_doc["course_id"] = str(course_id).strip()
+
+    if pid:
+        filter_doc["pid"] = str(pid).strip()
+
+    if student_id:
+        sid_str = str(student_id).strip()
+        user_match = await db[col.USERS].find_one({"$or": [{"_id": sid_str}, {"id": sid_str}]})
+        if user_match and user_match.get("pid"):
+            filter_doc["pid"] = user_match["pid"]
+        else:
+            filter_doc["$or"] = [{"student_id": sid_str}, {"pid": sid_str}]
+
+    if status and status.lower() != "all":
+        filter_doc["status"] = status.lower()
+
+    if q and q.strip():
+        q_clean = q.strip()
+        # Find matching course IDs
+        matched_courses = await db[col.COURSES].find({
+            "$or": [
+                {"title": {"$regex": q_clean, "$options": "i"}},
+                {"course_id": {"$regex": q_clean, "$options": "i"}},
+            ]
+        }).to_list(100)
+        matched_cids = [str(c.get("course_id") or c.get("id") or c["_id"]) for c in matched_courses]
+        matched_cids.extend([str(c["_id"]) for c in matched_courses])
+
+        # Find matching student PIDs
+        matched_users = await db[col.USERS].find({
+            "$or": [
+                {"full_name": {"$regex": q_clean, "$options": "i"}},
+                {"email": {"$regex": q_clean, "$options": "i"}},
+                {"pid": {"$regex": q_clean, "$options": "i"}},
+            ]
+        }).to_list(100)
+        matched_pids = [u["pid"] for u in matched_users if u.get("pid")]
+
+        q_clauses: List[Dict[str, Any]] = []
+        if matched_cids:
+            q_clauses.append({"course_id": {"$in": list(set(matched_cids))}})
+        if matched_pids:
+            q_clauses.append({"pid": {"$in": list(set(matched_pids))}})
+        if not q_clauses:
+            # Query will match nothing
+            q_clauses.append({"pid": "__no_match__"})
+
+        if "$or" in filter_doc:
+            filter_doc["$and"] = [{"$or": filter_doc.pop("$or")}, {"$or": q_clauses}]
+        else:
+            filter_doc["$or"] = q_clauses
+
+    total = await db[col.ENROLMENTS].count_documents(filter_doc)
+    skip = (page - 1) * page_size
+    cursor = db[col.ENROLMENTS].find(filter_doc).sort("enrolment_start", -1).skip(skip).limit(page_size)
+    enrolments_docs = await cursor.to_list(length=page_size)
+
+    if not enrolments_docs:
+        total_pages = math.ceil(total / page_size) if total > 0 else 1
+        return AdminPaginatedEnrolmentsResponse(
+            items=[],
+            total=total,
+            page=page,
+            page_size=page_size,
+            total_pages=total_pages,
+        )
+
+    # 1. Batch resolve courses
+    cids = list({e["course_id"] for e in enrolments_docs if e.get("course_id")})
+    courses_map: Dict[str, str] = {}
+    if cids:
+        c_cursor = db[col.COURSES].find({
+            "$or": [{"_id": {"$in": cids}}, {"id": {"$in": cids}}, {"course_id": {"$in": cids}}]
+        })
+        async for c in c_cursor:
+            title = c.get("title", "Untitled Course")
+            courses_map[str(c["_id"])] = title
+            if c.get("id"):
+                courses_map[str(c["id"])] = title
+            if c.get("course_id"):
+                courses_map[str(c["course_id"])] = title
+
+    # 2. Batch resolve students by PID
+    pids = list({e["pid"] for e in enrolments_docs if e.get("pid")})
+    student_map: Dict[str, Dict[str, Any]] = {}
+    if pids:
+        u_cursor = db[col.USERS].find({"pid": {"$in": pids}})
+        async for u in u_cursor:
+            student_map[u["pid"]] = {
+                "id": str(u["_id"]),
+                "name": u.get("full_name") or "Unknown Student",
+                "email": u.get("email") or "",
+            }
+
+    items: List[AdminEnrolmentItem] = []
+    for enr in enrolments_docs:
+        pid_val = enr.get("pid")
+        cid_val = enr.get("course_id")
+        sinfo = student_map.get(pid_val, {}) if pid_val else {}
+
+        items.append(
+            AdminEnrolmentItem(
+                id=str(enr["_id"]),
+                course_id=cid_val,
+                course_title=courses_map.get(cid_val),
+                student_id=sinfo.get("id"),
+                student_name=sinfo.get("name"),
+                student_email=sinfo.get("email"),
+                pid=pid_val,
+                status=enr.get("status", "active"),
+                enrolled_at=enr.get("enrolment_start"),
+                enrolment_end=enr.get("enrolment_end"),
+                updated_at=enr.get("updated_at") or enr.get("enrolment_start"),
+            )
+        )
+
+    total_pages = math.ceil(total / page_size) if total > 0 else 1
+    return AdminPaginatedEnrolmentsResponse(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+    )
+
+
+@router.post(
+    "/enrolments",
+    response_model=AdminEnrolmentItem,
+    status_code=status.HTTP_201_CREATED,
+    summary="Enrol student into course with deterministic PID and audit log",
+    description="Idempotent: Enrols a student by email, ID, or PID. Writes Feature 7 audit log.",
+    dependencies=[Depends(get_current_admin)],
+)
+async def create_admin_enrolment(
+    body: AdminEnrolmentCreateRequest,
+    request: Request,
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> AdminEnrolmentItem:
+    # 1. Validate target course
+    cid_str = str(body.course_id).strip()
+    course_doc = await db[col.COURSES].find_one({
+        "$or": [{"_id": cid_str}, {"id": cid_str}, {"course_id": cid_str}]
+    })
+    if not course_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Course with ID '{body.course_id}' was not found.",
+        )
+    canonical_cid = str(course_doc.get("course_id") or course_doc.get("id") or course_doc.get("_id"))
+
+    # 2. Resolve student
+    ident = str(body.student_identifier).strip()
+    user_doc = await db[col.USERS].find_one({
+        "$or": [
+            {"_id": ident},
+            {"id": ident},
+            {"email": ident.lower()},
+            {"pid": ident},
+        ]
+    })
+    if not user_doc and ident.startswith("STU_"):
+        vault_doc = await db[col.IDENTITY_VAULT].find_one({"_id": ident})
+        if vault_doc and vault_doc.get("email"):
+            user_doc = await db[col.USERS].find_one({"email": vault_doc["email"]})
+
+    if not user_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Student account matching '{body.student_identifier}' was not found.",
+        )
+
+    # Ensure student has a deterministic PID
+    pid = user_doc.get("pid")
+    now = datetime.now(timezone.utc)
+    if not pid:
+        student_id = user_doc.get("student_id") or f"IT{abs(hash(str(user_doc['_id']))) % 100000000:08d}"
+        pid = pseudonymize(student_id)
+        await db[col.USERS].update_one({"_id": user_doc["_id"]}, {"$set": {"pid": pid, "student_id": student_id}})
+        vault_record = {
+            "pid": pid,
+            "student_id": student_id,
+            "name": user_doc.get("full_name"),
+            "email": user_doc.get("email"),
+            "created_at": now,
+        }
+        await db[col.IDENTITY_VAULT].update_one({"_id": pid}, {"$setOnInsert": vault_record}, upsert=True)
+
+    # 3. Check for existing enrolment (idempotent / reactivation)
+    existing_enr = await db[col.ENROLMENTS].find_one({
+        "course_id": canonical_cid,
+        "pid": pid,
+    })
+
+    if existing_enr:
+        if existing_enr.get("status") == "active":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Student is already actively enrolled in course '{course_doc.get('title')}'.",
+            )
+        # Reactivate dropped enrolment
+        await db[col.ENROLMENTS].update_one(
+            {"_id": existing_enr["_id"]},
+            {"$set": {"status": "active", "enrolment_start": now, "enrolment_end": None}},
+        )
+        enr_id = str(existing_enr["_id"])
+    else:
+        enr_id = str(uuid.uuid4())
+        new_enr_doc = {
+            "_id": enr_id,
+            "pid": pid,
+            "course_id": canonical_cid,
+            "enrolment_start": now,
+            "status": "active",
+            "schema_version": 1,
+            "ingested_at": now,
+            "source_version": "1.0",
+        }
+        await db[col.ENROLMENTS].insert_one(new_enr_doc)
+
+    # 4. Feature 7: Audit Log
+    await log_event(
+        request=request,
+        db=db,
+        action=AuditAction.ENROLMENT_CREATED,
+        actor_id=str(current_admin.id),
+        actor_role="admin",
+        target_type="student",
+        target_id=pid,
+        outcome=AuditOutcome.SUCCESS,
+        details={
+            "course_id": canonical_cid,
+            "status": "active",
+        },
+    )
+
+    return AdminEnrolmentItem(
+        id=enr_id,
+        course_id=canonical_cid,
+        course_title=course_doc.get("title"),
+        student_id=str(user_doc["_id"]),
+        student_name=user_doc.get("full_name"),
+        student_email=user_doc.get("email"),
+        pid=pid,
+        status="active",
+        enrolled_at=now,
+    )
+
+
+@router.delete(
+    "/enrolments/{enrolment_id}",
+    summary="Soft-unenrol a student from a course (Never deletes academic records)",
+    description="Marks enrolment status as 'dropped' and records enrolment_end timestamp. Preserves all submissions, grades, and logs.",
+    dependencies=[Depends(get_current_admin)],
+)
+async def remove_admin_enrolment(
+    enrolment_id: str,
+    request: Request,
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> Dict[str, Any]:
+    eid_str = str(enrolment_id).strip()
+    enr_doc = await db[col.ENROLMENTS].find_one({"_id": eid_str})
+    if not enr_doc:
+        enr_doc = await db[col.ENROLMENTS].find_one({"id": eid_str})
+
+    if not enr_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Enrolment record '{enrolment_id}' was not found.",
+        )
+
+    previous_status = enr_doc.get("status", "active")
+    now = datetime.now(timezone.utc)
+
+    # CRITICAL: Soft-removal ONLY. NEVER delete student grades, attendance, or submissions!
+    await db[col.ENROLMENTS].update_one(
+        {"_id": enr_doc["_id"]},
+        {"$set": {"status": "dropped", "enrolment_end": now}},
+    )
+
+    # Feature 7: Audit Log
+    pid_target = enr_doc.get("pid") or "unknown"
+    await log_event(
+        request=request,
+        db=db,
+        action=AuditAction.ENROLMENT_REMOVED,
+        actor_id=str(current_admin.id),
+        actor_role="admin",
+        target_type="student",
+        target_id=pid_target,
+        outcome=AuditOutcome.SUCCESS,
+        details={
+            "course_id": enr_doc.get("course_id"),
+            "previous_status": previous_status,
+            "new_status": "dropped",
+        },
+    )
+
+    return {
+        "message": "Student enrolment successfully set to dropped. Academic records and history preserved.",
+        "id": eid_str,
+        "status": "dropped",
+    }
+
+
+@router.post(
+    "/enrolments/bulk",
+    response_model=AdminBulkEnrolmentResponse,
+    summary="Idempotent bulk student enrolment with per-row breakdown",
+    description="Processes an array of student emails, IDs, or PIDs. Enrols active students, skips existing, and reports failures.",
+    dependencies=[Depends(get_current_admin)],
+)
+async def bulk_admin_enrolment(
+    body: AdminBulkEnrolmentRequest,
+    request: Request,
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> AdminBulkEnrolmentResponse:
+    # 1. Validate course
+    cid_str = str(body.course_id).strip()
+    course_doc = await db[col.COURSES].find_one({
+        "$or": [{"_id": cid_str}, {"id": cid_str}, {"course_id": cid_str}]
+    })
+    if not course_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Course with ID '{body.course_id}' was not found.",
+        )
+    canonical_cid = str(course_doc.get("course_id") or course_doc.get("id") or course_doc.get("_id"))
+
+    enrolled_count = 0
+    skipped_count = 0
+    failed_count = 0
+    results: List[BulkEnrolmentRowResult] = []
+    now = datetime.now(timezone.utc)
+
+    for raw_ident in body.student_identifiers:
+        ident = str(raw_ident).strip()
+        if not ident:
+            continue
+
+        # Look up user
+        user_doc = await db[col.USERS].find_one({
+            "$or": [
+                {"email": ident.lower()},
+                {"_id": ident},
+                {"id": ident},
+                {"pid": ident},
+            ]
+        })
+        if not user_doc and ident.startswith("STU_"):
+            vault_doc = await db[col.IDENTITY_VAULT].find_one({"_id": ident})
+            if vault_doc and vault_doc.get("email"):
+                user_doc = await db[col.USERS].find_one({"email": vault_doc["email"]})
+
+        if not user_doc:
+            failed_count += 1
+            results.append(
+                BulkEnrolmentRowResult(
+                    identifier=ident,
+                    status="failed",
+                    reason="Student account not found on platform.",
+                )
+            )
+            continue
+
+        # Ensure PID exists
+        pid = user_doc.get("pid")
+        if not pid:
+            student_id = user_doc.get("student_id") or f"IT{abs(hash(str(user_doc['_id']))) % 100000000:08d}"
+            pid = pseudonymize(student_id)
+            await db[col.USERS].update_one({"_id": user_doc["_id"]}, {"$set": {"pid": pid, "student_id": student_id}})
+            vault_record = {
+                "pid": pid,
+                "student_id": student_id,
+                "name": user_doc.get("full_name"),
+                "email": user_doc.get("email"),
+                "created_at": now,
+            }
+            await db[col.IDENTITY_VAULT].update_one({"_id": pid}, {"$setOnInsert": vault_record}, upsert=True)
+
+        # Check existing enrolment
+        existing_enr = await db[col.ENROLMENTS].find_one({
+            "course_id": canonical_cid,
+            "pid": pid,
+        })
+
+        if existing_enr and existing_enr.get("status") == "active":
+            skipped_count += 1
+            results.append(
+                BulkEnrolmentRowResult(
+                    identifier=ident,
+                    status="skipped",
+                    reason="Already actively enrolled in course.",
+                    student_id=str(user_doc["_id"]),
+                    pid=pid,
+                )
+            )
+            continue
+        elif existing_enr and existing_enr.get("status") != "active":
+            # Reactivate
+            await db[col.ENROLMENTS].update_one(
+                {"_id": existing_enr["_id"]},
+                {"$set": {"status": "active", "enrolment_start": now, "enrolment_end": None}},
+            )
+            enrolled_count += 1
+            results.append(
+                BulkEnrolmentRowResult(
+                    identifier=ident,
+                    status="enrolled",
+                    student_id=str(user_doc["_id"]),
+                    pid=pid,
+                )
+            )
+        else:
+            new_doc = {
+                "_id": str(uuid.uuid4()),
+                "pid": pid,
+                "course_id": canonical_cid,
+                "enrolment_start": now,
+                "status": "active",
+                "schema_version": 1,
+                "ingested_at": now,
+                "source_version": "1.0",
+            }
+            await db[col.ENROLMENTS].insert_one(new_doc)
+            enrolled_count += 1
+            results.append(
+                BulkEnrolmentRowResult(
+                    identifier=ident,
+                    status="enrolled",
+                    student_id=str(user_doc["_id"]),
+                    pid=pid,
+                )
+            )
+
+    # Feature 7: Audit Log (Never leak student identifiers in details)
+    await log_event(
+        request=request,
+        db=db,
+        action=AuditAction.BULK_ENROLMENT,
+        actor_id=str(current_admin.id),
+        actor_role="admin",
+        target_type="course",
+        target_id=canonical_cid,
+        outcome=AuditOutcome.SUCCESS,
+        details={
+            "course_id": canonical_cid,
+            "total_submitted": len(body.student_identifiers),
+            "enrolled_count": enrolled_count,
+            "skipped_count": skipped_count,
+            "failed_count": failed_count,
+        },
+    )
+
+    return AdminBulkEnrolmentResponse(
+        course_id=canonical_cid,
+        total=len(body.student_identifiers),
+        enrolled_count=enrolled_count,
+        skipped_count=skipped_count,
+        failed_count=failed_count,
+        results=results,
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Phase 2: Consent & Ethics Governance
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get(
+    "/consent/coverage",
+    response_model=AdminConsentCoverageResponse,
+    summary="Get active consent notice coverage, per-course breakdown, and version history",
+    description=(
+        "Measures consent coverage strictly against the active notice version. "
+        "Withdrawn students are never counted as consented. Shows overall and per-course breakdown."
+    ),
+    dependencies=[Depends(require_roles(UserRole.ADMIN, UserRole.AUDITOR))],
+)
+async def get_admin_consent_coverage(
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> AdminConsentCoverageResponse:
+    # 1. Active notice
+    active_notice_doc = await db[col.CONSENT_NOTICES].find_one({"is_active": True})
+    active_notice_dict = None
+    active_version: Optional[int] = None
+    if active_notice_doc:
+        active_version = active_notice_doc.get("version")
+        active_notice_dict = {
+            "id": str(active_notice_doc.get("_id") or active_notice_doc.get("id")),
+            "version": active_version,
+            "text": active_notice_doc.get("text", ""),
+            "effective_from": active_notice_doc.get("effective_from"),
+            "is_active": True,
+        }
+
+    # 2. Historical notice versions
+    all_notices_cursor = db[col.CONSENT_NOTICES].find({}).sort("version", -1)
+    notice_history: List[AdminConsentNoticeHistoryItem] = []
+    async for n in all_notices_cursor:
+        notice_history.append(
+            AdminConsentNoticeHistoryItem(
+                id=str(n.get("_id") or n.get("id")),
+                version=n.get("version", 1),
+                text=n.get("text", ""),
+                effective_from=n.get("effective_from") or datetime.now(timezone.utc),
+                is_active=n.get("is_active", False),
+            )
+        )
+
+    # 3. Overall Student Posture
+    student_users = await db[col.USERS].find({"role": "student", "is_active": True}).to_list(length=10000)
+    total_students = len(student_users)
+    student_pids = [u["pid"] for u in student_users if u.get("pid")]
+
+    # If no active notice or no students
+    if not active_version or not student_pids:
+        return AdminConsentCoverageResponse(
+            active_notice=active_notice_dict,
+            active_version=active_version,
+            total_students=total_students,
+            accepted=0,
+            withdrawn=0,
+            declined=0,
+            pending=total_students,
+            coverage_percentage=0.0,
+            course_breakdown=[],
+            notice_history=notice_history,
+        )
+
+    # Aggregation for active notice version: latest decision per PID
+    pipeline = [
+        {"$match": {"notice_version": active_version, "pid": {"$in": student_pids}}},
+        {"$sort": {"timestamp": -1}},
+        {
+            "$group": {
+                "_id": "$pid",
+                "latest_decision": {"$first": "$decision"},
+            }
+        },
+    ]
+    decisions_cursor = db[col.CONSENT_RECORDS].aggregate(pipeline)
+    decisions_map: Dict[str, str] = {}
+    async for doc in decisions_cursor:
+        if doc.get("_id"):
+            decisions_map[doc["_id"]] = doc.get("latest_decision", "")
+
+    accepted_count = 0
+    withdrawn_count = 0
+    declined_count = 0
+    pending_count = 0
+
+    for s in student_users:
+        pid = s.get("pid")
+        dec = decisions_map.get(pid)
+        if dec == "accepted":
+            accepted_count += 1
+        elif dec == "withdrawn":
+            withdrawn_count += 1
+        elif dec == "declined":
+            declined_count += 1
+        else:
+            pending_count += 1
+
+    coverage_pct = round((accepted_count / total_students * 100.0), 1) if total_students > 0 else 0.0
+
+    # 4. Per-Course Breakdown
+    courses_cursor = db[col.COURSES].find({}).sort("title", 1)
+    courses_docs = await courses_cursor.to_list(length=200)
+
+    course_breakdown: List[AdminCourseConsentBreakdown] = []
+    for c in courses_docs:
+        canonical_cid = str(c.get("course_id") or c.get("id") or c.get("_id"))
+        enrs_cursor = db[col.ENROLMENTS].find({
+            "course_id": {"$in": [canonical_cid, str(c["_id"])]},
+            "status": "active",
+        })
+        enr_pids = [e["pid"] async for e in enrs_cursor if e.get("pid")]
+        unique_enr_pids = list(set(enr_pids))
+        course_enrolled_count = len(unique_enr_pids)
+
+        c_accepted = sum(1 for p in unique_enr_pids if decisions_map.get(p) == "accepted")
+        c_withdrawn = sum(1 for p in unique_enr_pids if decisions_map.get(p) == "withdrawn")
+        c_declined = sum(1 for p in unique_enr_pids if decisions_map.get(p) == "declined")
+        c_pending = max(0, course_enrolled_count - (c_accepted + c_withdrawn + c_declined))
+        c_coverage = round((c_accepted / course_enrolled_count * 100.0), 1) if course_enrolled_count > 0 else 0.0
+
+        course_breakdown.append(
+            AdminCourseConsentBreakdown(
+                course_id=canonical_cid,
+                course_title=c.get("title", "Untitled Course"),
+                enrolled_students=course_enrolled_count,
+                accepted=c_accepted,
+                withdrawn=c_withdrawn,
+                declined=c_declined,
+                pending=c_pending,
+                coverage_percentage=c_coverage,
+            )
+        )
+
+    return AdminConsentCoverageResponse(
+        active_notice=active_notice_dict,
+        active_version=active_version,
+        total_students=total_students,
+        accepted=accepted_count,
+        withdrawn=withdrawn_count,
+        declined=declined_count,
+        pending=pending_count,
+        coverage_percentage=coverage_pct,
+        course_breakdown=course_breakdown,
+        notice_history=notice_history,
+    )
+

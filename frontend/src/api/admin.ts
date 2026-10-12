@@ -263,6 +263,262 @@ export const getAdminStats = async (): Promise<SystemStatsResponse> => {
   return response.data;
 };
 
+// ── Phase 2: Course Administration Interfaces ────────────────────────────────
+
+export interface AdminCourseSummary {
+  id: string;
+  course_id: string;
+  title: string;
+  description?: string | null;
+  lecturer_id?: string | null;
+  lecturer_name?: string | null;
+  lecturer_email?: string | null;
+  is_published: boolean;
+  enrolment_count: number;
+  module_count: number;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface AdminPaginatedCoursesResponse {
+  items: AdminCourseSummary[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface AdminCourseFilterParams {
+  page?: number;
+  page_size?: number;
+  q?: string;
+  is_published?: boolean;
+  lecturer_id?: string;
+}
+
+export interface AdminCoursePublishUpdate {
+  is_published: boolean;
+}
+
+export interface AdminCourseLecturerUpdate {
+  lecturer_id: string;
+}
+
+// ── Phase 2: Enrolment Administration Interfaces ──────────────────────────────
+
+export interface AdminEnrolmentItem {
+  id: string;
+  course_id: string;
+  course_title?: string | null;
+  student_id?: string | null;
+  student_name?: string | null;
+  student_email?: string | null;
+  pid?: string | null;
+  status: string; // 'active' | 'dropped'
+  enrolled_at?: string | null;
+  enrolment_end?: string | null;
+  updated_at?: string | null;
+}
+
+export interface AdminPaginatedEnrolmentsResponse {
+  items: AdminEnrolmentItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface AdminEnrolmentFilterParams {
+  page?: number;
+  page_size?: number;
+  course_id?: string;
+  student_id?: string;
+  pid?: string;
+  status?: string;
+  q?: string;
+}
+
+export interface AdminEnrolmentCreatePayload {
+  course_id: string;
+  student_identifier: string;
+}
+
+export interface BulkEnrolmentRowResult {
+  identifier: string;
+  status: 'enrolled' | 'skipped' | 'failed';
+  reason?: string | null;
+  student_id?: string | null;
+  pid?: string | null;
+}
+
+export interface AdminBulkEnrolmentPayload {
+  course_id: string;
+  student_identifiers: string[];
+}
+
+export interface AdminBulkEnrolmentResponse {
+  course_id: string;
+  total: number;
+  enrolled_count: number;
+  skipped_count: number;
+  failed_count: number;
+  results: BulkEnrolmentRowResult[];
+}
+
+// ── Phase 2: Consent Governance Interfaces ────────────────────────────────────
+
+export interface AdminCourseConsentBreakdown {
+  course_id: string;
+  course_title: string;
+  enrolled_students: number;
+  accepted: number;
+  withdrawn: number;
+  declined: number;
+  pending: number;
+  coverage_percentage: number;
+}
+
+export interface AdminConsentNoticeHistoryItem {
+  id: string;
+  version: number;
+  text: string;
+  effective_from: string;
+  is_active: boolean;
+}
+
+export interface AdminConsentCoverageResponse {
+  active_notice?: {
+    id: string;
+    version: number;
+    text: string;
+    effective_from?: string;
+    is_active: boolean;
+  } | null;
+  active_version?: number | null;
+  total_students: number;
+  accepted: number;
+  withdrawn: number;
+  declined: number;
+  pending: number;
+  coverage_percentage: number;
+  course_breakdown: AdminCourseConsentBreakdown[];
+  notice_history: AdminConsentNoticeHistoryItem[];
+}
+
+export interface AdminNoticeCreatePayload {
+  text: string;
+}
+
+// ── Phase 2 API Functions ─────────────────────────────────────────────────────
+
+/**
+ * Lists courses with admin metadata, instructor profile, and student counts. (Admin & Auditor)
+ */
+export const getAdminCoursesPaginated = async (
+  params?: AdminCourseFilterParams
+): Promise<AdminPaginatedCoursesResponse> => {
+  const response = await apiClient.get<AdminPaginatedCoursesResponse>('/admin/courses', {
+    params,
+  });
+  return response.data;
+};
+
+/**
+ * Updates course publication status with Feature 7 audit log. (Admin only)
+ */
+export const updateCoursePublishStatus = async (
+  courseId: string,
+  isPublished: boolean
+): Promise<AdminCourseSummary> => {
+  const response = await apiClient.put<AdminCourseSummary>(
+    `/admin/courses/${courseId}/publish`,
+    { is_published: isPublished }
+  );
+  return response.data;
+};
+
+/**
+ * Assigns or reassigns course instructor with Feature 7 audit log. (Admin only)
+ */
+export const updateCourseLecturer = async (
+  courseId: string,
+  lecturerId: string
+): Promise<AdminCourseSummary> => {
+  const response = await apiClient.put<AdminCourseSummary>(
+    `/admin/courses/${courseId}/lecturer`,
+    { lecturer_id: lecturerId }
+  );
+  return response.data;
+};
+
+/**
+ * Lists student enrolments with course/student metadata and filters. (Admin & Auditor)
+ */
+export const getAdminEnrolmentsPaginated = async (
+  params?: AdminEnrolmentFilterParams
+): Promise<AdminPaginatedEnrolmentsResponse> => {
+  const response = await apiClient.get<AdminPaginatedEnrolmentsResponse>('/admin/enrolments', {
+    params,
+  });
+  return response.data;
+};
+
+/**
+ * Enrols a single student by email, ID, or PID with Feature 7 audit log. (Admin only)
+ */
+export const createAdminEnrolment = async (
+  payload: AdminEnrolmentCreatePayload
+): Promise<AdminEnrolmentItem> => {
+  const response = await apiClient.post<AdminEnrolmentItem>('/admin/enrolments', payload);
+  return response.data;
+};
+
+/**
+ * Soft-removes a student enrolment (marks as dropped, preserves records). (Admin only)
+ */
+export const deleteAdminEnrolment = async (
+  enrolmentId: string
+): Promise<{ message: string; id: string; status: string }> => {
+  const response = await apiClient.delete<{ message: string; id: string; status: string }>(
+    `/admin/enrolments/${enrolmentId}`
+  );
+  return response.data;
+};
+
+/**
+ * Idempotent bulk student enrolment with per-row results and Feature 7 audit log. (Admin only)
+ */
+export const bulkAdminEnrolment = async (
+  payload: AdminBulkEnrolmentPayload
+): Promise<AdminBulkEnrolmentResponse> => {
+  const response = await apiClient.post<AdminBulkEnrolmentResponse>(
+    '/admin/enrolments/bulk',
+    payload
+  );
+  return response.data;
+};
+
+/**
+ * Fetches consent posture, per-course breakdown, and version history. (Admin & Auditor)
+ */
+export const getAdminConsentCoverage = async (): Promise<AdminConsentCoverageResponse> => {
+  const response = await apiClient.get<AdminConsentCoverageResponse>('/admin/consent/coverage');
+  return response.data;
+};
+
+/**
+ * Publishes a new consent notice version and archives previous. (Admin only)
+ */
+export const publishAdminConsentNotice = async (
+  payload: AdminNoticeCreatePayload
+): Promise<{ id: string; version: number; text: string; effective_from: string; is_active: boolean }> => {
+  const response = await apiClient.post<{ id: string; version: number; text: string; effective_from: string; is_active: boolean }>(
+    '/consent/notices',
+    payload
+  );
+  return response.data;
+};
+
 export const adminApi = {
   getAdminOverview,
   getAdminUsersPaginated,
@@ -273,4 +529,15 @@ export const adminApi = {
   updateUserStatus,
   updateUserRole,
   getAdminStats,
+  // Phase 2
+  getAdminCoursesPaginated,
+  updateCoursePublishStatus,
+  updateCourseLecturer,
+  getAdminEnrolmentsPaginated,
+  createAdminEnrolment,
+  deleteAdminEnrolment,
+  bulkAdminEnrolment,
+  getAdminConsentCoverage,
+  publishAdminConsentNotice,
 };
+

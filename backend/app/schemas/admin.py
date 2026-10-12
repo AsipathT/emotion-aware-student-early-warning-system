@@ -174,3 +174,148 @@ class AdminUserDetailResponse(BaseModel):
     consent: Optional[AdminConsentSummary] = None
 
     model_config = {"from_attributes": True}
+
+
+# ── Phase 2: Course Administration ───────────────────────────────────────────
+
+class AdminCourseSummary(BaseModel):
+    """Course item representation in the Admin Panel."""
+
+    id: str
+    course_id: str
+    title: str
+    description: Optional[str] = None
+    lecturer_id: Optional[str] = None
+    lecturer_name: Optional[str] = None
+    lecturer_email: Optional[str] = None
+    is_published: bool = True
+    enrolment_count: int = 0
+    module_count: int = 0
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+
+class AdminPaginatedCoursesResponse(BaseModel):
+    """Paginated list of courses with admin metadata."""
+
+    items: List[AdminCourseSummary] = Field(default_factory=list)
+    total: int = Field(..., description="Total matching courses.")
+    page: int = Field(..., description="Current 1-based page number.")
+    page_size: int = Field(..., description="Items per page.")
+    total_pages: int = Field(..., description="Total available pages.")
+
+
+class AdminCoursePublishUpdate(BaseModel):
+    """Payload to publish or unpublish a course."""
+
+    is_published: bool = Field(..., description="True to publish to catalog, False to unpublish.")
+
+
+class AdminCourseLecturerUpdate(BaseModel):
+    """Payload to assign or reassign the instructor of a course."""
+
+    lecturer_id: str = Field(..., description="User ID of the assigned instructor.")
+
+
+# ── Phase 2: Enrolment Administration ─────────────────────────────────────────
+
+class AdminEnrolmentItem(BaseModel):
+    """Enrolment record enriched with course and student metadata."""
+
+    id: str
+    course_id: str
+    course_title: Optional[str] = None
+    student_id: Optional[str] = None
+    student_name: Optional[str] = None
+    student_email: Optional[str] = None
+    pid: Optional[str] = None
+    status: str = "active"  # "active" | "dropped"
+    enrolled_at: Optional[datetime] = None
+    enrolment_end: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+
+class AdminPaginatedEnrolmentsResponse(BaseModel):
+    """Paginated list of student course enrolments."""
+
+    items: List[AdminEnrolmentItem] = Field(default_factory=list)
+    total: int = Field(..., description="Total matching enrolment records.")
+    page: int = Field(..., description="Current 1-based page number.")
+    page_size: int = Field(..., description="Items per page.")
+    total_pages: int = Field(..., description="Total available pages.")
+
+
+class AdminEnrolmentCreateRequest(BaseModel):
+    """Payload to manually enrol a single student into a course."""
+
+    course_id: str = Field(..., description="Course ID or identifier.")
+    student_identifier: str = Field(..., description="Student email, UUID, or PID.")
+
+
+class BulkEnrolmentRowResult(BaseModel):
+    """Result for an individual student in a bulk enrolment batch."""
+
+    identifier: str
+    status: str  # "enrolled" | "skipped" | "failed"
+    reason: Optional[str] = None
+    student_id: Optional[str] = None
+    pid: Optional[str] = None
+
+
+class AdminBulkEnrolmentRequest(BaseModel):
+    """Payload to bulk enrol students into a course."""
+
+    course_id: str = Field(..., description="Target course ID.")
+    student_identifiers: List[str] = Field(..., min_length=1, description="List of emails, user IDs, or PIDs.")
+
+
+class AdminBulkEnrolmentResponse(BaseModel):
+    """Summary and row-by-row breakdown of a bulk enrolment action."""
+
+    course_id: str
+    total: int
+    enrolled_count: int
+    skipped_count: int
+    failed_count: int
+    results: List[BulkEnrolmentRowResult] = Field(default_factory=list)
+
+
+# ── Phase 2: Consent & Ethics Governance ──────────────────────────────────────
+
+class AdminCourseConsentBreakdown(BaseModel):
+    """Course-level consent metrics."""
+
+    course_id: str
+    course_title: str
+    enrolled_students: int
+    accepted: int
+    withdrawn: int
+    declined: int
+    pending: int
+    coverage_percentage: float
+
+
+class AdminConsentNoticeHistoryItem(BaseModel):
+    """Historical or active consent notice version."""
+
+    id: str
+    version: int
+    text: str
+    effective_from: datetime
+    is_active: bool
+
+
+class AdminConsentCoverageResponse(BaseModel):
+    """System-wide and course-level consent posture for the active notice."""
+
+    active_notice: Optional[Dict[str, Any]] = None
+    active_version: Optional[int] = None
+    total_students: int
+    accepted: int
+    withdrawn: int
+    declined: int
+    pending: int
+    coverage_percentage: float
+    course_breakdown: List[AdminCourseConsentBreakdown] = Field(default_factory=list)
+    notice_history: List[AdminConsentNoticeHistoryItem] = Field(default_factory=list)
+

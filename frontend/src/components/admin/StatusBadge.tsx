@@ -2,7 +2,7 @@ import React from 'react';
 import { UserRole } from '../../api/auth';
 
 interface StatusBadgeProps {
-  status?: 'active' | 'suspended' | boolean;
+  status?: 'active' | 'suspended' | 'published' | 'draft' | boolean;
   role?: UserRole | string;
   size?: 'sm' | 'md';
 }
@@ -11,6 +11,26 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, role, size = '
   const sizeClasses = size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-sm';
 
   if (status !== undefined) {
+    if (status === 'published' || status === 'draft') {
+      const isPub = status === 'published';
+      return (
+        <span
+          className={`inline-flex items-center font-medium rounded-full ${sizeClasses} ${
+            isPub
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+              : 'bg-amber-50 text-amber-700 border border-amber-200'
+          }`}
+        >
+          <span
+            className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+              isPub ? 'bg-emerald-500' : 'bg-amber-500'
+            }`}
+          />
+          {isPub ? 'Published' : 'Draft'}
+        </span>
+      );
+    }
+
     const isActive = typeof status === 'boolean' ? status : status === 'active';
     return (
       <span

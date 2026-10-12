@@ -17,6 +17,9 @@ import { MyEnrollmentsPage } from './pages/MyEnrollmentsPage';
 import { AdminLayout } from './components/admin/AdminLayout';
 import { AdminOverviewPage } from './pages/admin/AdminOverviewPage';
 import { AdminUsersPage } from './pages/admin/AdminUsersPage';
+import { AdminCoursesPage } from './pages/admin/AdminCoursesPage';
+import { AdminEnrolmentsPage } from './pages/admin/AdminEnrolmentsPage';
+import { AdminConsentPage } from './pages/admin/AdminConsentPage';
 import { AuditLogPage } from './pages/admin/AuditLogPage';
 import { ForumPage } from './pages/ForumPage';
 import { ForumThreadPage } from './pages/ForumThreadPage';
@@ -170,6 +173,30 @@ export const App: React.FC = () => {
                   element={
                     <ProtectedRoute allowedRoles={['admin']}>
                       <AdminUsersPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="courses"
+                  element={
+                    <ProtectedRoute allowedRoles={['admin', 'auditor']}>
+                      <AdminCoursesPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="enrolments"
+                  element={
+                    <ProtectedRoute allowedRoles={['admin', 'auditor']}>
+                      <AdminEnrolmentsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="consent"
+                  element={
+                    <ProtectedRoute allowedRoles={['admin', 'auditor']}>
+                      <AdminConsentPage />
                     </ProtectedRoute>
                   }
                 />
