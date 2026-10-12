@@ -37,7 +37,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         from app.core.database import client, db
         await client.admin.command('ping')
         print("[startup]  MongoDB Atlas connected successfully.")
-<<<<<<< HEAD
 
         # Feature 6: Seed initial default consent notice if collection is empty
         notice_count = await db.consent_notices.count_documents({})
@@ -69,8 +68,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         # Feature 21/23/Readback: Validate component API keys on startup
         from app.core.component_auth import validate_component_api_keys
         validate_component_api_keys(settings.COMPONENT_API_KEYS, settings.app_env)
-=======
->>>>>>> 9dee1d1dd2e27b06a2b9e7c1f8b1805e05fd8099
     except Exception as exc:
         print(f"[startup]  Warning: journal index creation failed: {exc}")
 
