@@ -141,6 +141,30 @@ def create_app() -> FastAPI:
     from app.routers import enrollments  # noqa: E402
     app.include_router(enrollments.router)
 
+    from app.routers import privacy  # noqa: E402
+    app.include_router(privacy.router)
+
+    from app.routers import consent  # noqa: E402
+    app.include_router(consent.router)
+
+    from app.routers import audit  # noqa: E402
+    app.include_router(audit.router)
+
+    from app.routers import contract  # noqa: E402
+    app.include_router(contract.router)
+
+    from app.routers import export  # noqa: E402
+    app.include_router(export.router)
+    # --- Dushan: communication / interventions ---
+    from app.routers import forum  # noqa: E402
+    app.include_router(forum.router)
+
+    from app.routers import chat  # noqa: E402
+    app.include_router(chat.router)
+
+    from app.routers import ingest  # noqa: E402
+    app.include_router(ingest.router)
+
     return app
 
 
