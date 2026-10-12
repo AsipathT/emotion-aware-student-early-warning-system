@@ -7,6 +7,7 @@ import {
   Trash2,
   AlertCircle,
   HelpCircle,
+  Loader2,
 } from 'lucide-react';
 
 interface QuizEditorModalProps {
@@ -173,26 +174,32 @@ export const QuizEditorModal: React.FC<QuizEditorModalProps> = ({
   // Save Mutation
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!title.trim()) throw new Error('Quiz title is required.');
-      if (questions.length === 0) throw new Error('At least one question is required.');
+      const safeTimeLimit =
+        timeLimitMinutes && Number(timeLimitMinutes) > 0 ? Math.round(Number(timeLimitMinutes)) : null;
 
-      for (let i = 0; i < questions.length; i++) {
-        const q = questions[i];
-        if (!q.text.trim()) throw new Error(`Question #${i + 1} text cannot be empty.`);
-        if (q.options.length < 2) throw new Error(`Question #${i + 1} must have at least 2 options.`);
-        const hasCorrect = q.options.some((o) => o.is_correct);
-        if (!hasCorrect) throw new Error(`Question #${i + 1} must have one option designated as correct.`);
-      }
+      const cleanQuestions = questions.map((q, idx) => ({
+        id: q.id || `q_${idx + 1}`,
+        text: q.text.trim(),
+        question_type: q.question_type || 'mcq',
+        points: Number(q.points) > 0 ? Number(q.points) : 1.0,
+        order: idx + 1,
+        options: q.options.map((opt, optIdx) => ({
+          id: opt.id || `opt_${idx + 1}_${optIdx + 1}`,
+          text: opt.text.trim(),
+          is_correct: Boolean(opt.is_correct),
+          order: optIdx + 1,
+        })),
+      }));
 
       const payload = {
         title: title.trim(),
         description: description.trim() || null,
-        time_limit_minutes: timeLimitMinutes ? Number(timeLimitMinutes) : null,
-        max_attempts: Number(maxAttempts) || 1,
-        max_score: Number(maxScore) || 100,
-        weight: Number(weight) || 1.0,
+        time_limit_minutes: safeTimeLimit,
+        max_attempts: Math.max(1, Number(maxAttempts) || 1),
+        max_score: Math.max(1, Number(maxScore) || 100),
+        weight: Math.max(0, Number(weight) || 1.0),
         is_published: isPublished,
-        questions,
+        questions: cleanQuestions,
       };
 
       if (quizToEdit) {
@@ -208,9 +215,61 @@ export const QuizEditorModal: React.FC<QuizEditorModalProps> = ({
       onClose();
     },
     onError: (err: any) => {
-      setFormError(err?.message || err?.response?.data?.detail || 'Failed to save quiz.');
+      let message = 'Failed to save quiz.';
+      if (err?.response?.data?.detail) {
+        const d = err.response.data.detail;
+        if (typeof d === 'string') {
+          message = d;
+        } else if (Array.isArray(d)) {
+          message = d.map((item: any) => item?.msg || JSON.stringify(item)).join(', ');
+        } else if (typeof d === 'object') {
+          message = d.message || JSON.stringify(d);
+        }
+      } else if (err?.message) {
+        message = err.message;
+      }
+      setFormError(message);
     },
   });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
+
+    if (!title.trim()) {
+      setFormError('Quiz title is required.');
+      return;
+    }
+    if (questions.length === 0) {
+      setFormError('At least one question is required.');
+      return;
+    }
+
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      if (!q.text.trim()) {
+        setFormError(`Question #${i + 1}: Question text cannot be empty.`);
+        return;
+      }
+      if (!q.options || q.options.length < 2) {
+        setFormError(`Question #${i + 1}: Must provide at least 2 options.`);
+        return;
+      }
+      for (let j = 0; j < q.options.length; j++) {
+        if (!q.options[j].text.trim()) {
+          setFormError(`Question #${i + 1}, Option ${String.fromCharCode(65 + j)}: Option text cannot be empty.`);
+          return;
+        }
+      }
+      const hasCorrect = q.options.some((o) => o.is_correct);
+      if (!hasCorrect) {
+        setFormError(`Question #${i + 1}: Please select which option is the correct answer.`);
+        return;
+      }
+    }
+
+    saveMutation.mutate();
+  };
 
   if (!isOpen) return null;
 
@@ -240,10 +299,8 @@ export const QuizEditorModal: React.FC<QuizEditorModalProps> = ({
 
         {/* Body Form */}
         <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            saveMutation.mutate();
-          }}
+          noValidate
+          onSubmit={handleSubmit}
           className="p-6 overflow-y-auto flex-1 space-y-6"
         >
           {formError && (
@@ -479,22 +536,37 @@ export const QuizEditorModal: React.FC<QuizEditorModalProps> = ({
             </div>
           </div>
 
-          {/* Footer Save Buttons */}
-          <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saveMutation.isPending}
-              className="inline-flex items-center px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow transition disabled:opacity-60"
-            >
-              {saveMutation.isPending ? 'Saving...' : quizToEdit ? 'Save Changes' : 'Create Quiz'}
-            </button>
+          {/* Footer Save Buttons with visible feedback */}
+          <div className="pt-4 border-t border-slate-100 space-y-3">
+            {formError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center space-x-2 text-rose-800 text-xs font-semibold">
+                <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                <span>{formError}</span>
+              </div>
+            )}
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saveMutation.isPending}
+                className="inline-flex items-center px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow transition disabled:opacity-60"
+              >
+                {saveMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                    {quizToEdit ? 'Saving Changes...' : 'Creating Quiz...'}
+                  </>
+                ) : (
+                  quizToEdit ? 'Save Changes' : 'Create Quiz'
+                )}
+              </button>
+            </div>
           </div>
         </form>
       </div>

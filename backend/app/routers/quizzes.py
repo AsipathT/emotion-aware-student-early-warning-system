@@ -105,7 +105,7 @@ def strip_correct_answers(quiz_doc: Dict[str, Any]) -> Dict[str, Any]:
 
 @router.post("/{course_id}/quizzes", status_code=status.HTTP_201_CREATED)
 async def create_quiz(
-    course_id: uuid.UUID,
+    course_id: str,
     quiz_in: QuizCreateIn,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN)),
@@ -154,7 +154,7 @@ async def create_quiz(
 
 @router.get("/{course_id}/quizzes")
 async def list_quizzes(
-    course_id: uuid.UUID,
+    course_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> List[Dict[str, Any]]:
@@ -179,8 +179,8 @@ async def list_quizzes(
 
 @router.get("/{course_id}/quizzes/{quiz_id}")
 async def get_quiz(
-    course_id: uuid.UUID,
-    quiz_id: uuid.UUID,
+    course_id: str,
+    quiz_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
@@ -204,8 +204,8 @@ async def get_quiz(
 
 @router.patch("/{course_id}/quizzes/{quiz_id}")
 async def update_quiz(
-    course_id: uuid.UUID,
-    quiz_id: uuid.UUID,
+    course_id: str,
+    quiz_id: str,
     quiz_in: QuizUpdateIn,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN)),
@@ -244,8 +244,8 @@ async def update_quiz(
 
 @router.delete("/{course_id}/quizzes/{quiz_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_quiz(
-    course_id: uuid.UUID,
-    quiz_id: uuid.UUID,
+    course_id: str,
+    quiz_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN)),
 ) -> None:
@@ -264,8 +264,8 @@ async def delete_quiz(
 
 @router.post("/{course_id}/quizzes/{quiz_id}/attempts", status_code=status.HTTP_201_CREATED)
 async def start_quiz_attempt(
-    course_id: uuid.UUID,
-    quiz_id: uuid.UUID,
+    course_id: str,
+    quiz_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.STUDENT)),
 ) -> Dict[str, Any]:
@@ -337,9 +337,9 @@ async def start_quiz_attempt(
 
 @router.post("/{course_id}/quizzes/{quiz_id}/attempts/{attempt_id}/submit")
 async def submit_quiz_attempt(
-    course_id: uuid.UUID,
-    quiz_id: uuid.UUID,
-    attempt_id: uuid.UUID,
+    course_id: str,
+    quiz_id: str,
+    attempt_id: str,
     submit_in: QuizAttemptSubmitIn,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.STUDENT)),
@@ -446,8 +446,8 @@ async def submit_quiz_attempt(
 
 @router.get("/{course_id}/quizzes/{quiz_id}/attempts")
 async def list_quiz_attempts(
-    course_id: uuid.UUID,
-    quiz_id: uuid.UUID,
+    course_id: str,
+    quiz_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN)),
 ) -> List[Dict[str, Any]]:
@@ -465,8 +465,8 @@ async def list_quiz_attempts(
 
 @router.get("/{course_id}/quizzes/{quiz_id}/my-attempts")
 async def get_my_quiz_attempts(
-    course_id: uuid.UUID,
-    quiz_id: uuid.UUID,
+    course_id: str,
+    quiz_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.STUDENT)),
 ) -> List[Dict[str, Any]]:
