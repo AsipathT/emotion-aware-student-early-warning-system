@@ -47,6 +47,10 @@ INTERVENTION_OUTCOMES = "intervention_outcomes"
 SCHEMA_MIGRATIONS = "schema_migrations"
 INGESTION_RUNS = "ingestion_runs"
 
+# ── Feature 22: Pipeline Orchestrator & Distributed Locks ─────────────────────
+PIPELINE_RUNS = "pipeline_runs"
+SCHEDULER_LOCKS = "scheduler_locks"
+
 # ── Canonical Collection Groupings ────────────────────────────────────────────
 
 ALL_COLLECTIONS = (
@@ -75,6 +79,8 @@ ALL_COLLECTIONS = (
     INTERVENTION_OUTCOMES,
     SCHEMA_MIGRATIONS,
     INGESTION_RUNS,
+    PIPELINE_RUNS,
+    SCHEDULER_LOCKS,
 )
 
 # Collections that store time-windowed weekly student metrics:
