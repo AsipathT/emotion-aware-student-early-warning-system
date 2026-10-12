@@ -65,12 +65,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         await ensure_indexes(db)
         print("[startup]  Feature 7: Audit log indexes ensured.")
 
-        # Feature 21: Component export API keys check
-        if not settings.COMPONENT_API_KEYS:
-            import logging
-            logging.getLogger("app.main").warning(
-                "COMPONENT_API_KEYS is not configured. Component export endpoints will return HTTP 503."
-            )
+        # Feature 21/23/Readback: Validate component API keys on startup
+        from app.core.component_auth import validate_component_api_keys
+        validate_component_api_keys(settings.COMPONENT_API_KEYS, settings.app_env)
     except Exception as exc:
         print(f"[startup]  Warning: MongoDB startup check failed: {exc}")
 

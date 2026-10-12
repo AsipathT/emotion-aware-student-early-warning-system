@@ -222,5 +222,5 @@ Contracts evolve under semantic versioning principles (`major.minor`):
 
 ## 10. Related Specifications & API Endpoints
 
-- [Component Data Export API Specification (Feature 21)](../docs/EXPORT_API.md): Technical specification for the LMS outbound export endpoints serving C1, C2, and C3.
+- [Component Data Export & Read-Back API Specification (Feature 21)](../docs/EXPORT_API.md): Technical specification for the LMS outbound export endpoints (messages, behavior, academic) and pipeline read-back endpoints (affective, trajectory, risk, outcomes).
 - [Component Data Ingestion API Specification (Feature 23)](../docs/INGESTION_API.md): Technical specification for the LMS inbound ingestion endpoints consuming predictions from C1, C2, C3, and C4.
