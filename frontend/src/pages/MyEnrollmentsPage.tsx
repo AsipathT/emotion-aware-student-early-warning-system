@@ -9,10 +9,10 @@ import {
   Clock,
   ArrowRight,
   Search,
-  Sparkles,
   AlertCircle,
   GraduationCap,
   Layers,
+  FileText,
 } from 'lucide-react';
 
 export const MyEnrollmentsPage: React.FC = () => {
@@ -207,16 +207,19 @@ export const MyEnrollmentsPage: React.FC = () => {
                 </div>
 
                 {/* Card Action Footer */}
-                <div className="px-6 py-4 bg-slate-50/70 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-600 group-hover:text-indigo-600 flex items-center transition">
-                    <Sparkles className="w-3.5 h-3.5 mr-1 text-indigo-500" />
-                    Enrolled
-                  </span>
+                <div className="px-6 py-4 bg-slate-50/70 border-t border-slate-100 flex items-center justify-between gap-2">
+                  <Link
+                    to={`/courses/${enrollment.course_id}/assignments`}
+                    className="inline-flex items-center px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs rounded-xl border border-indigo-200 transition shadow-sm"
+                  >
+                    <FileText className="w-3.5 h-3.5 mr-1 text-indigo-600" />
+                    Assignments
+                  </Link>
                   <Link
                     to={`/courses/${enrollment.course_id}`}
                     className="inline-flex items-center px-3.5 py-1.5 bg-white group-hover:bg-indigo-600 group-hover:text-white text-slate-700 font-semibold text-xs rounded-xl border border-slate-200 group-hover:border-transparent shadow-sm transition"
                   >
-                    View Curriculum
+                    View Course
                     <ArrowRight className="w-3.5 h-3.5 ml-1.5 group-hover:translate-x-0.5 transition" />
                   </Link>
                 </div>
