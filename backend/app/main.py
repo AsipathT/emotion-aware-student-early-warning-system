@@ -73,6 +73,42 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             )
     except Exception as exc:
         print(f"[startup]  Warning: MongoDB startup check failed: {exc}")
+
+    # --- Dushan: forum indexes ---
+    try:
+        from app.core.database import db as _db
+        await _db.forum_threads.create_index(
+            [("course_id", 1), ("last_activity_at", -1)],
+            background=True,
+        )
+        await _db.forum_posts.create_index(
+            [("thread_id", 1), ("created_at", 1)],
+            background=True,
+        )
+    except Exception as exc:
+        print(f"[startup]  Warning: forum index creation failed: {exc}")
+
+    # --- Dushan: chat indexes ---
+    try:
+        from app.core.database import db as _db2
+        await _db2.chat_conversations.create_index(
+            "participant_key", unique=True, background=True,
+        )
+        await _db2.chat_conversations.create_index(
+            [("participant_ids", 1), ("last_message_at", -1)],
+            background=True,
+        )
+        await _db2.chat_messages.create_index(
+            [("conversation_id", 1), ("created_at", 1)],
+            background=True,
+        )
+        await _db2.chat_messages.create_index(
+            [("recipient_id", 1), ("read_at", 1)],
+            background=True,
+        )
+    except Exception as exc:
+        print(f"[startup]  Warning: chat index creation failed: {exc}")
+
     yield
     # ---- shutdown ----
     from app.core.database import client
@@ -188,6 +224,12 @@ def create_app() -> FastAPI:
 
     from app.routers import export  # noqa: E402
     app.include_router(export.router)
+    # --- Dushan: communication / interventions ---
+    from app.routers import forum  # noqa: E402
+    app.include_router(forum.router)
+
+    from app.routers import chat  # noqa: E402
+    app.include_router(chat.router)
 
     from app.routers import ingest  # noqa: E402
     app.include_router(ingest.router)
