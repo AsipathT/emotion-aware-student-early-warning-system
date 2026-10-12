@@ -40,8 +40,24 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception as exc:
         print(f"[startup]  Warning: journal index creation failed: {exc}")
 
+    if getattr(settings, "ENABLE_SCHEDULER", False):
+        try:
+            from app.jobs.scheduler import start_scheduler
+            start_scheduler()
+            print("[startup]  Background APScheduler started.")
+        except Exception as exc:
+            print(f"[startup]  Warning: failed to start scheduler: {exc}")
+
     yield
     # ---- shutdown ----
+    if getattr(settings, "ENABLE_SCHEDULER", False):
+        try:
+            from app.jobs.scheduler import stop_scheduler
+            stop_scheduler()
+            print("[shutdown] Background APScheduler stopped.")
+        except Exception:
+            pass
+
     from app.core.database import client
     client.close()
     print("[shutdown] application stopped")
@@ -140,6 +156,54 @@ def create_app() -> FastAPI:
 
     from app.routers import enrollments  # noqa: E402
     app.include_router(enrollments.router)
+
+    from app.routers import assignments  # noqa: E402
+    app.include_router(assignments.router)
+
+    from app.routers import quizzes  # noqa: E402
+    app.include_router(quizzes.router)
+
+    from app.routers import gradebook  # noqa: E402
+    app.include_router(gradebook.router)
+
+    from app.routers import attendance  # noqa: E402
+    app.include_router(attendance.router)
+
+    from app.routers import forum  # noqa: E402
+    app.include_router(forum.router)
+
+    from app.routers import chat  # noqa: E402
+    app.include_router(chat.router)
+
+    from app.routers import journal  # noqa: E402
+    app.include_router(journal.router)
+
+    from app.routers import consent  # noqa: E402
+    app.include_router(consent.router)
+
+    from app.routers import audit  # noqa: E402
+    app.include_router(audit.router)
+
+    from app.routers import privacy  # noqa: E402
+    app.include_router(privacy.router)
+
+    from app.routers import export  # noqa: E402
+    app.include_router(export.router)
+
+    from app.routers import contract  # noqa: E402
+    app.include_router(contract.router)
+
+    from app.routers import course_content  # noqa: E402
+    app.include_router(course_content.router)
+
+    from app.routers import ingest  # noqa: E402
+    app.include_router(ingest.router)
+
+    from app.routers import pipeline  # noqa: E402
+    app.include_router(pipeline.router)
+
+    from app.routers import telemetry  # noqa: E402
+    app.include_router(telemetry.router)
 
     return app
 

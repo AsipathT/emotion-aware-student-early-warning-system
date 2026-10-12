@@ -20,6 +20,10 @@ import { ForumPage } from './pages/ForumPage';
 import { ForumThreadPage } from './pages/ForumThreadPage';
 import { ChatPage } from './pages/ChatPage';
 import { JournalPage } from './pages/JournalPage';
+import { CourseContentPage } from './pages/CourseContentPage';
+import { VideoPlayerPage } from './pages/VideoPlayerPage';
+import { AttendancePage } from './pages/AttendancePage';
+import { GradebookPage } from './pages/GradebookPage';
 
 
 const queryClient = new QueryClient({
@@ -93,6 +97,38 @@ export const App: React.FC = () => {
                 element={
                   <ProtectedRoute>
                     <CourseGradebookPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/courses/:courseId/content"
+                element={
+                  <ProtectedRoute>
+                    <CourseContentPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/courses/:courseId/video"
+                element={
+                  <ProtectedRoute>
+                    <VideoPlayerPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/courses/:courseId/attendance"
+                element={
+                  <ProtectedRoute>
+                    <AttendancePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/gradebook"
+                element={
+                  <ProtectedRoute>
+                    <GradebookPage />
                   </ProtectedRoute>
                 }
               />
