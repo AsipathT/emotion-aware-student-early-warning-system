@@ -78,6 +78,28 @@ export interface SlotCancelResult {
   message: string;
 }
 
+export interface StudentMentorInfo {
+  id: string;
+  mentor_user_id: string;
+  full_name: string;
+  status: string;
+  since?: string | null;
+}
+
+export interface MentorAssignmentItem {
+  id: string;
+  mentee_user_id: string;
+  mentee_display_name: string;
+  status: string;
+  since: string;
+  ended_at?: string | null;
+}
+
+export interface MentorAssignmentListResponse {
+  items: MentorAssignmentItem[];
+  total_count: number;
+}
+
 export interface StudentSupportInterventionItem {
   id: string;
   student_label: string;
@@ -92,7 +114,7 @@ export interface StudentSupportInterventionItem {
   // Extension placeholders for Parts B, C, D
   slot?: BookedSlotItem | null;
   resources?: StudentSharedResourceItem[] | null;
-  mentor?: Record<string, any> | null;
+  mentor?: StudentMentorInfo | null;
 }
 
 export interface StudentSupportListResponse {
@@ -169,6 +191,13 @@ export const supportApi = {
   ): Promise<SlotCancelResult> => {
     const response = await apiClient.post<SlotCancelResult>(
       `/support/me/interventions/${encodeURIComponent(interventionId)}/cancel-booking`
+    );
+    return response.data;
+  },
+
+  getMyMentoringAssignments: async (): Promise<MentorAssignmentListResponse> => {
+    const response = await apiClient.get<MentorAssignmentListResponse>(
+      '/support/me/mentoring'
     );
     return response.data;
   },

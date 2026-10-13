@@ -30,12 +30,21 @@ import {
   Clock,
   MessageSquare,
   FileText,
+  UserCheck,
+  Users,
+  UserPlus,
+  Search,
+  XCircle,
 } from 'lucide-react';
 import {
   staffResourcesApi,
   SupportResourceItem,
   SharedResourceItem,
 } from '../../api/staffResources';
+import {
+  staffMentoringApi,
+  CandidateStudent,
+} from '../../api/staffMentoring';
 
 interface DeliveryPanelProps {
   interventionId: string;
@@ -120,6 +129,75 @@ export const DeliveryPanel: React.FC<DeliveryPanelProps> = ({
   const canShareAny = isAcceptedOrInProgress;
   const canShareAtAll = canShareAny || canShareReferralsOnly;
 
+  // Mentoring state and queries (Feature 38-D)
+  const isPeerMentoring = interventionType.toLowerCase() === 'peer_mentoring';
+  const [mentorSearchQuery, setMentorSearchQuery] = useState<string>('');
+
+  const {
+    data: mentoringAssignment,
+    isLoading: isLoadingMentoring,
+    refetch: refetchMentoring,
+  } = useQuery({
+    queryKey: ['staff-mentoring-assignment', interventionId],
+    queryFn: () => staffMentoringApi.getAssignment(interventionId),
+    enabled: Boolean(interventionId) && isPeerMentoring,
+  });
+
+  const {
+    data: candidateData,
+    isLoading: isLoadingCandidates,
+  } = useQuery({
+    queryKey: ['staff-mentor-candidates', interventionId, mentorSearchQuery],
+    queryFn: () => staffMentoringApi.getCandidates(mentorSearchQuery, interventionId),
+    enabled: isPeerMentoring && isAcceptedOrInProgress && !mentoringAssignment,
+  });
+
+  const assignMentorMutation = useMutation({
+    mutationFn: (mentorUserId: string) =>
+      staffMentoringApi.assignMentor(interventionId, mentorUserId),
+    onSuccess: (res) => {
+      setFeedbackError(null);
+      setFeedbackSuccess(
+        `Successfully paired peer mentor "${res.mentor_name}". Both students have been notified.`
+      );
+      refetchMentoring();
+      queryClient.invalidateQueries({
+        queryKey: ['staff-intervention-detail', interventionId],
+      });
+      if (onResourceShared) onResourceShared();
+      setTimeout(() => setFeedbackSuccess(null), 5000);
+    },
+    onError: (err: any) => {
+      const detail =
+        err?.response?.data?.detail ||
+        err?.message ||
+        'Failed to assign peer mentor.';
+      setFeedbackError(detail);
+    },
+  });
+
+  const endMentoringMutation = useMutation({
+    mutationFn: (assignmentId: string) =>
+      staffMentoringApi.endAssignment(assignmentId),
+    onSuccess: () => {
+      setFeedbackError(null);
+      setFeedbackSuccess('Peer mentoring assignment concluded.');
+      refetchMentoring();
+      queryClient.invalidateQueries({
+        queryKey: ['staff-intervention-detail', interventionId],
+      });
+      if (onResourceShared) onResourceShared();
+      setTimeout(() => setFeedbackSuccess(null), 5000);
+    },
+    onError: (err: any) => {
+      const detail =
+        err?.response?.data?.detail ||
+        err?.message ||
+        'Failed to end mentoring assignment.';
+      setFeedbackError(detail);
+    },
+  });
+
   // Filter available resources
   const availableResources = (resourcesData?.items || []).filter((r: SupportResourceItem) => {
     if (canShareReferralsOnly && r.resource_type !== 'referral') {
@@ -201,6 +279,127 @@ export const DeliveryPanel: React.FC<DeliveryPanelProps> = ({
         </div>
       )}
       {/* Expansion Slot: Part D (F38-D Peer Mentoring Connection) */}
+      {isPeerMentoring && (
+        <div className="p-5 rounded-2xl border border-indigo-200 bg-white shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600">
+                <Users className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-slate-900">
+                  Peer Mentoring Connection
+                </h4>
+                <p className="text-xs text-slate-500">
+                  Pair this student with a trained senior peer mentor for course encouragement and study tips.
+                </p>
+              </div>
+            </div>
+            {mentoringAssignment && mentoringAssignment.status === 'active' && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 self-start sm:self-auto">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                Active Mentorship
+              </span>
+            )}
+          </div>
+
+          {isLoadingMentoring ? (
+            <div className="p-6 text-center text-xs text-slate-500">
+              <Loader2 className="w-5 h-5 text-indigo-600 animate-spin mx-auto mb-2" />
+              <span>Loading mentoring status...</span>
+            </div>
+          ) : mentoringAssignment && mentoringAssignment.status === 'active' ? (
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <UserCheck className="w-4 h-4 text-indigo-600" />
+                  <span className="text-sm font-bold text-slate-900">
+                    {mentoringAssignment.mentor_name || 'Assigned Peer Mentor'}
+                  </span>
+                </div>
+                <div className="text-xs text-slate-500 flex items-center gap-3">
+                  <span>Matched: {new Date(mentoringAssignment.created_at).toLocaleDateString()}</span>
+                  <span className="text-slate-400">·</span>
+                  <span>Direct Chat: Active</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                disabled={endMentoringMutation.isPending}
+                onClick={() => {
+                  if (confirm('Conclude this peer mentoring connection? The mentor and mentee will no longer be active study partners.')) {
+                    endMentoringMutation.mutate(mentoringAssignment.id);
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-rose-200 text-rose-600 bg-white hover:bg-rose-50 text-xs font-semibold transition self-start sm:self-auto"
+              >
+                <XCircle className="w-3.5 h-3.5" />
+                <span>End Mentorship</span>
+              </button>
+            </div>
+          ) : isOffered ? (
+            <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2.5">
+              <Info className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold">Mentee Has Not Accepted Yet</p>
+                <p className="mt-0.5 text-amber-800">
+                  Strict Privacy Policy: Peer mentors can only be matched after the mentee voluntarily accepts this support initiative.
+                </p>
+              </div>
+            </div>
+          ) : isAcceptedOrInProgress ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    placeholder="Search active students to pair as peer mentor..."
+                    value={mentorSearchQuery}
+                    onChange={(e) => setMentorSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {isLoadingCandidates ? (
+                <div className="p-4 text-center text-xs text-slate-500">
+                  <Loader2 className="w-4 h-4 text-indigo-600 animate-spin mx-auto mb-1" />
+                  <span>Searching student candidates...</span>
+                </div>
+              ) : (candidateData?.items || []).length === 0 ? (
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center text-xs text-slate-500">
+                  <span>No student candidates found matching "{mentorSearchQuery}".</span>
+                </div>
+              ) : (
+                <div className="max-h-56 overflow-y-auto space-y-1.5 pr-1">
+                  {(candidateData?.items || []).map((cand: CandidateStudent) => (
+                    <div
+                      key={cand.id}
+                      className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white flex items-center justify-between gap-3 text-xs transition"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Users className="w-3.5 h-3.5 text-indigo-500" />
+                        <span className="font-semibold text-slate-800">{cand.full_name}</span>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={assignMentorMutation.isPending}
+                        onClick={() => assignMentorMutation.mutate(cand.id)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-sm transition disabled:opacity-50"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" />
+                        <span>Pair as Mentor</span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : null}
+        </div>
+      )}
 
       {/* Notification Banner */}
       {feedbackSuccess && (

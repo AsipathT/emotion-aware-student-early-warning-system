@@ -22,6 +22,7 @@ from app.db.storage_models import Decision, InterventionOutcomeStorage
 from app.models.intervention_record import COL_INTERVENTION_RECORDS
 from app.models.support_resource import COL_SUPPORT_RESOURCES
 from app.models.support_slot import COL_COUNSELLING_SLOTS
+from app.models.support_mentoring import COL_MENTORING_ASSIGNMENTS
 from app.models.user import User, UserRole
 from app.schemas.staff_slots import SlotBookRequest
 from app.schemas.support_student import (
@@ -29,6 +30,8 @@ from app.schemas.support_student import (
     AvailableSlotListResponse,
     BookedSlotItem,
     MarkResourceViewedResponse,
+    MentorAssignmentItem,
+    MentorAssignmentListResponse,
     SlotBookingResult,
     SlotCancelResult,
     StudentSharedResourceItem,
@@ -139,6 +142,26 @@ async def get_my_support_interventions(
             uid = str(u.get("_id") or u.get("id"))
             counsellor_names[uid] = u.get("full_name") or u.get("name") or "Academic Counsellor"
 
+    # Collect intervention IDs to look up active peer mentoring assignments (Feature 38-D)
+    active_mentors_map = {}
+    if interv_ids:
+        m_cursor = db[COL_MENTORING_ASSIGNMENTS].find({
+            "intervention_id": {"$in": interv_ids},
+            "status": "active",
+        })
+        async for ma in m_cursor:
+            key = str(ma.get("intervention_id"))
+            active_mentors_map[key] = ma
+
+    # Resolve mentor names for active assignments
+    mentor_ids = list({str(m.get("mentor_user_id")) for m in active_mentors_map.values() if m.get("mentor_user_id")})
+    mentor_names = {}
+    if mentor_ids:
+        mu_cursor = db.users.find({"$or": [{"_id": {"$in": mentor_ids}}, {"id": {"$in": mentor_ids}}]})
+        async for mu in mu_cursor:
+            muid = str(mu.get("_id") or mu.get("id"))
+            mentor_names[muid] = mu.get("full_name") or mu.get("name") or "Peer Mentor"
+
     items = []
     for doc in docs:
         doc_id = str(doc.get("id") or doc.get("_id"))
@@ -194,6 +217,19 @@ async def get_my_support_interventions(
                 "booked_at": booked_slot_doc.get("booked_at"),
             }
 
+        # Resolve active peer mentor (Feature 38-D)
+        active_m = active_mentors_map.get(doc_id)
+        mentor_data = None
+        if active_m:
+            mid = str(active_m.get("mentor_user_id", ""))
+            mentor_data = {
+                "id": str(active_m.get("id") or active_m.get("_id")),
+                "mentor_user_id": mid,
+                "full_name": mentor_names.get(mid) or "Peer Mentor",
+                "status": active_m.get("status", "active"),
+                "since": active_m.get("created_at"),
+            }
+
         items.append(
             StudentSupportInterventionItem(
                 id=doc_id,
@@ -207,7 +243,7 @@ async def get_my_support_interventions(
                 student_response=doc.get("student_response"),
                 slot=slot_data,
                 resources=resources_list if resources_list else None,
-                mentor=None,
+                mentor=mentor_data,
             )
         )
 
@@ -754,5 +790,55 @@ async def cancel_counselling_booking_by_student(
         success=True,
         message="Appointment cancelled successfully. The slot has been released.",
     )
+
+
+@router.get(
+    "/mentoring",
+    response_model=MentorAssignmentListResponse,
+    summary="Get my peer mentor assignments (Mentor view)",
+    description="Retrieves active and concluded mentoring connections where the authenticated student serves as the peer mentor. Contains zero intervention analytics or deficit indicators.",
+)
+async def get_my_mentoring_assignments(
+    current_user: User = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> MentorAssignmentListResponse:
+    """
+    Returns peer mentoring assignments where the current student is the mentor.
+    Mentors see ONLY the mentee display name, status, and pairing timestamp.
+    STRICT PRIVACY: Zero intervention details, type labels, or risk scores reach the mentor.
+    """
+    _require_student(current_user)
+    uid = str(current_user.id)
+
+    cursor = db[COL_MENTORING_ASSIGNMENTS].find({
+        "mentor_user_id": uid
+    }).sort("created_at", -1)
+    docs = await cursor.to_list(length=100)
+
+    # Resolve mentee display names
+    mentee_ids = list({str(d.get("mentee_user_id")) for d in docs if d.get("mentee_user_id")})
+    name_map = {}
+    if mentee_ids:
+        u_cursor = db.users.find({"$or": [{"_id": {"$in": mentee_ids}}, {"id": {"$in": mentee_ids}}]})
+        async for u in u_cursor:
+            m_id = str(u.get("_id") or u.get("id"))
+            name_map[m_id] = u.get("full_name") or u.get("name") or "Student"
+
+    items: List[MentorAssignmentItem] = []
+    for d in docs:
+        mid = str(d.get("mentee_user_id", ""))
+        items.append(
+            MentorAssignmentItem(
+                id=str(d.get("id") or d.get("_id")),
+                mentee_user_id=mid,
+                mentee_display_name=name_map.get(mid) or "Student",
+                status=d.get("status", "active"),
+                since=d["created_at"],
+                ended_at=d.get("ended_at"),
+            )
+        )
+
+    return MentorAssignmentListResponse(items=items, total_count=len(items))
+
 
 

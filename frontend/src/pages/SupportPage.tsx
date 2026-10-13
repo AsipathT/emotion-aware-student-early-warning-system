@@ -9,6 +9,7 @@
  */
 
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   HeartHandshake,
@@ -24,6 +25,10 @@ import {
   BookOpen,
   ExternalLink,
   PhoneCall,
+  Users,
+  MessageSquare,
+  Lock,
+  Info,
 } from 'lucide-react';
 import {
   supportApi,
@@ -60,6 +65,12 @@ export const SupportPage: React.FC = () => {
   } = useQuery({
     queryKey: ['my-support-interventions'],
     queryFn: () => supportApi.getMyInterventions(),
+  });
+
+  // Fetch peer mentoring connections where current student is the mentor (Feature 38-D)
+  const { data: mentorAssignmentsData } = useQuery({
+    queryKey: ['my-mentoring-assignments'],
+    queryFn: () => supportApi.getMyMentoringAssignments(),
   });
 
   // Respond mutation
@@ -185,6 +196,82 @@ export const SupportPage: React.FC = () => {
         <div className="mb-6 bg-rose-50 border border-rose-200 rounded-2xl p-4 text-xs text-rose-800 flex items-center gap-2.5 shadow-sm">
           <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
           <span>{errorMessage}</span>
+        </div>
+      )}
+
+      {/* Feature 38-D: Peer Mentor workspace view (visible only when student is assigned as a peer mentor) */}
+      {mentorAssignmentsData?.items && mentorAssignmentsData.items.length > 0 && (
+        <div className="mb-8 bg-white rounded-2xl border border-indigo-200 p-6 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600">
+                <Users className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-900">
+                  My Peer Mentorship Connections
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Students you are paired with as an academic peer mentor for collaborative coursework guidance.
+                </p>
+              </div>
+            </div>
+
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 self-start sm:self-auto">
+              <Users className="w-3.5 h-3.5" />
+              {mentorAssignmentsData.items.filter((m) => m.status === 'active').length} Active {mentorAssignmentsData.items.filter((m) => m.status === 'active').length === 1 ? 'Mentee' : 'Mentees'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {mentorAssignmentsData.items.map((m) => (
+              <div
+                key={m.id}
+                className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-white hover:border-indigo-200 transition flex flex-col justify-between gap-3"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="text-sm font-bold text-slate-900">
+                      {m.mentee_display_name}
+                    </span>
+                    {m.status === 'active' ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        Active Mentorship
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                        Concluded
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    Paired since {new Date(m.since).toLocaleDateString()}
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-slate-200/50 flex items-center justify-between gap-2">
+                  <span className="text-[11px] text-slate-400">
+                    Peer Study Partner
+                  </span>
+                  <Link
+                    to="/messages"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-sm transition"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>Message Mentee</span>
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500 flex items-center gap-2">
+            <Lock className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+            <span>
+              <strong>Privacy Protection:</strong> Mentors support fellow students through collaborative study tips without exposure to academic records, early-warning indicators, or reason for referral.
+            </span>
+          </div>
         </div>
       )}
 
@@ -410,6 +497,50 @@ export const SupportPage: React.FC = () => {
               )}
 
               {/* F38-D mentor */}
+              {item.mentor && (
+                <div className="pt-3 border-t border-slate-100 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-indigo-600" />
+                    <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                      Assigned Peer Mentor
+                    </h4>
+                  </div>
+                  <div className="p-3.5 rounded-xl border border-indigo-100 bg-indigo-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-900 text-sm">
+                          {item.mentor.full_name}
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          Active Mentor
+                        </span>
+                      </div>
+                      <p className="text-slate-500 text-[11px]">
+                        Paired for collaborative study tips, course navigation, and peer encouragement.
+                      </p>
+                    </div>
+
+                    <Link
+                      to="/messages"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-sm transition self-start sm:self-auto"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span>Message your mentor</span>
+                    </Link>
+                  </div>
+                </div>
+              )}
+              {item.delivery_module === 'peer_mentoring' && !item.mentor && (item.status === 'accepted' || item.status === 'in_progress') && (
+                <div className="pt-3 border-t border-slate-100">
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-center gap-2">
+                    <Info className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+                    <span>
+                      Your advisor is connecting you with an academic peer mentor. You will receive an in-app notification once matched.
+                    </span>
+                  </div>
+                </div>
+              )}
               {/* F39 feedback */}
             </div>
           ))}

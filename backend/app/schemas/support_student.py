@@ -131,3 +131,32 @@ class SlotCancelResult(BaseModel):
     message: str
 
 
+class StudentMentorInfo(BaseModel):
+    """Mentee view of their assigned peer mentor (Feature 38-D)."""
+    id: str
+    mentor_user_id: str
+    full_name: str
+    status: str
+    since: Optional[datetime] = None
+
+
+class MentorAssignmentItem(BaseModel):
+    """
+    Mentor view of an active or concluded peer mentorship connection (Feature 38-D).
+    STRICT PRIVACY: Contains NO intervention labels, notes, risk scores, or intervention lifecycle details.
+    """
+    id: str
+    mentee_user_id: str
+    mentee_display_name: str
+    status: str
+    since: datetime
+    ended_at: Optional[datetime] = None
+
+
+class MentorAssignmentListResponse(BaseModel):
+    """List of peer mentorship connections for the authenticated mentor student."""
+    items: List[MentorAssignmentItem]
+    total_count: int
+
+
+

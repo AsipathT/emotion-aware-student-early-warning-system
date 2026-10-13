@@ -203,6 +203,26 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception as exc:
         print(f"[startup]  Warning: counselling slot index creation failed: {exc}")
 
+    # --- Dushan: mentoring indexes ---
+    try:
+        from app.core.database import db as _db_mentor
+        await _db_mentor.mentoring_assignments.create_index(
+            [("intervention_id", 1)],
+            unique=True,
+            partialFilterExpression={"status": "active"},
+            background=True,
+        )
+        await _db_mentor.mentoring_assignments.create_index(
+            [("mentor_user_id", 1), ("status", 1)],
+            background=True,
+        )
+        await _db_mentor.mentoring_assignments.create_index(
+            [("mentee_user_id", 1), ("status", 1)],
+            background=True,
+        )
+    except Exception as exc:
+        print(f"[startup]  Warning: mentoring assignment index creation failed: {exc}")
+
 
 
     if getattr(settings, "ENABLE_SCHEDULER", False):
@@ -479,6 +499,15 @@ def create_app() -> FastAPI:
         import logging
         logging.getLogger("app.main").warning(
             "Failed to register support_staff_slots router: %s", exc
+        )
+
+    try:
+        from app.routers import support_staff_mentoring  # noqa: E402
+        app.include_router(support_staff_mentoring.router)
+    except Exception as exc:
+        import logging
+        logging.getLogger("app.main").warning(
+            "Failed to register support_staff_mentoring router: %s", exc
         )
 
     return app
