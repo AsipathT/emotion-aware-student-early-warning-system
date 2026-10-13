@@ -68,6 +68,15 @@ class InterventionNote(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
+class SharedResourceEntry(BaseModel):
+    """Resource shared with the student during intervention delivery (Feature 38-C)."""
+    resource_id: str
+    shared_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    shared_by: str
+    viewed_at: Optional[datetime] = None
+    message: Optional[str] = Field(default=None, max_length=300)
+
+
 class InterventionRecord(BaseModel):
     """
     Staff-side operational intervention entity persisted in `intervention_records`.
@@ -90,8 +99,13 @@ class InterventionRecord(BaseModel):
     )
     status_history: List[StatusHistoryEntry] = Field(default_factory=list)
     notes: List[InterventionNote] = Field(default_factory=list, description="Private staff counselor case notes")
+    shared_resources: List[SharedResourceEntry] = Field(
+        default_factory=list,
+        description="Resources shared with student during delivery (F38-C)",
+    )
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class Config:
         populate_by_name = True
+

@@ -19,8 +19,11 @@ from app.core.dependencies import get_current_user
 from app.db import collections as col
 from app.db.storage_models import Decision, InterventionOutcomeStorage
 from app.models.intervention_record import COL_INTERVENTION_RECORDS
+from app.models.support_resource import COL_SUPPORT_RESOURCES
 from app.models.user import User, UserRole
 from app.schemas.support_student import (
+    MarkResourceViewedResponse,
+    StudentSharedResourceItem,
     StudentSupportInterventionItem,
     StudentSupportListResponse,
     StudentSupportResponseRequest,
@@ -86,8 +89,27 @@ async def get_my_support_interventions(
         "status": {"$in": allowed_statuses},
     }).sort("created_at", -1)
 
+    docs = await cursor.to_list(length=100)
+
+    # Collect all resource IDs across interventions to resolve in batch
+    all_res_ids = []
+    for d in docs:
+        for sr in d.get("shared_resources", []):
+            rid = str(sr.get("resource_id", "")).strip()
+            if rid:
+                all_res_ids.append(rid)
+
+    res_map = {}
+    if all_res_ids:
+        res_cursor = db[COL_SUPPORT_RESOURCES].find({
+            "$or": [{"id": {"$in": all_res_ids}}, {"_id": {"$in": all_res_ids}}],
+        })
+        async for r in res_cursor:
+            key = str(r.get("id") or r.get("_id"))
+            res_map[key] = r
+
     items = []
-    async for doc in cursor:
+    for doc in docs:
         itype = doc.get("intervention_type")
         catalog_entry = get_entry(itype)
 
@@ -104,6 +126,26 @@ async def get_my_support_interventions(
         if not offered_at:
             offered_at = doc.get("updated_at") or doc.get("created_at")
 
+        # Resolve shared resources for this intervention (Feature 38-C)
+        resources_list = []
+        for sr in doc.get("shared_resources", []):
+            rid = str(sr.get("resource_id", "")).strip()
+            meta = res_map.get(rid) or {}
+            resources_list.append({
+                "id": rid,
+                "resource_id": rid,
+                "title": meta.get("title") or "Recommended Resource",
+                "description": meta.get("description") or "",
+                "resource_type": meta.get("resource_type") or "resource",
+                "type": meta.get("resource_type") or "resource",
+                "url": meta.get("url"),
+                "contact_info": meta.get("contact_info"),
+                "message": sr.get("message"),
+                "shared_at": sr.get("shared_at"),
+                "viewed": bool(sr.get("viewed_at")),
+                "viewed_at": sr.get("viewed_at"),
+            })
+
         items.append(
             StudentSupportInterventionItem(
                 id=doc["id"],
@@ -116,7 +158,7 @@ async def get_my_support_interventions(
                 assigned_staff_name=doc.get("assigned_staff_name"),
                 student_response=doc.get("student_response"),
                 slot=None,
-                resources=None,
+                resources=resources_list if resources_list else None,
                 mentor=None,
             )
         )
@@ -259,3 +301,76 @@ async def respond_to_support_intervention(
         student_response=student_response_data,
         message=response_message,
     )
+
+
+@router.post(
+    "/interventions/{id}/resources/{rid}/viewed",
+    response_model=MarkResourceViewedResponse,
+    summary="Mark shared resource as viewed by student",
+    description="Records student engagement uptake when opening or reading a shared resource or referral. Sets viewed_at once.",
+)
+async def mark_shared_resource_viewed(
+    id: str,
+    rid: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> MarkResourceViewedResponse:
+    """
+    Sets viewed_at timestamp once on the shared_resources entry for this student's intervention.
+    Enforces that the intervention belongs strictly to the authenticated student.
+    """
+    _require_student(current_user)
+    student_pid = await _resolve_student_pid(current_user, db)
+    if not student_pid:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Student profile not found.",
+        )
+
+    clean_id = str(id).strip()
+    clean_rid = str(rid).strip()
+
+    rec = await db[COL_INTERVENTION_RECORDS].find_one({
+        "$or": [{"id": clean_id}, {"_id": clean_id}],
+    })
+
+    if not rec or rec.get("pid") != student_pid:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Intervention record not found.",
+        )
+
+    shared_resources = rec.get("shared_resources") or []
+    target_entry = None
+    for entry in shared_resources:
+        if str(entry.get("resource_id")) == clean_rid:
+            target_entry = entry
+            break
+
+    if not target_entry:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Shared resource not found on this intervention.",
+        )
+
+    viewed_time = target_entry.get("viewed_at")
+    if not viewed_time:
+        now_utc = datetime.now(timezone.utc)
+        viewed_time = now_utc
+        await db[COL_INTERVENTION_RECORDS].update_one(
+            {
+                "$or": [{"id": clean_id}, {"_id": clean_id}],
+                "pid": student_pid,
+                "shared_resources.resource_id": clean_rid,
+            },
+            {
+                "$set": {"shared_resources.$.viewed_at": now_utc},
+            },
+        )
+
+    return MarkResourceViewedResponse(
+        success=True,
+        resource_id=clean_rid,
+        viewed_at=viewed_time,
+    )
+

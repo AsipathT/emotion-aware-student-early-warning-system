@@ -19,6 +19,27 @@ export interface StudentSupportResponse {
   at: string;
 }
 
+export interface StudentSharedResourceItem {
+  id: string;
+  resource_id: string;
+  title: string;
+  description: string;
+  resource_type: 'resource' | 'guidance' | 'referral';
+  type: 'resource' | 'guidance' | 'referral';
+  url?: string | null;
+  contact_info?: string | null;
+  message?: string | null;
+  shared_at?: string | null;
+  viewed: boolean;
+  viewed_at?: string | null;
+}
+
+export interface MarkResourceViewedResponse {
+  success: boolean;
+  resource_id: string;
+  viewed_at?: string | null;
+}
+
 export interface StudentSupportInterventionItem {
   id: string;
   student_label: string;
@@ -32,7 +53,7 @@ export interface StudentSupportInterventionItem {
 
   // Extension placeholders for Parts B, C, D
   slot?: Record<string, any> | null;
-  resources?: Record<string, any>[] | null;
+  resources?: StudentSharedResourceItem[] | null;
   mentor?: Record<string, any> | null;
 }
 
@@ -71,4 +92,15 @@ export const supportApi = {
     );
     return response.data;
   },
+
+  markResourceViewed: async (
+    interventionId: string,
+    resourceId: string
+  ): Promise<MarkResourceViewedResponse> => {
+    const response = await apiClient.post<MarkResourceViewedResponse>(
+      `/support/me/interventions/${encodeURIComponent(interventionId)}/resources/${encodeURIComponent(resourceId)}/viewed`
+    );
+    return response.data;
+  },
 };
+

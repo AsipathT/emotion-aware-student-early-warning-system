@@ -34,6 +34,8 @@ import { StaffInterventionsPage } from './pages/StaffInterventionsPage';
 import { StaffInterventionDetailPage } from './pages/StaffInterventionDetailPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { SupportPage } from './pages/SupportPage';
+import { StaffResourcesPage } from './pages/StaffResourcesPage';
+
 
 
 const queryClient = new QueryClient({
@@ -300,6 +302,17 @@ export const App: React.FC = () => {
                   </ProtectedRoute>
                 }
               />
+
+              {/* Dushan: F38-C */}
+              <Route
+                path="/staff/resources"
+                element={
+                  <ProtectedRoute allowedRoles={['counsellor', 'admin']}>
+                    <StaffResourcesPage />
+                  </ProtectedRoute>
+                }
+              />
+
 
               {/* Dushan: F37 */}
               <Route

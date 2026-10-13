@@ -32,6 +32,8 @@ import {
 } from 'lucide-react';
 import { StaffTabs } from '../components/staff/StaffTabs';
 import { OutcomeSection } from '../components/staff/OutcomeSection';
+import { DeliveryPanel } from '../components/staff/DeliveryPanel';
+
 import {
   staffInterventionsApi,
   StaffMemberItem,
@@ -671,6 +673,13 @@ export const StaffInterventionDetailPage: React.FC = () => {
           />
 
           {/* Dushan: F38 delivery panel */}
+          <DeliveryPanel
+            interventionId={detail.id}
+            interventionType={detail.intervention_type}
+            status={detail.status}
+            onResourceShared={() => refetch()}
+          />
+
 
           {/* Dushan: F39 feedback panel */}
         </div>

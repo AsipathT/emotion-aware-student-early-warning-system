@@ -21,10 +21,14 @@ import {
   AlertTriangle,
   HelpCircle,
   X,
+  BookOpen,
+  ExternalLink,
+  PhoneCall,
 } from 'lucide-react';
 import {
   supportApi,
   StudentSupportInterventionItem,
+  StudentSharedResourceItem,
   DeclineReason,
 } from '../api/support';
 
@@ -85,6 +89,33 @@ export const SupportPage: React.FC = () => {
       setErrorMessage(detail);
     },
   });
+
+  // Mark resource as viewed mutation (Feature 38-C)
+  const markViewedMutation = useMutation({
+    mutationFn: ({
+      interventionId,
+      resourceId,
+    }: {
+      interventionId: string;
+      resourceId: string;
+    }) => supportApi.markResourceViewed(interventionId, resourceId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-support-interventions'] });
+    },
+  });
+
+  const handleResourceClick = (
+    interventionId: string,
+    resource: StudentSharedResourceItem,
+  ) => {
+    if (!resource.viewed) {
+      markViewedMutation.mutate({
+        interventionId,
+        resourceId: resource.id || resource.resource_id,
+      });
+    }
+  };
+
 
   const handleConfirmAccept = () => {
     if (!acceptItem) return;
@@ -292,6 +323,87 @@ export const SupportPage: React.FC = () => {
               {/* Marked Extension Slots */}
               {/* Dushan: F38-B booking */}
               {/* F38-C resources */}
+              {item.resources && item.resources.length > 0 && (
+                <div className="pt-3 border-t border-slate-100 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-indigo-600" />
+                    <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                      Recommended Resources & Learning Guides
+                    </h4>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {item.resources.map((res: StudentSharedResourceItem, rIdx: number) => (
+                      <div
+                        key={rIdx}
+                        className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-white hover:border-indigo-200 transition space-y-2 flex flex-col justify-between"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <span className="font-bold text-xs text-slate-900 leading-snug">
+                              {res.title}
+                            </span>
+                            {res.viewed ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex-shrink-0">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                Viewed
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 flex-shrink-0">
+                                New Material
+                              </span>
+                            )}
+                          </div>
+
+                          {res.description && (
+                            <p className="text-[11px] text-slate-600 line-clamp-2">
+                              {res.description}
+                            </p>
+                          )}
+
+                          {res.message && (
+                            <div className="p-2 rounded-lg bg-indigo-50/60 border border-indigo-100 text-[11px] text-indigo-900 italic">
+                              Advisor Note: "{res.message}"
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Action Link / Contact */}
+                        <div className="pt-2 border-t border-slate-200/50 flex flex-wrap items-center justify-between gap-2">
+                          {res.url ? (
+                            <a
+                              href={res.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={() => handleResourceClick(item.id, res)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm transition"
+                            >
+                              <span>Open Material</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          ) : res.contact_info ? (
+                            <div className="text-xs text-slate-700 flex items-center gap-1.5">
+                              <PhoneCall className="w-3.5 h-3.5 text-slate-500" />
+                              <span className="font-medium text-[11px]">{res.contact_info}</span>
+                            </div>
+                          ) : null}
+
+                          {!res.viewed && (
+                            <button
+                              onClick={() => handleResourceClick(item.id, res)}
+                              disabled={markViewedMutation.isPending}
+                              className="text-[11px] font-semibold text-slate-500 hover:text-indigo-600 underline"
+                            >
+                              Mark as viewed
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* F38-D mentor */}
               {/* F39 feedback */}
             </div>

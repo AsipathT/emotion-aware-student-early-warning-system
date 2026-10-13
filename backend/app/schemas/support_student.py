@@ -63,3 +63,27 @@ class StudentSupportResponseResult(BaseModel):
     status: str
     student_response: Dict[str, Any]
     message: str
+
+
+class StudentSharedResourceItem(BaseModel):
+    """Student-facing view of a shared resource or guidance material (Feature 38-C)."""
+    id: str
+    resource_id: str
+    title: str
+    description: str
+    resource_type: str
+    type: str
+    url: Optional[str] = None
+    contact_info: Optional[str] = None
+    message: Optional[str] = None
+    shared_at: Optional[datetime] = None
+    viewed: bool = False
+    viewed_at: Optional[datetime] = None
+
+
+class MarkResourceViewedResponse(BaseModel):
+    """Response returned when student views or marks a shared resource (Feature 38-C)."""
+    success: bool
+    resource_id: str
+    viewed_at: Optional[datetime] = None
+

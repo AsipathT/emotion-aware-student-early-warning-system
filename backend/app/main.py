@@ -175,6 +175,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception as exc:
         print(f"[startup]  Warning: notification index creation failed: {exc}")
 
+    # --- Dushan: resource indexes ---
+    try:
+        from app.core.database import db as _db_res
+        await _db_res.support_resources.create_index(
+            [("is_active", 1), ("resource_type", 1)],
+            background=True,
+        )
+    except Exception as exc:
+        print(f"[startup]  Warning: resource index creation failed: {exc}")
+
+
     if getattr(settings, "ENABLE_SCHEDULER", False):
         try:
             from app.jobs.scheduler import start_scheduler
@@ -431,6 +442,15 @@ def create_app() -> FastAPI:
         import logging
         logging.getLogger("app.main").warning(
             "Failed to register staff_outcomes router: %s", exc
+        )
+
+    try:
+        from app.routers import support_staff_resources  # noqa: E402
+        app.include_router(support_staff_resources.router)
+    except Exception as exc:
+        import logging
+        logging.getLogger("app.main").warning(
+            "Failed to register support_staff_resources router: %s", exc
         )
 
     return app
