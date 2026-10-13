@@ -1,16 +1,16 @@
 import uuid
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Union
 
 from pydantic import BaseModel, Field
 
 
 class GradebookEntry(BaseModel):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4)
-    course_id: uuid.UUID
-    student_id: uuid.UUID
+    id: Union[uuid.UUID, str] = Field(default_factory=lambda: str(uuid.uuid4()))
+    course_id: Union[uuid.UUID, str]
+    student_id: Union[uuid.UUID, str]
     item_type: str
-    item_id: Optional[uuid.UUID] = None
+    item_id: Optional[Union[uuid.UUID, str]] = None
     title: str
     score: float
     max_score: float

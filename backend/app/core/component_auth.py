@@ -74,16 +74,7 @@ def component_actor(scope: str, action_type: str = "export") -> Callable:
         x_component_key: Optional[str] = Header(None, alias="X-Component-Key"),
         db: AsyncIOMotorDatabase = Depends(get_db),
     ) -> ExportActor:
-        keys_map = settings.COMPONENT_API_KEYS
-
-        # 1. Verify that component keys are configured
-        if not keys_map:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"Component {action_type} API keys are not configured on this server.",
-            )
-
-        # 2. Check for optional Admin Bearer token
+        # 1. Check for authenticated Admin/Lecturer Bearer token first
         auth_header = request.headers.get("authorization", "")
         if auth_header.startswith("Bearer "):
             token = auth_header[7:].strip()
@@ -93,14 +84,24 @@ def component_actor(scope: str, action_type: str = "export") -> Callable:
                     sub = payload.get("sub")
                     if sub:
                         user_doc = await db.users.find_one({"_id": str(sub)}) or await db.users.find_one({"id": str(sub)})
-                        if user_doc and user_doc.get("is_active", True) and user_doc.get("role") == UserRole.ADMIN:
-                            return ExportActor(
-                                actor_id=str(user_doc.get("_id", sub)),
-                                role="admin",
-                                is_admin=True,
-                            )
+                        if user_doc and user_doc.get("is_active", True):
+                            role_val = str(getattr(user_doc.get("role"), "value", user_doc.get("role")))
+                            if role_val in ("admin", "lecturer"):
+                                return ExportActor(
+                                    actor_id=str(user_doc.get("_id", sub)),
+                                    role=role_val,
+                                    is_admin=(role_val == "admin"),
+                                )
             except JWTError:
                 pass
+
+        # 2. Verify component API keys for external component headers
+        keys_map = settings.COMPONENT_API_KEYS
+        if not keys_map:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"Component {action_type} API keys are not configured on this server.",
+            )
 
         # 3. Check X-Component-Key
         if not x_component_key:

@@ -21,9 +21,15 @@ import { ForumThreadPage } from './pages/ForumThreadPage';
 import { ChatPage } from './pages/ChatPage';
 import { JournalPage } from './pages/JournalPage';
 import { CourseContentPage } from './pages/CourseContentPage';
+import { CourseQuizzesPage } from './pages/CourseQuizzesPage';
 import { VideoPlayerPage } from './pages/VideoPlayerPage';
 import { AttendancePage } from './pages/AttendancePage';
 import { GradebookPage } from './pages/GradebookPage';
+import { ExportPipelinePage } from './pages/ExportPipelinePage';
+import { CohortRiskPage } from './pages/CohortRiskPage';
+
+
+import { ClickstreamTracker } from './components/telemetry/ClickstreamTracker';
 
 
 const queryClient = new QueryClient({
@@ -39,6 +45,7 @@ export const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <ClickstreamTracker />
         <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
           <ConsentGate />
           <Navbar />
@@ -109,6 +116,14 @@ export const App: React.FC = () => {
                 }
               />
               <Route
+                path="/courses/:courseId/quizzes"
+                element={
+                  <ProtectedRoute>
+                    <CourseQuizzesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/courses/:courseId/video"
                 element={
                   <ProtectedRoute>
@@ -169,6 +184,26 @@ export const App: React.FC = () => {
                 element={
                   <ProtectedRoute allowedRoles={['admin', 'auditor']}>
                     <AuditLogPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Feature 42 & 20: Research Data Export & Telemetry Pipeline (Admin & Lecturer) */}
+              <Route
+                path="/export"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'lecturer']}>
+                    <ExportPipelinePage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Feature 27: Cohort Risk Overview Dashboard (Admin & Lecturer) */}
+              <Route
+                path="/cohort-risk"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'lecturer']}>
+                    <CohortRiskPage />
                   </ProtectedRoute>
                 }
               />

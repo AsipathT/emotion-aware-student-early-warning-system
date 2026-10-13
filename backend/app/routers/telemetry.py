@@ -24,9 +24,9 @@ router = APIRouter(prefix="/api/v1/telemetry", tags=["telemetry"])
 
 
 class TelemetryEventCreate(BaseModel):
-    course_id: str = Field(..., min_length=1)
+    course_id: Optional[str] = Field(default="general")
     week_index: int = Field(default=1, ge=0)
-    event_type: str = Field(..., min_length=1)  # e.g., 'VIDEO_PLAY', 'VIDEO_PAUSE', 'VIDEO_SEEK_FORWARD', 'PAGE_CLICK'
+    event_type: str = Field(..., min_length=1)  # e.g., 'VIDEO_PLAY', 'VIDEO_PAUSE', 'VIDEO_SEEK_FORWARD', 'PAGE_CLICK', 'PAGE_VIEW'
     event_payload: Optional[Dict[str, Any]] = None
     clicks: int = Field(default=1, ge=0)
 
@@ -51,7 +51,7 @@ async def log_activity_event(
         "id": event_id,
         "schema_version": 1,
         "pid": pid,
-        "course_id": payload.course_id,
+        "course_id": payload.course_id or "general",
         "week_index": payload.week_index,
         "event_type": payload.event_type.lower(),
         "event_payload": payload.event_payload or {},
@@ -88,3 +88,44 @@ async def get_recent_course_events(
 
     events = await cursor.to_list(length=20)
     return events
+
+
+@router.get("/sessions")
+async def get_my_session_history(
+    current_user: User = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    """
+    Returns recent login and session events for the current user.
+    """
+    student_ref = current_user.student_id or str(current_user.id)
+    pid = getattr(current_user, "pid", None) or pseudonymize(student_ref)
+
+    cursor = db[col.ACTIVITY_EVENTS].find(
+        {"pid": pid, "event_type": "login"},
+        {"_id": 0},
+    ).sort("timestamp", -1).limit(15)
+
+    sessions = await cursor.to_list(length=15)
+    return sessions
+
+
+@router.get("/my-activity")
+async def get_my_activity(
+    current_user: User = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    """
+    Returns recent activity clickstream and interaction events for current user.
+    """
+    student_ref = current_user.student_id or str(current_user.id)
+    pid = getattr(current_user, "pid", None) or pseudonymize(student_ref)
+
+    cursor = db[col.ACTIVITY_EVENTS].find(
+        {"pid": pid},
+        {"_id": 0},
+    ).sort("timestamp", -1).limit(30)
+
+    events = await cursor.to_list(length=30)
+    return events
+
