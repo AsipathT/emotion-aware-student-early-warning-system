@@ -238,6 +238,22 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception as exc:
         print(f"[startup]  Warning: feedback index creation failed: {exc}")
 
+    # --- Dushan: validation indexes ---
+    try:
+        from app.core.database import db as _db_val
+        await _db_val.validation_labels.create_index(
+            [("reviewer_id", 1), ("pid", 1), ("course_id", 1), ("week_index", 1)],
+            unique=True,
+            background=True,
+        )
+        await _db_val.recommendation_ratings.create_index(
+            [("recommendation_id", 1), ("reviewer_id", 1)],
+            unique=True,
+            background=True,
+        )
+    except Exception as exc:
+        print(f"[startup]  Warning: validation index creation failed: {exc}")
+
 
 
     if getattr(settings, "ENABLE_SCHEDULER", False):
@@ -533,6 +549,16 @@ def create_app() -> FastAPI:
         import logging
         logging.getLogger("app.main").warning(
             "Failed to register staff_feedback router: %s", exc
+        )
+
+    # --- Dushan: staff validation router ---
+    try:
+        from app.routers import staff_validation  # noqa: E402
+        app.include_router(staff_validation.router)
+    except Exception as exc:
+        import logging
+        logging.getLogger("app.main").warning(
+            "Failed to register staff_validation router: %s", exc
         )
 
     return app
