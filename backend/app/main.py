@@ -316,6 +316,15 @@ def create_app() -> FastAPI:
             "Failed to register staff_affective router: %s", exc
         )
 
+    try:
+        from app.routers import staff_students  # noqa: E402
+        app.include_router(staff_students.router)
+    except Exception as exc:
+        import logging
+        logging.getLogger("app.main").warning(
+            "Failed to register staff_students router: %s", exc
+        )
+
     return app
 
 

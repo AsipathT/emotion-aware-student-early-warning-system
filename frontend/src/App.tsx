@@ -26,6 +26,8 @@ import { AttendancePage } from './pages/AttendancePage';
 import { GradebookPage } from './pages/GradebookPage';
 import { StaffAffectivePage } from './pages/StaffAffectivePage';
 import { StaffAffectiveDetailPage } from './pages/StaffAffectiveDetailPage';
+import { StaffStudentsPage } from './pages/StaffStudentsPage';
+import { StudentContextPage } from './pages/StudentContextPage';
 
 
 const queryClient = new QueryClient({
@@ -218,7 +220,7 @@ export const App: React.FC = () => {
                 path="/staff"
                 element={
                   <ProtectedRoute allowedRoles={['counsellor', 'admin']}>
-                    <Navigate to="/staff/affective" replace />
+                    <Navigate to="/staff/students" replace />
                   </ProtectedRoute>
                 }
               />
@@ -235,6 +237,24 @@ export const App: React.FC = () => {
                 element={
                   <ProtectedRoute allowedRoles={['counsellor', 'admin']}>
                     <StaffAffectiveDetailPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Dushan: F31 */}
+              <Route
+                path="/staff/students"
+                element={
+                  <ProtectedRoute allowedRoles={['counsellor', 'admin']}>
+                    <StaffStudentsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/staff/students/:pid"
+                element={
+                  <ProtectedRoute allowedRoles={['counsellor', 'admin']}>
+                    <StudentContextPage />
                   </ProtectedRoute>
                 }
               />
