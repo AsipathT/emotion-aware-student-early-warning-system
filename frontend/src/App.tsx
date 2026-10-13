@@ -29,6 +29,9 @@ import { ExportPipelinePage } from './pages/ExportPipelinePage';
 import { CohortRiskPage } from './pages/CohortRiskPage';
 
 
+import { ClickstreamTracker } from './components/telemetry/ClickstreamTracker';
+
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -42,6 +45,7 @@ export const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <ClickstreamTracker />
         <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
           <ConsentGate />
           <Navbar />

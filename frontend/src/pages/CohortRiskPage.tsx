@@ -274,33 +274,135 @@ export const CohortRiskPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Trajectory Breakdown Pills */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center space-x-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
-          <span>Engagement Trajectory Distribution:</span>
+      {/* Trajectory Breakdown & Distribution Bar (Feature 29) */}
+      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center space-x-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
+            <span>Engagement Trajectory Distribution (Feature 29)</span>
+          </div>
+          <span className="text-xs text-slate-400">Click a cohort segment to filter students</span>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center space-x-1.5 px-3 py-1 bg-red-50 text-red-700 rounded-lg text-xs font-semibold border border-red-200">
-            <TrendingDown className="w-3.5 h-3.5 text-red-600" />
-            <span>Declining:</span>
-            <span className="font-black">{summary?.trajectory_distribution.declining ?? 0}</span>
-          </div>
-          <div className="flex items-center space-x-1.5 px-3 py-1 bg-amber-50 text-amber-700 rounded-lg text-xs font-semibold border border-amber-200">
-            <Zap className="w-3.5 h-3.5 text-amber-600" />
-            <span>Volatile:</span>
-            <span className="font-black">{summary?.trajectory_distribution.volatile ?? 0}</span>
-          </div>
-          <div className="flex items-center space-x-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold border border-blue-200">
-            <Minus className="w-3.5 h-3.5 text-blue-600" />
-            <span>Stable:</span>
-            <span className="font-black">{summary?.trajectory_distribution.stable ?? 0}</span>
-          </div>
-          <div className="flex items-center space-x-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-semibold border border-emerald-200">
-            <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Improving:</span>
-            <span className="font-black">{summary?.trajectory_distribution.improving ?? 0}</span>
-          </div>
-        </div>
+
+        {/* Visual Multi-Segment Trajectory Bar */}
+        {(() => {
+          const dec = summary?.trajectory_distribution.declining ?? 0;
+          const vol = summary?.trajectory_distribution.volatile ?? 0;
+          const sta = summary?.trajectory_distribution.stable ?? 0;
+          const imp = summary?.trajectory_distribution.improving ?? 0;
+          const total = dec + vol + sta + imp || 1;
+
+          return (
+            <div className="space-y-3">
+              <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
+                {dec > 0 && (
+                  <div
+                    style={{ width: `${(dec / total) * 100}%` }}
+                    className="bg-red-500 hover:bg-red-600 transition-all cursor-pointer"
+                    title={`Declining: ${dec} (${Math.round((dec / total) * 100)}%)`}
+                    onClick={() => setTrajectoryFilter('declining')}
+                  />
+                )}
+                {vol > 0 && (
+                  <div
+                    style={{ width: `${(vol / total) * 100}%` }}
+                    className="bg-amber-500 hover:bg-amber-600 transition-all cursor-pointer"
+                    title={`Volatile: ${vol} (${Math.round((vol / total) * 100)}%)`}
+                    onClick={() => setTrajectoryFilter('volatile')}
+                  />
+                )}
+                {sta > 0 && (
+                  <div
+                    style={{ width: `${(sta / total) * 100}%` }}
+                    className="bg-blue-500 hover:bg-blue-600 transition-all cursor-pointer"
+                    title={`Stable: ${sta} (${Math.round((sta / total) * 100)}%)`}
+                    onClick={() => setTrajectoryFilter('stable')}
+                  />
+                )}
+                {imp > 0 && (
+                  <div
+                    style={{ width: `${(imp / total) * 100}%` }}
+                    className="bg-emerald-500 hover:bg-emerald-600 transition-all cursor-pointer"
+                    title={`Improving: ${imp} (${Math.round((imp / total) * 100)}%)`}
+                    onClick={() => setTrajectoryFilter('improving')}
+                  />
+                )}
+              </div>
+
+              {/* Trajectory Pills */}
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setTrajectoryFilter(trajectoryFilter === 'declining' ? 'all' : 'declining')}
+                  className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                    trajectoryFilter === 'declining'
+                      ? 'bg-red-600 text-white border-red-700 shadow-sm'
+                      : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
+                  }`}
+                >
+                  <TrendingDown className="w-3.5 h-3.5" />
+                  <span>Declining:</span>
+                  <span className="font-black">{dec}</span>
+                  <span className="text-[10px] opacity-80">({Math.round((dec / total) * 100)}%)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTrajectoryFilter(trajectoryFilter === 'volatile' ? 'all' : 'volatile')}
+                  className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                    trajectoryFilter === 'volatile'
+                      ? 'bg-amber-600 text-white border-amber-700 shadow-sm'
+                      : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                  }`}
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>Volatile:</span>
+                  <span className="font-black">{vol}</span>
+                  <span className="text-[10px] opacity-80">({Math.round((vol / total) * 100)}%)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTrajectoryFilter(trajectoryFilter === 'stable' ? 'all' : 'stable')}
+                  className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                    trajectoryFilter === 'stable'
+                      ? 'bg-blue-600 text-white border-blue-700 shadow-sm'
+                      : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                  }`}
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                  <span>Stable:</span>
+                  <span className="font-black">{sta}</span>
+                  <span className="text-[10px] opacity-80">({Math.round((sta / total) * 100)}%)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTrajectoryFilter(trajectoryFilter === 'improving' ? 'all' : 'improving')}
+                  className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                    trajectoryFilter === 'improving'
+                      ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
+                      : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                  }`}
+                >
+                  <TrendingUp className="w-3.5 h-3.5" />
+                  <span>Improving:</span>
+                  <span className="font-black">{imp}</span>
+                  <span className="text-[10px] opacity-80">({Math.round((imp / total) * 100)}%)</span>
+                </button>
+
+                {trajectoryFilter !== 'all' && (
+                  <button
+                    type="button"
+                    onClick={() => setTrajectoryFilter('all')}
+                    className="text-xs text-slate-500 hover:text-slate-700 underline font-medium ml-2"
+                  >
+                    Clear Filter
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Roster Controls: Search & Filters */}
