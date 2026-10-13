@@ -424,6 +424,15 @@ def create_app() -> FastAPI:
             "Failed to register support_student router: %s", exc
         )
 
+    try:
+        from app.routers import staff_outcomes  # noqa: E402
+        app.include_router(staff_outcomes.router)
+    except Exception as exc:
+        import logging
+        logging.getLogger("app.main").warning(
+            "Failed to register staff_outcomes router: %s", exc
+        )
+
     return app
 
 

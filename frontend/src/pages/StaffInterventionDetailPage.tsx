@@ -31,6 +31,7 @@ import {
   User,
 } from 'lucide-react';
 import { StaffTabs } from '../components/staff/StaffTabs';
+import { OutcomeSection } from '../components/staff/OutcomeSection';
 import {
   staffInterventionsApi,
   StaffMemberItem,
@@ -663,6 +664,11 @@ export const StaffInterventionDetailPage: React.FC = () => {
           </div>
 
           {/* Dushan: F35 outcome section */}
+          <OutcomeSection
+            interventionId={detail.id}
+            status={detail.status}
+            onOutcomeSaved={() => refetch()}
+          />
 
           {/* Dushan: F38 delivery panel */}
 
