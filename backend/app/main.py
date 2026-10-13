@@ -185,6 +185,25 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception as exc:
         print(f"[startup]  Warning: resource index creation failed: {exc}")
 
+    # --- Dushan: slot indexes ---
+    try:
+        from app.core.database import db as _db_slot
+        await _db_slot.counselling_slots.create_index(
+            [("counsellor_id", 1), ("start_at", 1)],
+            background=True,
+        )
+        await _db_slot.counselling_slots.create_index(
+            [("booked_by_user_id", 1), ("start_at", 1)],
+            background=True,
+        )
+        await _db_slot.counselling_slots.create_index(
+            [("start_at", 1)],
+            background=True,
+        )
+    except Exception as exc:
+        print(f"[startup]  Warning: counselling slot index creation failed: {exc}")
+
+
 
     if getattr(settings, "ENABLE_SCHEDULER", False):
         try:
@@ -451,6 +470,15 @@ def create_app() -> FastAPI:
         import logging
         logging.getLogger("app.main").warning(
             "Failed to register support_staff_resources router: %s", exc
+        )
+
+    try:
+        from app.routers import support_staff_slots  # noqa: E402
+        app.include_router(support_staff_slots.router)
+    except Exception as exc:
+        import logging
+        logging.getLogger("app.main").warning(
+            "Failed to register support_staff_slots router: %s", exc
         )
 
     return app

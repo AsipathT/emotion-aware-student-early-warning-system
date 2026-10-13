@@ -87,3 +87,47 @@ class MarkResourceViewedResponse(BaseModel):
     resource_id: str
     viewed_at: Optional[datetime] = None
 
+
+class BookedSlotItem(BaseModel):
+    """Student-facing view of their confirmed counselling appointment (Feature 38-B)."""
+    id: str
+    counsellor_id: str
+    counsellor_name: Optional[str] = None
+    start_at: datetime
+    duration_minutes: int
+    mode: str
+    location_or_link: Optional[str] = None
+    booked_at: Optional[datetime] = None
+
+
+class AvailableSlotItem(BaseModel):
+    """Student-facing view of open available counselling slots (Feature 38-B). Location/link masked."""
+    id: str
+    counsellor_id: str
+    counsellor_name: Optional[str] = None
+    start_at: datetime
+    duration_minutes: int
+    mode: str
+
+
+class AvailableSlotListResponse(BaseModel):
+    """List of open available counselling slots."""
+    items: List[AvailableSlotItem]
+    total_count: int
+
+
+class SlotBookingResult(BaseModel):
+    """Response returned upon student booking an appointment slot."""
+    success: bool
+    slot: BookedSlotItem
+    intervention_id: str
+    status: str
+    message: str
+
+
+class SlotCancelResult(BaseModel):
+    """Response returned upon student cancelling their booked appointment."""
+    success: bool
+    message: str
+
+

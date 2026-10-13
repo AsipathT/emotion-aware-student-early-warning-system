@@ -13,8 +13,10 @@
  */
 
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
+  Calendar,
   BookOpen,
   Share2,
   ExternalLink,
@@ -181,6 +183,23 @@ export const DeliveryPanel: React.FC<DeliveryPanelProps> = ({
       </div>
 
       {/* Expansion Slot: Part B (F38-B Counselling Booking) */}
+      {interventionType.toLowerCase() === 'counselling_mental_health' && (
+        <div className="p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100 flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2 text-indigo-900">
+            <Calendar className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+            <span>
+              <strong>Counselling Delivery Module:</strong> Appointment slots can be published and managed in the Slots schedule.
+            </span>
+          </div>
+          <Link
+            to="/staff/slots"
+            className="inline-flex items-center gap-1 font-semibold text-indigo-600 hover:text-indigo-800 transition"
+          >
+            <span>Manage Slots</span>
+            <ExternalLink className="w-3 h-3" />
+          </Link>
+        </div>
+      )}
       {/* Expansion Slot: Part D (F38-D Peer Mentoring Connection) */}
 
       {/* Notification Banner */}

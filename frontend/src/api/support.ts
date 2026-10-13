@@ -40,6 +40,44 @@ export interface MarkResourceViewedResponse {
   viewed_at?: string | null;
 }
 
+export interface BookedSlotItem {
+  id: string;
+  counsellor_id: string;
+  counsellor_name?: string | null;
+  start_at: string;
+  duration_minutes: number;
+  mode: 'in_person' | 'online';
+  location_or_link?: string | null;
+  booked_at?: string | null;
+}
+
+export interface AvailableSlotItem {
+  id: string;
+  counsellor_id: string;
+  counsellor_name?: string | null;
+  start_at: string;
+  duration_minutes: number;
+  mode: 'in_person' | 'online';
+}
+
+export interface AvailableSlotListResponse {
+  items: AvailableSlotItem[];
+  total_count: number;
+}
+
+export interface SlotBookingResult {
+  success: boolean;
+  slot: BookedSlotItem;
+  intervention_id: string;
+  status: string;
+  message: string;
+}
+
+export interface SlotCancelResult {
+  success: boolean;
+  message: string;
+}
+
 export interface StudentSupportInterventionItem {
   id: string;
   student_label: string;
@@ -52,7 +90,7 @@ export interface StudentSupportInterventionItem {
   student_response?: StudentSupportResponse | null;
 
   // Extension placeholders for Parts B, C, D
-  slot?: Record<string, any> | null;
+  slot?: BookedSlotItem | null;
   resources?: StudentSharedResourceItem[] | null;
   mentor?: Record<string, any> | null;
 }
@@ -99,6 +137,38 @@ export const supportApi = {
   ): Promise<MarkResourceViewedResponse> => {
     const response = await apiClient.post<MarkResourceViewedResponse>(
       `/support/me/interventions/${encodeURIComponent(interventionId)}/resources/${encodeURIComponent(resourceId)}/viewed`
+    );
+    return response.data;
+  },
+
+  getAvailableSlots: async (
+    interventionId: string
+  ): Promise<AvailableSlotListResponse> => {
+    const response = await apiClient.get<AvailableSlotListResponse>(
+      '/support/me/slots',
+      {
+        params: { intervention_id: interventionId },
+      }
+    );
+    return response.data;
+  },
+
+  bookSlot: async (
+    interventionId: string,
+    slotId: string
+  ): Promise<SlotBookingResult> => {
+    const response = await apiClient.post<SlotBookingResult>(
+      `/support/me/interventions/${encodeURIComponent(interventionId)}/book`,
+      { slot_id: slotId }
+    );
+    return response.data;
+  },
+
+  cancelBooking: async (
+    interventionId: string
+  ): Promise<SlotCancelResult> => {
+    const response = await apiClient.post<SlotCancelResult>(
+      `/support/me/interventions/${encodeURIComponent(interventionId)}/cancel-booking`
     );
     return response.data;
   },

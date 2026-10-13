@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { Users, Sparkles, Lightbulb } from 'lucide-react';
-import { HeartHandshake, BookOpen } from 'lucide-react';
+import { HeartHandshake, BookOpen, Calendar } from 'lucide-react';
 
 export interface StaffTabItem {
   label: string;
@@ -15,6 +15,7 @@ export const STAFF_TABS: StaffTabItem[] = [
   { label: 'Recommendations', to: '/staff/recommendations', icon: Lightbulb },
   { label: 'Interventions', to: '/staff/interventions', icon: HeartHandshake },
   { label: 'Resources', to: '/staff/resources', icon: BookOpen },
+  { label: 'Slots', to: '/staff/slots', icon: Calendar },
   // Dushan: append one entry per staff feature (F31..F38)
 ];
 

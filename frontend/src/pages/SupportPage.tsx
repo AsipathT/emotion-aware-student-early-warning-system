@@ -31,6 +31,7 @@ import {
   StudentSharedResourceItem,
   DeclineReason,
 } from '../api/support';
+import { CounsellingBookingWidget } from '../components/student/CounsellingBookingWidget';
 
 const DECLINE_CHIPS: { value: DeclineReason; label: string }[] = [
   { value: 'no_time', label: 'Schedule conflict / No time' },
@@ -322,6 +323,10 @@ export const SupportPage: React.FC = () => {
 
               {/* Marked Extension Slots */}
               {/* Dushan: F38-B booking */}
+              <CounsellingBookingWidget
+                intervention={item}
+                onBookingChanged={() => refetch()}
+              />
               {/* F38-C resources */}
               {item.resources && item.resources.length > 0 && (
                 <div className="pt-3 border-t border-slate-100 space-y-3">
