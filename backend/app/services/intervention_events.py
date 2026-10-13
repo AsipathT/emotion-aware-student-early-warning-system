@@ -28,16 +28,37 @@ async def on_intervention_offered(
 ) -> None:
     """
     Hook triggered when an intervention transitions to 'offered'.
-    F34: NO-OP stub logging event occurrence.
-    F37: Will trigger multi-channel student notification dispatch.
+    F37: Dispatches supportive student notification without revealing analytics.
     """
-    interv_id = record.get("id") or record.get("intervention_id")
-    pid = record.get("pid")
-    logger.info(
-        "[HOOK: on_intervention_offered] Intervention '%s' offered to student '%s'. (F37 dispatch pending)",
-        interv_id,
-        pid,
-    )
+    try:
+        interv_id = str(record.get("id") or record.get("intervention_id") or "")
+        pid = str(record.get("pid") or "")
+        if not pid:
+            return
+
+        from app.services.intervention_catalog import get_entry
+        from app.services.notification_service import notify_pid
+
+        itype = record.get("intervention_type")
+        catalog_entry = get_entry(itype)
+        student_label = catalog_entry.get("student_label") or "Academic Guidance & Support"
+
+        await notify_pid(
+            db=db,
+            pid=pid,
+            template_key="support_offered",
+            student_label=student_label,
+            link="/support",
+            related_id=interv_id,
+            dedupe_key=f"support_offered:{interv_id}",
+        )
+        logger.info(
+            "[HOOK: on_intervention_offered] Notification dispatched for intervention '%s', student '%s'.",
+            interv_id,
+            pid,
+        )
+    except Exception as exc:
+        logger.warning("[HOOK: on_intervention_offered] Failed to dispatch notification: %s", exc)
 
 
 async def on_intervention_completed(

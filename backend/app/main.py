@@ -155,6 +155,26 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception as exc:
         print(f"[startup]  Warning: intervention index creation failed: {exc}")
 
+    # --- Dushan: notification indexes ---
+    try:
+        from app.core.database import db as _db_notif
+        await _db_notif.notifications.create_index(
+            [("user_id", 1), ("created_at", -1)],
+            background=True,
+        )
+        await _db_notif.notifications.create_index(
+            [("user_id", 1), ("read_at", 1)],
+            background=True,
+        )
+        await _db_notif.notifications.create_index(
+            [("dedupe_key", 1)],
+            unique=True,
+            sparse=True,
+            background=True,
+        )
+    except Exception as exc:
+        print(f"[startup]  Warning: notification index creation failed: {exc}")
+
     if getattr(settings, "ENABLE_SCHEDULER", False):
         try:
             from app.jobs.scheduler import start_scheduler
@@ -384,6 +404,15 @@ def create_app() -> FastAPI:
         import logging
         logging.getLogger("app.main").warning(
             "Failed to register staff_interventions router: %s", exc
+        )
+
+    try:
+        from app.routers import notifications  # noqa: E402
+        app.include_router(notifications.router)
+    except Exception as exc:
+        import logging
+        logging.getLogger("app.main").warning(
+            "Failed to register notifications router: %s", exc
         )
 
     return app

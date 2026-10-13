@@ -14,6 +14,7 @@ import {
   MessageCircle,
   HeartHandshake,
 } from 'lucide-react';
+import { NotificationBell } from './NotificationBell';
 
 
 export const Navbar: React.FC = () => {
@@ -172,6 +173,7 @@ export const Navbar: React.FC = () => {
 
 
                 <div className="flex items-center space-x-2 pl-3 sm:pl-4 border-l border-slate-200">
+                  <NotificationBell />
                   <Link
                     to="/profile"
                     title="View and edit your profile"
