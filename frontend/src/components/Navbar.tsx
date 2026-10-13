@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   BookmarkCheck,
   MessageCircle,
+  HeartHandshake,
 } from 'lucide-react';
 
 
@@ -110,6 +111,21 @@ export const Navbar: React.FC = () => {
                     >
                       <MessageCircle className="w-4 h-4 mr-1.5" />
                       Messages
+                    </Link>
+                  )}
+
+                  {/* Dushan: Student Support link for counsellor/admin */}
+                  {(user.role === 'counsellor' || user.role === 'admin') && (
+                    <Link
+                      to="/staff"
+                      className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                        isCurrent('/staff')
+                          ? 'text-indigo-600 bg-indigo-50/80 font-semibold'
+                          : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <HeartHandshake className="w-4 h-4 mr-1.5" />
+                      Student Support
                     </Link>
                   )}
 

@@ -305,6 +305,17 @@ def create_app() -> FastAPI:
 
     from app.routers import telemetry  # noqa: E402
     app.include_router(telemetry.router)
+
+    # --- Dushan: staff workspace ---
+    try:
+        from app.routers import staff_affective  # noqa: E402
+        app.include_router(staff_affective.router)
+    except Exception as exc:
+        import logging
+        logging.getLogger("app.main").warning(
+            "Failed to register staff_affective router: %s", exc
+        )
+
     return app
 
 
