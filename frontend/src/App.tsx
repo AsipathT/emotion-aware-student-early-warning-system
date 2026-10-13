@@ -30,6 +30,8 @@ import { StaffStudentsPage } from './pages/StaffStudentsPage';
 import { StudentContextPage } from './pages/StudentContextPage';
 import { StaffRecommendationsPage } from './pages/StaffRecommendationsPage';
 import { StaffRecommendationDetailPage } from './pages/StaffRecommendationDetailPage';
+import { StaffInterventionsPage } from './pages/StaffInterventionsPage';
+import { StaffInterventionDetailPage } from './pages/StaffInterventionDetailPage';
 
 
 const queryClient = new QueryClient({
@@ -275,6 +277,24 @@ export const App: React.FC = () => {
                 element={
                   <ProtectedRoute allowedRoles={['counsellor', 'admin']}>
                     <StaffRecommendationDetailPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Dushan: F34 */}
+              <Route
+                path="/staff/interventions"
+                element={
+                  <ProtectedRoute allowedRoles={['counsellor', 'admin']}>
+                    <StaffInterventionsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/staff/interventions/:id"
+                element={
+                  <ProtectedRoute allowedRoles={['counsellor', 'admin']}>
+                    <StaffInterventionDetailPage />
                   </ProtectedRoute>
                 }
               />
