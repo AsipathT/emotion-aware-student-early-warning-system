@@ -41,7 +41,7 @@ router = APIRouter(prefix="/api/v1/courses", tags=["assignments"])
 
 @router.post("/{course_id}/assignments", response_model=AssignmentResponse, status_code=status.HTTP_201_CREATED)
 async def create_assignment(
-    course_id: uuid.UUID,
+    course_id: str,
     assignment_in: AssignmentCreate,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN)),
@@ -57,7 +57,7 @@ async def create_assignment(
 
 @router.get("/{course_id}/assignments", response_model=List[AssignmentResponse])
 async def list_assignments(
-    course_id: uuid.UUID,
+    course_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> List[Dict[str, Any]]:
@@ -78,8 +78,8 @@ async def list_assignments(
 
 @router.get("/{course_id}/assignments/{assignment_id}", response_model=AssignmentResponse)
 async def get_assignment(
-    course_id: uuid.UUID,
-    assignment_id: uuid.UUID,
+    course_id: str,
+    assignment_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
@@ -99,8 +99,8 @@ async def get_assignment(
 
 @router.patch("/{course_id}/assignments/{assignment_id}", response_model=AssignmentResponse)
 async def update_assignment(
-    course_id: uuid.UUID,
-    assignment_id: uuid.UUID,
+    course_id: str,
+    assignment_id: str,
     assignment_in: AssignmentUpdate,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN)),
@@ -126,8 +126,8 @@ async def update_assignment(
 
 @router.delete("/{course_id}/assignments/{assignment_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_assignment(
-    course_id: uuid.UUID,
-    assignment_id: uuid.UUID,
+    course_id: str,
+    assignment_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN)),
 ) -> None:
@@ -146,8 +146,8 @@ async def delete_assignment(
 
 @router.post("/{course_id}/assignments/{assignment_id}/submit", response_model=AssignmentSubmissionResponse)
 async def submit_assignment(
-    course_id: uuid.UUID,
-    assignment_id: uuid.UUID,
+    course_id: str,
+    assignment_id: str,
     submission_in: AssignmentSubmissionCreate,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.STUDENT)),
@@ -220,8 +220,8 @@ async def submit_assignment(
 
 @router.get("/{course_id}/assignments/{assignment_id}/my-submission", response_model=Optional[AssignmentSubmissionResponse])
 async def get_my_submission(
-    course_id: uuid.UUID,
-    assignment_id: uuid.UUID,
+    course_id: str,
+    assignment_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.STUDENT)),
 ) -> Optional[Dict[str, Any]]:
@@ -237,8 +237,8 @@ async def get_my_submission(
 
 @router.get("/{course_id}/assignments/{assignment_id}/submissions", response_model=List[AssignmentSubmissionResponse])
 async def list_submissions(
-    course_id: uuid.UUID,
-    assignment_id: uuid.UUID,
+    course_id: str,
+    assignment_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN)),
 ) -> List[Dict[str, Any]]:
@@ -258,9 +258,9 @@ async def list_submissions(
     response_model=AssignmentSubmissionResponse,
 )
 async def grade_submission(
-    course_id: uuid.UUID,
-    assignment_id: uuid.UUID,
-    student_id: uuid.UUID,
+    course_id: str,
+    assignment_id: str,
+    student_id: str,
     grade_in: AssignmentSubmissionGrade,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.LECTURER, UserRole.ADMIN)),

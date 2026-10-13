@@ -13,8 +13,11 @@ import {
   Shield,
   Calendar,
   Sparkles,
+  Clock,
+  Laptop,
 } from 'lucide-react';
 import { PrivacySettings } from '../components/profile/PrivacySettings';
+import { telemetryApi, ActivityEventResponse } from '../api/telemetry';
 
 
 export const ProfilePage: React.FC = () => {
@@ -39,6 +42,12 @@ export const ProfilePage: React.FC = () => {
   } = useQuery<UserMeResponse>({
     queryKey: ['userProfile'],
     queryFn: usersApi.getCurrentUser,
+  });
+
+  // Fetch recent login & session tracking history (Feature 18)
+  const { data: sessionHistory = [], isLoading: isLoadingSessions } = useQuery<ActivityEventResponse[]>({
+    queryKey: ['mySessions'],
+    queryFn: telemetryApi.getMySessions,
   });
 
   // Populate form fields once profile data loads or changes
@@ -392,6 +401,56 @@ export const ProfilePage: React.FC = () => {
                 </span>
               </div>
             </div>
+          </div>
+
+          {/* Feature 18: Recent Login & Session History */}
+          <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-sm text-slate-900 uppercase tracking-wider flex items-center space-x-2">
+                <Clock className="w-4 h-4 text-indigo-600" />
+                <span>Recent Sessions</span>
+              </h3>
+              <span className="text-[11px] font-semibold text-slate-400">Activity Telemetry</span>
+            </div>
+
+            {isLoadingSessions ? (
+              <p className="text-xs text-slate-400">Loading session records...</p>
+            ) : sessionHistory.length === 0 ? (
+              <div className="text-xs text-slate-400 py-2">
+                Current active session recorded. Future logins will appear here.
+              </div>
+            ) : (
+              <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
+                {sessionHistory.slice(0, 5).map((sess) => (
+                  <div
+                    key={sess.id}
+                    className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 flex items-start justify-between text-xs"
+                  >
+                    <div className="flex items-start space-x-2">
+                      <Laptop className="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div className="font-semibold text-slate-800 capitalize">
+                          {sess.event_type} Event
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono truncate max-w-[140px]">
+                          IP: {sess.event_payload?.ip || '127.0.0.1'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-slate-400 text-right">
+                      {new Date(sess.timestamp).toLocaleDateString([], {
+                        month: 'short',
+                        day: 'numeric',
+                      })}{' '}
+                      {new Date(sess.timestamp).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Privacy & Ethics Notice Card */}

@@ -220,6 +220,33 @@ async def login(
             details={"consent_required": consent_required},
         )
 
+        # Feature 18: Session & login tracking into col.ACTIVITY_EVENTS
+        if role_str == "student":
+            try:
+                from app.db import collections as col
+                pid = user_doc.get("pid") or pseudonymize(user_doc.get("student_id") or user_id_str)
+                event_id = str(uuid.uuid4())
+                now_utc = datetime.now(timezone.utc)
+                await db[col.ACTIVITY_EVENTS].insert_one({
+                    "_id": event_id,
+                    "id": event_id,
+                    "schema_version": 1,
+                    "pid": pid,
+                    "course_id": "CS101",
+                    "week_index": 1,
+                    "event_type": "login",
+                    "event_payload": {
+                        "ip": request.client.host if request.client else "127.0.0.1",
+                        "user_agent": request.headers.get("user-agent", "unknown")[:100],
+                    },
+                    "clicks": 1,
+                    "timestamp": now_utc,
+                    "ingested_at": now_utc,
+                    "source_version": "1.0",
+                })
+            except Exception:
+                pass
+
         return TokenResponse(
             access_token=create_access_token(user_id_str, role_str),
             refresh_token=create_refresh_token(user_id_str, role_str),

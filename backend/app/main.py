@@ -561,6 +561,8 @@ def create_app() -> FastAPI:
             "Failed to register staff_validation router: %s", exc
         )
 
+    from app.routers import analytics  # noqa: E402
+    app.include_router(analytics.router)
     return app
 
 
