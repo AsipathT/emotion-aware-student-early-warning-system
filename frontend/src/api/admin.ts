@@ -519,6 +519,299 @@ export const publishAdminConsentNotice = async (
   return response.data;
 };
 
+// ── Phase 3: Pipeline Orchestrator Types & Methods ───────────────────────────
+
+export interface PipelineStageInfo {
+  status: 'pending' | 'running' | 'complete' | 'failed' | 'skipped';
+  started_at?: string | null;
+  finished_at?: string | null;
+  error?: string | null;
+  input_summary?: Record<string, any>;
+  output_summary?: Record<string, any>;
+}
+
+export interface PipelineRunStorage {
+  course_id: string;
+  week_index: number;
+  trigger: 'scheduler' | 'manual';
+  triggered_by: string;
+  status: 'pending' | 'running' | 'complete' | 'failed' | 'partial';
+  current_stage?: string | null;
+  started_at: string;
+  finished_at?: string | null;
+  error_message?: string | null;
+  stages: {
+    lms_aggregation?: PipelineStageInfo;
+    c1_affective?: PipelineStageInfo;
+    c2_trajectory?: PipelineStageInfo;
+    c3_risk?: PipelineStageInfo;
+    c4_intervention?: PipelineStageInfo;
+  };
+}
+
+export interface PaginatedPipelineRunsResponse {
+  items: PipelineRunStorage[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface PipelineTriggerPayload {
+  course_id: string;
+  week_index: number;
+  force?: boolean;
+}
+
+export const getPipelineRuns = async (params?: {
+  course_id?: string;
+  week_index?: number;
+  status?: string;
+  page?: number;
+  page_size?: number;
+}): Promise<PaginatedPipelineRunsResponse> => {
+  const response = await apiClient.get<PaginatedPipelineRunsResponse>('/pipeline/runs', { params });
+  return response.data;
+};
+
+export const getPipelineRunDetail = async (
+  courseId: string,
+  weekIndex: number
+): Promise<PipelineRunStorage> => {
+  const response = await apiClient.get<PipelineRunStorage>(`/pipeline/runs/${courseId}/${weekIndex}`);
+  return response.data;
+};
+
+export const triggerPipelineRun = async (
+  payload: PipelineTriggerPayload
+): Promise<{ status: string; message: string; run?: PipelineRunStorage }> => {
+  const response = await apiClient.post<{ status: string; message: string; run?: PipelineRunStorage }>(
+    '/pipeline/trigger',
+    payload
+  );
+  return response.data;
+};
+
+export const advancePipelineRun = async (
+  courseId: string,
+  weekIndex: number
+): Promise<{ status: string; message: string; run?: PipelineRunStorage }> => {
+  const response = await apiClient.post<{ status: string; message: string; run?: PipelineRunStorage }>(
+    `/pipeline/runs/${courseId}/${weekIndex}/advance`
+  );
+  return response.data;
+};
+
+export const getPipelineStatus = async (): Promise<Record<string, any>> => {
+  const response = await apiClient.get<Record<string, any>>('/pipeline/status');
+  return response.data;
+};
+
+// ── Phase 3: Ingestion Health Types & Methods ────────────────────────────────
+
+export interface ComponentIngestionHealth {
+  component: string;
+  title: string;
+  api_key_configured: boolean;
+  status: 'idle' | 'success' | 'partial' | 'failed';
+  last_run_at?: string | null;
+  last_success_at?: string | null;
+  last_error?: string | null;
+  contract_version?: string | null;
+  records_accepted_total: number;
+  records_rejected_total: number;
+  records_processed_total: number;
+}
+
+export interface AdminIngestionStatusResponse {
+  components: Record<string, ComponentIngestionHealth>;
+  total_runs: number;
+  active_runs: number;
+}
+
+export interface AdminIngestionRunItem {
+  id: string;
+  component: string;
+  started_at: string;
+  finished_at?: string | null;
+  status: 'success' | 'partial' | 'failed';
+  records_processed: number;
+  records_accepted: number;
+  records_rejected: number;
+  dry_run: boolean;
+  contract_version?: string | null;
+  error_message?: string | null;
+}
+
+export interface AdminPaginatedIngestionRunsResponse {
+  items: AdminIngestionRunItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export const getAdminIngestionStatus = async (): Promise<AdminIngestionStatusResponse> => {
+  const response = await apiClient.get<AdminIngestionStatusResponse>('/admin/ingestion/status');
+  return response.data;
+};
+
+export const getAdminIngestionRuns = async (params?: {
+  component?: string;
+  status?: string;
+  page?: number;
+  page_size?: number;
+}): Promise<AdminPaginatedIngestionRunsResponse> => {
+  const response = await apiClient.get<AdminPaginatedIngestionRunsResponse>('/admin/ingestion/runs', {
+    params,
+  });
+  return response.data;
+};
+
+// ── Phase 3: Privacy & Controlled Reveal Types & Methods ─────────────────────
+
+export interface AdminIdentityRevealPayload {
+  pid: string;
+  justification: string;
+}
+
+export interface AdminIdentityRevealResponse {
+  pid: string;
+  student_id: string;
+  name: string;
+  email: string;
+}
+
+export interface AdminRevealHistoryItem {
+  id: string;
+  timestamp: string;
+  actor_id: string;
+  actor_role: string;
+  pid: string;
+  reason: string;
+  outcome: string;
+}
+
+export interface AdminPaginatedRevealHistoryResponse {
+  items: AdminRevealHistoryItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface AdminScrubTestPayload {
+  text: string;
+  known_names?: string[];
+}
+
+export interface AdminScrubTestResponse {
+  clean_text: string;
+  redaction_report: Record<string, number>;
+}
+
+export const breakglassRevealIdentity = async (
+  payload: AdminIdentityRevealPayload
+): Promise<AdminIdentityRevealResponse> => {
+  const response = await apiClient.post<AdminIdentityRevealResponse>('/admin/privacy/reveal', payload);
+  return response.data;
+};
+
+export const getRevealHistory = async (params?: {
+  page?: number;
+  page_size?: number;
+}): Promise<AdminPaginatedRevealHistoryResponse> => {
+  const response = await apiClient.get<AdminPaginatedRevealHistoryResponse>('/admin/privacy/reveal-history', {
+    params,
+  });
+  return response.data;
+};
+
+export const testScrubContent = async (
+  payload: AdminScrubTestPayload
+): Promise<AdminScrubTestResponse> => {
+  const response = await apiClient.post<AdminScrubTestResponse>('/admin/privacy/scrub-test', payload);
+  return response.data;
+};
+
+// ── Phase 3: Exports & History Types & Methods ───────────────────────────────
+
+export interface AdminExportHistoryItem {
+  id: string;
+  timestamp: string;
+  actor_id: string;
+  actor_role: string;
+  dataset: string;
+  format: string;
+  row_count: number;
+  filters: Record<string, any>;
+}
+
+export interface AdminPaginatedExportHistoryResponse {
+  items: AdminExportHistoryItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export const downloadAdminExport = async (
+  dataset: string,
+  format: 'csv' | 'json',
+  courseId?: string,
+  weekIndex?: number
+): Promise<Blob> => {
+  const response = await apiClient.get('/admin/exports/download', {
+    params: {
+      dataset,
+      format,
+      course_id: courseId || undefined,
+      week_index: weekIndex !== undefined ? weekIndex : undefined,
+    },
+    responseType: 'blob',
+  });
+  return response.data;
+};
+
+export const getExportHistory = async (params?: {
+  page?: number;
+  page_size?: number;
+}): Promise<AdminPaginatedExportHistoryResponse> => {
+  const response = await apiClient.get<AdminPaginatedExportHistoryResponse>('/admin/exports/history', {
+    params,
+  });
+  return response.data;
+};
+
+// ── Phase 3: System Diagnostics Types & Methods ──────────────────────────────
+
+export interface AdminMigrationItem {
+  migration_id: string;
+  applied_at: string;
+}
+
+export interface AdminSystemHealthResponse {
+  status: string;
+  db_status: string;
+  db_ping_ms: number;
+  contract_version: string;
+  contract_schemas: string[];
+  applied_migrations: AdminMigrationItem[];
+  total_migrations_applied: number;
+  oulad_status: {
+    is_imported: boolean;
+    imported_students: number;
+    imported_courses: number;
+    imported_enrolments: number;
+    cli_command: string;
+  };
+}
+
+export const getAdminSystemHealth = async (): Promise<AdminSystemHealthResponse> => {
+  const response = await apiClient.get<AdminSystemHealthResponse>('/admin/system/health');
+  return response.data;
+};
+
 export const adminApi = {
   getAdminOverview,
   getAdminUsersPaginated,
@@ -539,5 +832,20 @@ export const adminApi = {
   bulkAdminEnrolment,
   getAdminConsentCoverage,
   publishAdminConsentNotice,
+  // Phase 3
+  getPipelineRuns,
+  getPipelineRunDetail,
+  triggerPipelineRun,
+  advancePipelineRun,
+  getPipelineStatus,
+  getAdminIngestionStatus,
+  getAdminIngestionRuns,
+  breakglassRevealIdentity,
+  getRevealHistory,
+  testScrubContent,
+  downloadAdminExport,
+  getExportHistory,
+  getAdminSystemHealth,
 };
+
 

@@ -43,25 +43,25 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onCloseMobile }) => 
       to: '/admin/courses',
       label: 'Courses',
       icon: GraduationCap,
-      auditorAllowed: false,
+      auditorAllowed: true,
     },
     {
       to: '/admin/enrolments',
       label: 'Enrolments',
       icon: UserCheck,
-      auditorAllowed: false,
+      auditorAllowed: true,
     },
     {
       to: '/admin/consent',
       label: 'Consent & Ethics',
       icon: Scale,
-      auditorAllowed: false,
+      auditorAllowed: true,
     },
     {
       to: '/admin/privacy',
       label: 'Privacy & Identity',
       icon: KeyRound,
-      auditorAllowed: false,
+      auditorAllowed: true,
     },
     {
       to: '/admin/audit',
@@ -85,13 +85,13 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onCloseMobile }) => 
       to: '/admin/exports',
       label: 'Data Export',
       icon: Download,
-      auditorAllowed: false,
+      auditorAllowed: true,
     },
     {
       to: '/admin/system',
       label: 'System & Health',
       icon: Server,
-      auditorAllowed: false,
+      auditorAllowed: true,
     },
   ];
 

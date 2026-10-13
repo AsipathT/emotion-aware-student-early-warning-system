@@ -5,6 +5,9 @@ Admin Panel endpoints (MongoDB backed - Feature 40).
 Provides platform governance, overview KPIs, and user management.
 """
 
+import csv
+import io
+import json
 import math
 import re
 import time
@@ -13,15 +16,19 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import JSONResponse, Response
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.core.config import settings
+from app.core.contract_version import CONTRACT_VERSION
 from app.core.database import get_db
 from app.core.dependencies import get_current_admin, require_roles
-from app.core.privacy import is_valid_pid, pseudonymize
+from app.core.privacy import is_valid_pid, pseudonymize, scrub_text
 from app.core.security import hash_password
 from app.db import collections as col
 from app.models.user import User, UserRole
+from app.routers.audit import _sanitize_csv_cell
+from app.routers.export import get_eligible_consenting_pids
 from app.schemas.admin import (
     AdminBulkEnrolmentRequest,
     AdminBulkEnrolmentResponse,
@@ -35,15 +42,29 @@ from app.schemas.admin import (
     AdminEnrolmentCreateRequest,
     AdminEnrolmentItem,
     AdminEnrolmentSummary,
+    AdminExportHistoryItem,
+    AdminIdentityRevealRequest,
+    AdminIdentityRevealResponse,
+    AdminIngestionRunItem,
+    AdminIngestionStatusResponse,
+    AdminMigrationItem,
     AdminOverviewResponse,
     AdminPaginatedCoursesResponse,
     AdminPaginatedEnrolmentsResponse,
+    AdminPaginatedExportHistoryResponse,
+    AdminPaginatedIngestionRunsResponse,
+    AdminPaginatedRevealHistoryResponse,
     AdminPaginatedUsersResponse,
+    AdminRevealHistoryItem,
+    AdminScrubTestRequest,
+    AdminScrubTestResponse,
+    AdminSystemHealthResponse,
     AdminUserCreateRequest,
     AdminUserDetailResponse,
     AdminUserResponse,
     AdminUserUpdateRequest,
     BulkEnrolmentRowResult,
+    ComponentIngestionHealth,
     SystemStatsResponse,
     UserRoleUpdate,
     UserStatusUpdate,
@@ -119,12 +140,54 @@ async def get_admin_overview(
     total_enrolments = await db[col.ENROLMENTS].count_documents({})
 
     # 4. Consent Coverage (Feature 6)
-    total_students = users_by_role.get("student", 0)
-    accepted_consent = await db[col.CONSENT_RECORDS].count_documents({"status": "accepted"})
-    declined_consent = await db[col.CONSENT_RECORDS].count_documents({"status": "declined"})
-    withdrawn_consent = await db[col.CONSENT_RECORDS].count_documents({"status": "withdrawn"})
-    pending_consent = max(0, total_students - (accepted_consent + declined_consent + withdrawn_consent))
-    coverage_pct = round((accepted_consent / total_students * 100.0), 1) if total_students > 0 else 100.0
+    active_notice_doc = await db[col.CONSENT_NOTICES].find_one({"is_active": True})
+    active_version = active_notice_doc.get("version") if active_notice_doc else None
+
+    student_users = await db[col.USERS].find({"role": "student", "is_active": True}).to_list(length=10000)
+    total_students = len(student_users)
+    student_pids = [u["pid"] for u in student_users if u.get("pid")]
+
+    accepted_consent = 0
+    withdrawn_consent = 0
+    declined_consent = 0
+    pending_consent = total_students
+    coverage_pct = 0.0
+
+    if active_version and student_pids:
+        pipeline = [
+            {"$match": {"notice_version": active_version, "pid": {"$in": student_pids}}},
+            {"$sort": {"timestamp": -1}},
+            {
+                "$group": {
+                    "_id": "$pid",
+                    "latest_decision": {"$first": "$decision"},
+                }
+            },
+        ]
+        decisions_cursor = db[col.CONSENT_RECORDS].aggregate(pipeline)
+        decisions_map: Dict[str, str] = {}
+        async for doc in decisions_cursor:
+            if doc.get("_id"):
+                decisions_map[doc["_id"]] = doc.get("latest_decision", "")
+
+        accepted_consent = 0
+        withdrawn_consent = 0
+        declined_consent = 0
+        pending_consent = 0
+
+        for s in student_users:
+            pid = s.get("pid")
+            dec = decisions_map.get(pid)
+            if dec == "accepted":
+                accepted_consent += 1
+            elif dec == "withdrawn":
+                withdrawn_consent += 1
+            elif dec == "declined":
+                declined_consent += 1
+            else:
+                pending_consent += 1
+
+        coverage_pct = round((accepted_consent / total_students * 100.0), 1) if total_students > 0 else 0.0
 
     consent_stats = {
         "total_students": total_students,
@@ -1643,4 +1706,486 @@ async def get_admin_consent_coverage(
         course_breakdown=course_breakdown,
         notice_history=notice_history,
     )
+
+
+# ── Phase 3: Ingestion Health & Runs ──────────────────────────────────────────
+
+@router.get(
+    "/ingestion/status",
+    response_model=AdminIngestionStatusResponse,
+    summary="Get ML Component Ingestion Status & Health",
+    dependencies=[Depends(require_roles(UserRole.ADMIN, UserRole.AUDITOR))],
+)
+async def get_admin_ingestion_status(
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> AdminIngestionStatusResponse:
+    component_defs = [
+        ("c1", "c1_affective", "C1 Affective Weekly"),
+        ("c2", "c2_trajectory", "C2 Engagement Trajectory"),
+        ("c3", "c3_risk", "C3 Multimodal Risk Assessment"),
+        ("c4", "c4_intervention", "C4 Intervention Recommendations"),
+    ]
+
+    components: Dict[str, ComponentIngestionHealth] = {}
+    for prefix, comp_name, title in component_defs:
+        key_configured = bool(settings.COMPONENT_API_KEYS.get(prefix))
+
+        latest_run = await db[col.INGESTION_RUNS].find_one(
+            {"component": {"$in": [comp_name, prefix]}},
+            sort=[("started_at", -1)],
+        )
+        latest_success = await db[col.INGESTION_RUNS].find_one(
+            {"component": {"$in": [comp_name, prefix]}, "status": "success"},
+            sort=[("started_at", -1)],
+        )
+        latest_failure = await db[col.INGESTION_RUNS].find_one(
+            {"component": {"$in": [comp_name, prefix]}, "status": "failed"},
+            sort=[("started_at", -1)],
+        )
+
+        pipeline = [
+            {"$match": {"component": {"$in": [comp_name, prefix]}}},
+            {
+                "$group": {
+                    "_id": None,
+                    "total_accepted": {"$sum": "$records_accepted"},
+                    "total_rejected": {"$sum": "$records_rejected"},
+                    "total_processed": {"$sum": "$records_processed"},
+                }
+            },
+        ]
+        agg_cursor = db[col.INGESTION_RUNS].aggregate(pipeline)
+        agg_docs = await agg_cursor.to_list(length=1)
+        totals = agg_docs[0] if agg_docs else {}
+
+        last_err = None
+        if latest_failure:
+            last_err = latest_failure.get("error_message") or (
+                latest_failure.get("errors", [{}])[0].get("message")
+                if latest_failure.get("errors")
+                else "Ingestion run failed"
+            )
+
+        status_val = latest_run.get("status") if latest_run else "idle"
+
+        components[prefix] = ComponentIngestionHealth(
+            component=prefix,
+            title=title,
+            api_key_configured=key_configured,
+            status=status_val,
+            last_run_at=latest_run.get("started_at") if latest_run else None,
+            last_success_at=latest_success.get("started_at") if latest_success else None,
+            last_error=last_err,
+            contract_version=latest_run.get("contract_version") if latest_run else "1.0.0",
+            records_accepted_total=totals.get("total_accepted", 0),
+            records_rejected_total=totals.get("total_rejected", 0),
+            records_processed_total=totals.get("total_processed", 0),
+        )
+
+    total_runs = await db[col.INGESTION_RUNS].count_documents({})
+    active_runs = await db[col.INGESTION_RUNS].count_documents({"status": "running"})
+
+    return AdminIngestionStatusResponse(
+        components=components,
+        total_runs=total_runs,
+        active_runs=active_runs,
+    )
+
+
+@router.get(
+    "/ingestion/runs",
+    response_model=AdminPaginatedIngestionRunsResponse,
+    summary="List Historical Ingestion Runs",
+    dependencies=[Depends(require_roles(UserRole.ADMIN, UserRole.AUDITOR))],
+)
+async def list_admin_ingestion_runs(
+    component: Optional[str] = Query(None, description="Filter by component (c1, c2, c3, c4)"),
+    status: Optional[str] = Query(None, description="Filter by status (success, partial, failed)"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> AdminPaginatedIngestionRunsResponse:
+    query: Dict[str, Any] = {}
+    if component:
+        c_clean = component.strip().lower()
+        query["component"] = {"$in": [c_clean, f"{c_clean}_affective", f"{c_clean}_trajectory", f"{c_clean}_risk", f"{c_clean}_intervention"]}
+    if status:
+        query["status"] = status.strip().lower()
+
+    total = await db[col.INGESTION_RUNS].count_documents(query)
+    skip = (page - 1) * page_size
+    cursor = db[col.INGESTION_RUNS].find(query).sort("started_at", -1).skip(skip).limit(page_size)
+
+    items: List[AdminIngestionRunItem] = []
+    async for doc in cursor:
+        items.append(
+            AdminIngestionRunItem(
+                id=str(doc.get("_id") or doc.get("id")),
+                component=doc.get("component", ""),
+                started_at=doc.get("started_at") or datetime.now(timezone.utc),
+                finished_at=doc.get("finished_at"),
+                status=doc.get("status", "unknown"),
+                records_processed=doc.get("records_processed", 0),
+                records_accepted=doc.get("records_accepted", 0),
+                records_rejected=doc.get("records_rejected", 0),
+                dry_run=doc.get("dry_run", False),
+                contract_version=doc.get("contract_version"),
+                error_message=doc.get("error_message"),
+            )
+        )
+
+    total_pages = max(1, math.ceil(total / page_size)) if total > 0 else 1
+    return AdminPaginatedIngestionRunsResponse(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+    )
+
+
+# ── Phase 3: Privacy Governance & Controlled Reveal ──────────────────────────
+
+@router.post(
+    "/privacy/reveal",
+    response_model=AdminIdentityRevealResponse,
+    summary="Break-glass student identity reveal (Admin only)",
+    description=(
+        "Reveals student identity by PID. Strictly restricted to Admins. "
+        "Auditors are rejected with 403. Requires >= 10 character justification reason. "
+        "Audited as IDENTITY_REVEAL before returning. Identity is transient and never logged."
+    ),
+    dependencies=[Depends(get_current_admin)],
+)
+async def admin_breakglass_reveal(
+    body: AdminIdentityRevealRequest,
+    request: Request,
+    admin: User = Depends(get_current_admin),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> AdminIdentityRevealResponse:
+    pid_clean = body.pid.strip()
+    if not is_valid_pid(pid_clean):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid PID format '{pid_clean}'. Expected STU_ followed by 8 hex characters.",
+        )
+
+    vault_record = await db[col.IDENTITY_VAULT].find_one({"pid": pid_clean})
+    if not vault_record:
+        vault_record = await db[col.IDENTITY_VAULT].find_one({"_id": pid_clean})
+
+    if not vault_record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Pseudonym ID '{pid_clean}' was not found in the Identity Vault.",
+        )
+
+    admin_id = str(admin.id)
+    admin_role = admin.role.value if hasattr(admin.role, "value") else str(admin.role)
+
+    await log_event(
+        request=request,
+        db=db,
+        action=AuditAction.IDENTITY_REVEAL,
+        actor_id=admin_id,
+        actor_role=admin_role,
+        target_type="student",
+        target_id=pid_clean,
+        outcome=AuditOutcome.SUCCESS,
+        reason=body.justification,
+        details={
+            "requester_role": admin_role,
+            "reason_length": len(body.justification),
+        },
+    )
+
+    return AdminIdentityRevealResponse(
+        pid=vault_record["pid"],
+        student_id=vault_record["student_id"],
+        name=vault_record["name"],
+        email=vault_record["email"],
+    )
+
+
+@router.get(
+    "/privacy/reveal-history",
+    response_model=AdminPaginatedRevealHistoryResponse,
+    summary="List Identity Reveal Audit History",
+    dependencies=[Depends(require_roles(UserRole.ADMIN, UserRole.AUDITOR))],
+)
+async def list_admin_reveal_history(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> AdminPaginatedRevealHistoryResponse:
+    query = {"action": AuditAction.IDENTITY_REVEAL}
+    total = await db[col.AUDIT_LOGS].count_documents(query)
+    skip = (page - 1) * page_size
+    cursor = db[col.AUDIT_LOGS].find(query).sort("timestamp", -1).skip(skip).limit(page_size)
+
+    items: List[AdminRevealHistoryItem] = []
+    async for doc in cursor:
+        items.append(
+            AdminRevealHistoryItem(
+                id=str(doc.get("_id") or doc.get("id")),
+                timestamp=doc.get("timestamp") or datetime.now(timezone.utc),
+                actor_id=doc.get("actor_id", "unknown"),
+                actor_role=doc.get("actor_role", "unknown"),
+                pid=doc.get("target_id", "unknown"),
+                reason=doc.get("reason", "No justification recorded"),
+                outcome=doc.get("outcome", "success"),
+            )
+        )
+
+    total_pages = max(1, math.ceil(total / page_size)) if total > 0 else 1
+    return AdminPaginatedRevealHistoryResponse(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+    )
+
+
+@router.post(
+    "/privacy/scrub-test",
+    response_model=AdminScrubTestResponse,
+    summary="Interactive PII Scrubber Sandbox",
+    description="Tests text redaction in-memory. Does not store or audit free text inputs.",
+    dependencies=[Depends(require_roles(UserRole.ADMIN, UserRole.AUDITOR))],
+)
+async def test_admin_pii_scrubber(
+    body: AdminScrubTestRequest,
+) -> AdminScrubTestResponse:
+    clean_text, report = scrub_text(body.text, body.known_names)
+    return AdminScrubTestResponse(
+        clean_text=clean_text,
+        redaction_report=report,
+    )
+
+
+# ── Phase 3: Exports Management & Audit History ───────────────────────────────
+
+DATASET_COLLECTION_MAP: Dict[str, str] = {
+    "c1_messages": col.MESSAGES,
+    "c2_behavior": col.BEHAVIOR_WEEKLY,
+    "c3_academic": getattr(col, "ACADEMIC_RECORDS", "grades"),
+    "c3_affective": col.AFFECTIVE_WEEKLY,
+    "c3_trajectories": col.ENGAGEMENT_TRAJECTORIES,
+    "c4_risk": col.RISK_ASSESSMENTS,
+    "c4_recommendations": col.RECOMMENDATIONS,
+}
+
+
+@router.get(
+    "/exports/download",
+    summary="Download Processed Dataset with Consent Filter and Formula Sanitization",
+    dependencies=[Depends(require_roles(UserRole.ADMIN, UserRole.AUDITOR))],
+)
+async def download_admin_export(
+    request: Request,
+    dataset: str = Query(..., description="Dataset key (e.g. c1_messages, c2_behavior, c3_affective, c3_trajectories, c4_risk, c4_recommendations)"),
+    course_id: Optional[str] = Query(None),
+    week_index: Optional[int] = Query(None),
+    format: str = Query("csv", pattern="^(csv|json)$"),
+    current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.AUDITOR)),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    target_coll = DATASET_COLLECTION_MAP.get(dataset.lower().strip())
+    if not target_coll:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unknown dataset '{dataset}'. Supported datasets: {list(DATASET_COLLECTION_MAP.keys())}",
+        )
+
+    # 1. Strictly exclude withdrawn students via active consent notice
+    eligible_pids = await get_eligible_consenting_pids(db)
+
+    # 2. Build collection query
+    query: Dict[str, Any] = {}
+    if eligible_pids:
+        query["$or"] = [{"source": "oulad"}, {"pid": {"$in": list(eligible_pids)}}]
+    else:
+        query["source"] = "oulad"
+
+    if course_id:
+        query["course_id"] = course_id.strip()
+    if week_index is not None:
+        query["week_index"] = week_index
+
+    # 3. Retrieve documents (exclude _id)
+    cursor = db[target_coll].find(query, {"_id": 0}).limit(5000)
+    records = await cursor.to_list(length=5000)
+
+    # 4. Feature 7 Audit Log: EXPORT_GENERATED before returning data
+    user_id = str(current_user.id)
+    user_role = current_user.role.value if hasattr(current_user.role, "value") else str(current_user.role)
+
+    await log_event(
+        request=request,
+        db=db,
+        action=AuditAction.EXPORT_GENERATED,
+        actor_id=user_id,
+        actor_role=user_role,
+        target_type="export",
+        target_id=dataset,
+        outcome=AuditOutcome.SUCCESS,
+        details={
+            "dataset": dataset,
+            "format": format,
+            "row_count": len(records),
+            "course_id": course_id,
+            "week_index": week_index,
+        },
+    )
+
+    filename = f"export_{dataset}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+
+    if format == "json":
+        return JSONResponse(
+            content={"dataset": dataset, "count": len(records), "records": records},
+            headers={"Content-Disposition": f'attachment; filename="{filename}.json"'},
+        )
+
+    # Format CSV with formula sanitization
+    output = io.StringIO()
+    if records:
+        fieldnames = list(records[0].keys())
+        writer = csv.writer(output)
+        writer.writerow(fieldnames)
+        for r in records:
+            row = []
+            for f in fieldnames:
+                val = r.get(f)
+                if isinstance(val, (dict, list)):
+                    val = json.dumps(val)
+                elif val is None:
+                    val = ""
+                row.append(_sanitize_csv_cell(str(val)))
+            writer.writerow(row)
+    else:
+        writer = csv.writer(output)
+        writer.writerow(["message"])
+        writer.writerow(["No matching records found for export."])
+
+    csv_data = output.getvalue()
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}.csv"'},
+    )
+
+
+@router.get(
+    "/exports/history",
+    response_model=AdminPaginatedExportHistoryResponse,
+    summary="List Data Export Audit History",
+    dependencies=[Depends(require_roles(UserRole.ADMIN, UserRole.AUDITOR))],
+)
+async def list_admin_export_history(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> AdminPaginatedExportHistoryResponse:
+    query = {"action": AuditAction.EXPORT_GENERATED}
+    total = await db[col.AUDIT_LOGS].count_documents(query)
+    skip = (page - 1) * page_size
+    cursor = db[col.AUDIT_LOGS].find(query).sort("timestamp", -1).skip(skip).limit(page_size)
+
+    items: List[AdminExportHistoryItem] = []
+    async for doc in cursor:
+        dtls = doc.get("details") or {}
+        items.append(
+            AdminExportHistoryItem(
+                id=str(doc.get("_id") or doc.get("id")),
+                timestamp=doc.get("timestamp") or datetime.now(timezone.utc),
+                actor_id=doc.get("actor_id", "unknown"),
+                actor_role=doc.get("actor_role", "unknown"),
+                dataset=dtls.get("dataset", doc.get("target_id", "dataset")),
+                format=dtls.get("format", "csv"),
+                row_count=dtls.get("row_count", 0),
+                filters={
+                    k: v for k, v in dtls.items()
+                    if k in ("course_id", "week_index", "format") and v is not None
+                },
+            )
+        )
+
+    total_pages = max(1, math.ceil(total / page_size)) if total > 0 else 1
+    return AdminPaginatedExportHistoryResponse(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+    )
+
+
+# ── Phase 3: System Diagnostics & Health ─────────────────────────────────────
+
+@router.get(
+    "/system/health",
+    response_model=AdminSystemHealthResponse,
+    summary="Get System Health, Latency, Migrations, and OULAD Status",
+    description="Returns platform health, DB latency, applied migrations, contract version, and OULAD status. Never exposes secrets.",
+    dependencies=[Depends(require_roles(UserRole.ADMIN, UserRole.AUDITOR))],
+)
+async def get_admin_system_health(
+    db: AsyncIOMotorDatabase = Depends(get_db),
+) -> AdminSystemHealthResponse:
+    ping_start = time.perf_counter()
+    db_status = "connected"
+    try:
+        await db.command("ping")
+        ping_ms = round((time.perf_counter() - ping_start) * 1000, 2)
+    except Exception as exc:
+        db_status = f"unhealthy: {exc}"
+        ping_ms = -1.0
+
+    migrations_cursor = db[col.SCHEMA_MIGRATIONS].find({}).sort("applied_at", -1)
+    applied_migrations: List[AdminMigrationItem] = []
+    async for m in migrations_cursor:
+        applied_migrations.append(
+            AdminMigrationItem(
+                migration_id=str(m.get("_id") or m.get("migration_id")),
+                applied_at=m.get("applied_at") or datetime.now(timezone.utc),
+            )
+        )
+
+    contract_schemas = [
+        "AffectiveWeeklyVector",
+        "EngagementTrajectory",
+        "RiskAssessment",
+        "InterventionRecommendation",
+        "TextMessageRecord",
+        "BehaviorWeeklyRecord",
+        "AcademicRecord",
+        "InterventionOutcome",
+    ]
+
+    oulad_vault_count = await db[col.IDENTITY_VAULT].count_documents(
+        {"$or": [{"is_imported": True}, {"source": "oulad"}]}
+    )
+    oulad_course_count = await db[col.COURSES].count_documents({"source": "oulad"})
+    oulad_enrol_count = await db[col.ENROLMENTS].count_documents({"source": "oulad"})
+
+    oulad_status = {
+        "is_imported": oulad_vault_count > 0,
+        "imported_students": oulad_vault_count,
+        "imported_courses": oulad_course_count,
+        "imported_enrolments": oulad_enrol_count,
+        "cli_command": "python -m app.importers.oulad.cli --data-dir <path-to-oulad-csvs>",
+    }
+
+    return AdminSystemHealthResponse(
+        status="healthy" if db_status == "connected" else "degraded",
+        db_status=db_status,
+        db_ping_ms=ping_ms,
+        contract_version=CONTRACT_VERSION,
+        contract_schemas=contract_schemas,
+        applied_migrations=applied_migrations,
+        total_migrations_applied=len(applied_migrations),
+        oulad_status=oulad_status,
+    )
+
 

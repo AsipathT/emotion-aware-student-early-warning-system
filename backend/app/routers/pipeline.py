@@ -374,6 +374,7 @@ async def trigger_pipeline_run(
 async def advance_specific_run(
     course_id: str,
     week_index: int,
+    request: Request = None,
     admin: User = Depends(get_current_admin),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> Dict[str, Any]:
@@ -384,6 +385,20 @@ async def advance_specific_run(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Pipeline run not found for course '{course_id}' week {week_index}.",
         )
+
+    admin_id = str(admin.id)
+    admin_role = admin.role.value if hasattr(admin.role, "value") else str(admin.role)
+    await log_event(
+        request=request,
+        db=db,
+        action=AuditAction.PIPELINE_RUN_STARTED,
+        actor_id=admin_id,
+        actor_role=admin_role,
+        target_type="pipeline_run",
+        target_id=f"{course_id}_w{week_index}",
+        outcome=AuditOutcome.SUCCESS,
+        details={"course_id": course_id, "week_index": week_index, "action": "advance"},
+    )
 
     now = get_clock()
     updated = await advance_pipeline_run(db=db, run=run_doc, now=now)

@@ -29,6 +29,7 @@ import pytest
 import pytest_asyncio
 
 from app.core.config import settings
+from app.core.contract_version import CONTRACT_VERSION
 from app.core.database import create_mongo_client, get_db
 from app.core.privacy import pseudonymize
 from app.core.security import create_access_token, hash_password
@@ -706,4 +707,276 @@ async def test_admin_consent_coverage_and_withdrawn_exclusion(admin_api_client, 
     pid_b = pseudonymize(student_b["id"])
     assert pid_a not in consenting_pids_v2
     assert pid_b not in consenting_pids_v2
+
+
+# ── Phase 3 Tests: Ingestion, Privacy Reveal, Pipeline, Exports, System ────────
+
+@pytest.mark.asyncio
+async def test_admin_ingestion_status_no_secrets(admin_api_client, throwaway_admin_db):
+    db = throwaway_admin_db
+    admin = await _seed_user(db, role="admin")
+    auditor = await _seed_user(db, role="auditor")
+    student = await _seed_user(db, role="student")
+
+    admin_headers = _make_auth_header(admin)
+    auditor_headers = _make_auth_header(auditor)
+    student_headers = _make_auth_header(student)
+
+    # 1. Student is forbidden
+    res = await admin_api_client.get("/api/v1/admin/ingestion/status", headers=student_headers)
+    assert res.status_code == 403
+
+    # 2. Admin & Auditor can access
+    res = await admin_api_client.get("/api/v1/admin/ingestion/status", headers=admin_headers)
+    assert res.status_code == 200
+    data = res.json()
+    assert "components" in data
+    assert "c1" in data["components"]
+    assert "c2" in data["components"]
+    assert "c3" in data["components"]
+    assert "c4" in data["components"]
+
+    # Invariants: api_key_configured is boolean, NO secret keys in response
+    for comp in ["c1", "c2", "c3", "c4"]:
+        assert isinstance(data["components"][comp]["api_key_configured"], bool)
+
+    # STRICT: verify no secret keys in response text
+    res_text = res.text
+    for secret in settings.COMPONENT_API_KEYS.values():
+        if secret:
+            assert secret not in res_text
+    assert settings.secret_key not in res_text
+
+    # Auditor access
+    res_auditor = await admin_api_client.get("/api/v1/admin/ingestion/status", headers=auditor_headers)
+    assert res_auditor.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_admin_privacy_breakglass_reveal_and_audit(admin_api_client, throwaway_admin_db):
+    db = throwaway_admin_db
+    admin = await _seed_user(db, role="admin")
+    auditor = await _seed_user(db, role="auditor")
+    student = await _seed_user(db, role="student")
+
+    admin_headers = _make_auth_header(admin)
+    auditor_headers = _make_auth_header(auditor)
+    student_headers = _make_auth_header(student)
+
+    # Seed student in identity vault
+    pid = pseudonymize("IT20269999")
+    await db[col.IDENTITY_VAULT].insert_one({
+        "_id": pid,
+        "pid": pid,
+        "student_id": "IT20269999",
+        "name": "Target Student",
+        "email": "target@lms.edu",
+    })
+
+    # 1. Auditor and Student are forbidden from break-glass reveal (403)
+    res = await admin_api_client.post(
+        "/api/v1/admin/privacy/reveal",
+        json={"pid": pid, "justification": "Emergency mental health welfare intervention"},
+        headers=auditor_headers,
+    )
+    assert res.status_code == 403
+
+    res = await admin_api_client.post(
+        "/api/v1/admin/privacy/reveal",
+        json={"pid": pid, "justification": "Emergency mental health welfare intervention"},
+        headers=student_headers,
+    )
+    assert res.status_code == 403
+
+    # 2. Admin with justification < 10 chars is rejected (422)
+    res = await admin_api_client.post(
+        "/api/v1/admin/privacy/reveal",
+        json={"pid": pid, "justification": "too short"},
+        headers=admin_headers,
+    )
+    assert res.status_code == 422
+
+    # 3. Admin with justification >= 10 chars succeeds
+    justification_str = "Emergency welfare check requested by counsellor"
+    res = await admin_api_client.post(
+        "/api/v1/admin/privacy/reveal",
+        json={"pid": pid, "justification": justification_str},
+        headers=admin_headers,
+    )
+    assert res.status_code == 200
+    rev = res.json()
+    assert rev["pid"] == pid
+    assert rev["student_id"] == "IT20269999"
+    assert rev["name"] == "Target Student"
+    assert rev["email"] == "target@lms.edu"
+
+    # 4. Verify Feature 7 audit log has IDENTITY_REVEAL entry
+    audit_entry = await db[col.AUDIT_LOGS].find_one({"action": AuditAction.IDENTITY_REVEAL, "target_id": pid})
+    assert audit_entry is not None
+    assert audit_entry["actor_id"] == admin["_id"]
+    assert audit_entry["actor_role"] == "admin"
+    assert audit_entry["reason"] == justification_str
+    # Verify no PII in details
+    dtls = audit_entry.get("details", {})
+    assert "name" not in dtls
+    assert "email" not in dtls
+    assert "student_id" not in dtls
+
+    # 5. Reveal history endpoint shows event to Admin and Auditor
+    res_hist = await admin_api_client.get("/api/v1/admin/privacy/reveal-history", headers=auditor_headers)
+    assert res_hist.status_code == 200
+    assert res_hist.json()["total"] >= 1
+    assert res_hist.json()["items"][0]["pid"] == pid
+
+    # 6. PII Scrub tester sandbox works without audit logging
+    res_scrub = await admin_api_client.post(
+        "/api/v1/admin/privacy/scrub-test",
+        json={"text": "Contact john.doe@example.com or call 0771234567"},
+        headers=auditor_headers,
+    )
+    assert res_scrub.status_code == 200
+    scrub_data = res_scrub.json()
+    assert "[EMAIL]" in scrub_data["clean_text"]
+    assert scrub_data["redaction_report"]["EMAIL"] >= 1
+
+
+@pytest.mark.asyncio
+async def test_admin_pipeline_trigger_and_advance_audit_and_rbac(admin_api_client, throwaway_admin_db):
+    db = throwaway_admin_db
+    admin = await _seed_user(db, role="admin")
+    auditor = await _seed_user(db, role="auditor")
+
+    admin_headers = _make_auth_header(admin)
+    auditor_headers = _make_auth_header(auditor)
+
+    course_id = "CS101"
+    week_index = 0
+    now = datetime.now(timezone.utc)
+
+    # Seed course and course week
+    await db[col.COURSES].insert_one({
+        "_id": course_id,
+        "course_id": course_id,
+        "title": "Intro to CS",
+        "lecturer_id": admin["_id"],
+        "is_published": True,
+    })
+    await db[col.COURSE_WEEKS].insert_one({
+        "_id": f"{course_id}_W{week_index}",
+        "course_id": course_id,
+        "week_index": week_index,
+        "title": "Week 1",
+        "start_date": now,
+        "end_date": now,
+    })
+
+    # 1. Auditor cannot trigger (403)
+    res = await admin_api_client.post(
+        "/api/v1/pipeline/trigger",
+        json={"course_id": course_id, "week_index": week_index, "force": True},
+        headers=auditor_headers,
+    )
+    assert res.status_code == 403
+
+    # 2. Admin can trigger
+    res = await admin_api_client.post(
+        "/api/v1/pipeline/trigger",
+        json={"course_id": course_id, "week_index": week_index, "force": True},
+        headers=admin_headers,
+    )
+    assert res.status_code in (200, 202)
+
+    # Verify PIPELINE_TRIGGERED audit event was logged
+    audit_trig = await db[col.AUDIT_LOGS].find_one({"action": AuditAction.PIPELINE_TRIGGERED})
+    assert audit_trig is not None
+    assert audit_trig["actor_id"] == admin["_id"]
+
+    # 3. Auditor cannot advance run (403)
+    res_adv_aud = await admin_api_client.post(
+        f"/api/v1/pipeline/runs/{course_id}/{week_index}/advance",
+        headers=auditor_headers,
+    )
+    assert res_adv_aud.status_code == 403
+
+    # 4. Admin can advance run
+    res_adv_admin = await admin_api_client.post(
+        f"/api/v1/pipeline/runs/{course_id}/{week_index}/advance",
+        headers=admin_headers,
+    )
+    assert res_adv_admin.status_code == 200
+
+    # Verify PIPELINE_RUN_STARTED audit event was logged for advance
+    audit_adv = await db[col.AUDIT_LOGS].find_one({"action": AuditAction.PIPELINE_RUN_STARTED})
+    assert audit_adv is not None
+
+    # 5. Admin and Auditor can list pipeline runs
+    res_list = await admin_api_client.get("/api/v1/pipeline/runs", headers=auditor_headers)
+    assert res_list.status_code == 200
+    assert "items" in res_list.json()
+
+
+@pytest.mark.asyncio
+async def test_admin_system_health_and_exports_no_secrets(admin_api_client, throwaway_admin_db):
+    db = throwaway_admin_db
+    admin = await _seed_user(db, role="admin")
+    auditor = await _seed_user(db, role="auditor")
+
+    admin_headers = _make_auth_header(admin)
+    auditor_headers = _make_auth_header(auditor)
+
+    # 1. System health check
+    res = await admin_api_client.get("/api/v1/admin/system/health", headers=auditor_headers)
+    assert res.status_code == 200
+    health = res.json()
+    assert health["status"] in ("healthy", "degraded")
+    assert health["db_status"] == "connected"
+    assert "db_ping_ms" in health
+    assert health["contract_version"] == CONTRACT_VERSION
+    assert "oulad_status" in health
+
+    # STRICT: verify NO secrets in response text
+    res_text = res.text
+    assert settings.secret_key not in res_text
+    assert settings.mongo_uri not in res_text
+
+    # 2. Export download with formula sanitization
+    pid = pseudonymize("IT20261111")
+    now = datetime.now(timezone.utc)
+    clean_inj = "=1+2 cmd.exe injection"
+    await db[col.MESSAGES].insert_one({
+        "_id": str(uuid.uuid4()),
+        "schema_version": 1,
+        "ingested_at": now,
+        "source_version": "1.0",
+        "source": "oulad",
+        "message_id": "msg_injection_01",
+        "pid": pid,
+        "course_id": "CS101",
+        "week_index": 0,
+        "source_type": "forum",
+        "clean_text": clean_inj,
+        "timestamp": now,
+        "message_length_chars": len(clean_inj),
+        "message_length_words": len(clean_inj.split()),
+    })
+
+    res_export = await admin_api_client.get(
+        "/api/v1/admin/exports/download?dataset=c1_messages&format=csv",
+        headers=auditor_headers,
+    )
+    assert res_export.status_code == 200
+    assert "text/csv" in res_export.headers["content-type"]
+    csv_text = res_export.text
+    # Formula leading cell must be prepended with single quote
+    assert "'=1+2 cmd.exe injection" in csv_text
+
+    # Verify EXPORT_GENERATED audit event
+    audit_exp = await db[col.AUDIT_LOGS].find_one({"action": AuditAction.EXPORT_GENERATED})
+    assert audit_exp is not None
+
+    # 3. Export history list
+    res_hist = await admin_api_client.get("/api/v1/admin/exports/history", headers=auditor_headers)
+    assert res_hist.status_code == 200
+    assert res_hist.json()["total"] >= 1
+
 

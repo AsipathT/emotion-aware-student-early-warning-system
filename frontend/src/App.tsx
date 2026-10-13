@@ -21,6 +21,11 @@ import { AdminCoursesPage } from './pages/admin/AdminCoursesPage';
 import { AdminEnrolmentsPage } from './pages/admin/AdminEnrolmentsPage';
 import { AdminConsentPage } from './pages/admin/AdminConsentPage';
 import { AuditLogPage } from './pages/admin/AuditLogPage';
+import { AdminPipelinePage } from './pages/admin/AdminPipelinePage';
+import { AdminIngestionPage } from './pages/admin/AdminIngestionPage';
+import { AdminPrivacyPage } from './pages/admin/AdminPrivacyPage';
+import { AdminExportsPage } from './pages/admin/AdminExportsPage';
+import { AdminSystemPage } from './pages/admin/AdminSystemPage';
 import { ForumPage } from './pages/ForumPage';
 import { ForumThreadPage } from './pages/ForumThreadPage';
 import { ChatPage } from './pages/ChatPage';
@@ -201,6 +206,11 @@ export const App: React.FC = () => {
                   }
                 />
                 <Route path="audit" element={<AuditLogPage />} />
+                <Route path="pipeline" element={<AdminPipelinePage />} />
+                <Route path="ingestion" element={<AdminIngestionPage />} />
+                <Route path="privacy" element={<AdminPrivacyPage />} />
+                <Route path="exports" element={<AdminExportsPage />} />
+                <Route path="system" element={<AdminSystemPage />} />
               </Route>
 
               {/* Dushan: forum */}

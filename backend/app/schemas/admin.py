@@ -319,3 +319,161 @@ class AdminConsentCoverageResponse(BaseModel):
     course_breakdown: List[AdminCourseConsentBreakdown] = Field(default_factory=list)
     notice_history: List[AdminConsentNoticeHistoryItem] = Field(default_factory=list)
 
+
+# ── Phase 3: Ingestion Health & Runs ──────────────────────────────────────────
+
+class ComponentIngestionHealth(BaseModel):
+    """Health metrics and configuration status for an individual ML component."""
+
+    component: str  # "c1", "c2", "c3", "c4"
+    title: str
+    api_key_configured: bool = Field(..., description="True if component API key is set; NEVER exposes key.")
+    status: str = "idle"  # "success" | "partial" | "failed" | "idle"
+    last_run_at: Optional[datetime] = None
+    last_success_at: Optional[datetime] = None
+    last_error: Optional[str] = None
+    contract_version: Optional[str] = "1.0.0"
+    records_accepted_total: int = 0
+    records_rejected_total: int = 0
+    records_processed_total: int = 0
+
+
+class AdminIngestionStatusResponse(BaseModel):
+    """Platform-wide ingestion status across all 4 ML components."""
+
+    components: Dict[str, ComponentIngestionHealth] = Field(default_factory=dict)
+    total_runs: int = 0
+    active_runs: int = 0
+
+
+class AdminIngestionRunItem(BaseModel):
+    """Detailed record of a component ingestion run."""
+
+    id: str
+    component: str
+    started_at: datetime
+    finished_at: Optional[datetime] = None
+    status: str  # "success" | "partial" | "failed"
+    records_processed: int = 0
+    records_accepted: int = 0
+    records_rejected: int = 0
+    dry_run: bool = False
+    contract_version: Optional[str] = None
+    error_message: Optional[str] = None
+
+
+class AdminPaginatedIngestionRunsResponse(BaseModel):
+    """Paginated list of historical component ingestion runs."""
+
+    items: List[AdminIngestionRunItem] = Field(default_factory=list)
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+# ── Phase 3: Privacy & Identity Reveal ────────────────────────────────────────
+
+class AdminIdentityRevealRequest(BaseModel):
+    """Break-glass student identity reveal request."""
+
+    pid: str = Field(..., description="Student Pseudonym ID, e.g. STU_a1b2c3d4")
+    justification: str = Field(
+        ...,
+        min_length=10,
+        description="Mandatory justification reason for identity reveal (minimum 10 characters).",
+    )
+
+
+class AdminIdentityRevealResponse(BaseModel):
+    """Transient identity reveal response (never cached or logged)."""
+
+    pid: str
+    student_id: str
+    name: str
+    email: str
+
+
+class AdminRevealHistoryItem(BaseModel):
+    """Historical identity reveal audit record."""
+
+    id: str
+    timestamp: datetime
+    actor_id: str
+    actor_role: str
+    pid: str
+    reason: str
+    outcome: str
+
+
+class AdminPaginatedRevealHistoryResponse(BaseModel):
+    """Paginated identity reveal audit logs."""
+
+    items: List[AdminRevealHistoryItem] = Field(default_factory=list)
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+class AdminScrubTestRequest(BaseModel):
+    """Payload for interactive PII scrub tester sandbox."""
+
+    text: str = Field(..., description="Free text containing potential PII.")
+    known_names: Optional[List[str]] = Field(default=None, description="Optional names to redact.")
+
+
+class AdminScrubTestResponse(BaseModel):
+    """Sanitized text output and redaction breakdown."""
+
+    clean_text: str
+    redaction_report: Dict[str, int]
+
+
+# ── Phase 3: Exports & History ────────────────────────────────────────────────
+
+class AdminExportHistoryItem(BaseModel):
+    """Historical data export audit event."""
+
+    id: str
+    timestamp: datetime
+    actor_id: str
+    actor_role: str
+    dataset: str
+    format: str
+    row_count: int
+    filters: Dict[str, Any] = Field(default_factory=dict)
+
+
+class AdminPaginatedExportHistoryResponse(BaseModel):
+    """Paginated export audit events."""
+
+    items: List[AdminExportHistoryItem] = Field(default_factory=list)
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+# ── Phase 3: System Diagnostics & Health ──────────────────────────────────────
+
+class AdminMigrationItem(BaseModel):
+    """Applied schema migration record."""
+
+    migration_id: str
+    applied_at: datetime
+
+
+class AdminSystemHealthResponse(BaseModel):
+    """System health diagnostics, database latency, contract schemas, and migrations."""
+
+    status: str
+    db_status: str
+    db_ping_ms: float
+    contract_version: str
+    contract_schemas: List[str] = Field(default_factory=list)
+    applied_migrations: List[AdminMigrationItem] = Field(default_factory=list)
+    total_migrations_applied: int
+    oulad_status: Dict[str, Any] = Field(default_factory=dict)
+
+

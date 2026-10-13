@@ -50,7 +50,7 @@ _nlp = None
 
 def get_nlp():
     """Returns the loaded spaCy en_core_web_sm pipeline."""
-    global _nlp
+    global _nlp, spacy
     if spacy is None:
         return None
     if _nlp is None:
