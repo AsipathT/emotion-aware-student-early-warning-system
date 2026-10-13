@@ -67,13 +67,29 @@ async def on_intervention_completed(
 ) -> None:
     """
     Hook triggered when an intervention transitions to 'completed'.
-    F34: NO-OP stub logging event occurrence.
-    F39: Will initiate student feedback survey and reflective evaluation.
+    F39: Dispatches supportive feedback request notification to the student.
     """
-    interv_id = record.get("id") or record.get("intervention_id")
-    pid = record.get("pid")
-    logger.info(
-        "[HOOK: on_intervention_completed] Intervention '%s' completed for student '%s'. (F39 survey pending)",
-        interv_id,
-        pid,
-    )
+    try:
+        interv_id = str(record.get("id") or record.get("intervention_id") or "")
+        pid = str(record.get("pid") or "")
+        if not pid:
+            return
+
+        from app.services.notification_service import notify_pid
+
+        await notify_pid(
+            db=db,
+            pid=pid,
+            template_key="feedback_request",
+            link="/support",
+            related_id=interv_id,
+            dedupe_key=f"feedback_request:{interv_id}",
+        )
+        logger.info(
+            "[HOOK: on_intervention_completed] Feedback request notification dispatched for intervention '%s', student '%s'.",
+            interv_id,
+            pid,
+        )
+    except Exception as exc:
+        logger.warning("[HOOK: on_intervention_completed] Failed to dispatch feedback request notification: %s", exc)
+

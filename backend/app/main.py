@@ -223,6 +223,21 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception as exc:
         print(f"[startup]  Warning: mentoring assignment index creation failed: {exc}")
 
+    # --- Dushan: feedback indexes ---
+    try:
+        from app.core.database import db as _db_fb
+        await _db_fb.intervention_feedback.create_index(
+            [("intervention_id", 1)],
+            unique=True,
+            background=True,
+        )
+        await _db_fb.intervention_feedback.create_index(
+            [("intervention_type", 1), ("created_at", -1)],
+            background=True,
+        )
+    except Exception as exc:
+        print(f"[startup]  Warning: feedback index creation failed: {exc}")
+
 
 
     if getattr(settings, "ENABLE_SCHEDULER", False):
@@ -508,6 +523,16 @@ def create_app() -> FastAPI:
         import logging
         logging.getLogger("app.main").warning(
             "Failed to register support_staff_mentoring router: %s", exc
+        )
+
+    # --- Dushan: staff feedback router ---
+    try:
+        from app.routers import staff_feedback  # noqa: E402
+        app.include_router(staff_feedback.router)
+    except Exception as exc:
+        import logging
+        logging.getLogger("app.main").warning(
+            "Failed to register staff_feedback router: %s", exc
         )
 
     return app

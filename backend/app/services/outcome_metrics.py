@@ -171,6 +171,7 @@ def build_observed_change_text(
     delta: Dict[str, Any],
     category: str,
     weeks_to_improvement: Optional[int] = None,
+    helpfulness_rating: Optional[int] = None,
 ) -> str:
     """
     Constructs a concise, PII-free templated summary string of observed changes
@@ -178,7 +179,7 @@ def build_observed_change_text(
     Strictly enforced to be <= 500 characters and free from identifying information (CleanText).
 
     Format:
-      "{category}; risk {before}->{after} ({tier_change}); trajectory {trajectory_change}; {weeks} weeks to improvement"
+      "{category}; risk {before}->{after} ({tier_change}); trajectory {trajectory_change}; {weeks} weeks to improvement; student-rated helpfulness {rating}/5"
     """
     cat_clean = str(category).strip().lower()
     t_change = delta.get("tier_change", "unknown->unknown")
@@ -197,6 +198,10 @@ def build_observed_change_text(
     if weeks_to_improvement is not None:
         parts.append(f"{weeks_to_improvement} weeks to improvement")
 
+    if helpfulness_rating is not None:
+        parts.append(f"student-rated helpfulness {helpfulness_rating}/5")
+
     observed_text = "; ".join(parts)
     # Enforce maximum 500 character constraint
     return observed_text[:500]
+

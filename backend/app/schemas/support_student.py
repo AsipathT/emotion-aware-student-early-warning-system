@@ -37,6 +37,10 @@ class StudentSupportInterventionItem(BaseModel):
     resources: Optional[List[Dict[str, Any]]] = None
     mentor: Optional[Dict[str, Any]] = None
 
+    # Feature 39 feedback flags
+    feedback_submitted: bool = False
+    can_give_feedback: bool = False
+
     model_config = {
         "from_attributes": True,
     }
@@ -157,6 +161,31 @@ class MentorAssignmentListResponse(BaseModel):
     """List of peer mentorship connections for the authenticated mentor student."""
     items: List[MentorAssignmentItem]
     total_count: int
+
+
+# --- Feature 39: Student Feedback Schemas ---
+class StudentFeedbackSubmission(BaseModel):
+    """Student feedback submission payload (Feature 39)."""
+    helpfulness: int = Field(..., ge=1, le=5, description="Student helpfulness rating (1 to 5)")
+    attended: Literal["yes", "partly", "no"] = Field(..., description="Whether the student attended")
+    barrier: Optional[Literal["time", "not_relevant", "uncomfortable", "technical", "other"]] = Field(
+        default=None,
+        description="Optional barrier faced by the student",
+    )
+    comment: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="Optional private feedback comment (scrubbed before storage)",
+    )
+
+
+class StudentFeedbackResponse(BaseModel):
+    """Response returned upon successful student feedback submission."""
+    message: str = "Thank you for sharing your feedback!"
+    feedback_id: str
+    intervention_id: str
+    feedback_submitted: bool = True
+
 
 
 

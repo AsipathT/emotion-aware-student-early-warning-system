@@ -25,6 +25,7 @@ import {
   Shield,
   X,
   Sparkles,
+  Star,
 } from 'lucide-react';
 import { StaffTabs } from '../components/staff/StaffTabs';
 import {
@@ -32,6 +33,7 @@ import {
   StaffInterventionListItem,
   ManualInterventionCreateRequest,
 } from '../api/staffInterventions';
+import { staffFeedbackApi, FeedbackSummaryResponse } from '../api/staffFeedback';
 
 const CATALOG_OPTIONS = [
   { value: 'academic_support', label: 'Academic Support & Tutoring' },
@@ -92,6 +94,13 @@ export const StaffInterventionsPage: React.FC = () => {
         page,
         page_size: pageSize,
       }),
+  });
+
+  // Query aggregate student feedback summary (Feature 39)
+  const { data: feedbackSummary } = useQuery<FeedbackSummaryResponse>({
+    queryKey: ['staff-feedback-summary'],
+    queryFn: () => staffFeedbackApi.getFeedbackSummary(),
+    staleTime: 60000,
   });
 
   // Manual intervention creation mutation
@@ -207,6 +216,65 @@ export const StaffInterventionsPage: React.FC = () => {
           New Manual Intervention
         </button>
       </div>
+
+      {/* Feature 39: Feedback Summary Card */}
+      {feedbackSummary && feedbackSummary.completed_interventions > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm mb-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600">
+                <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Student Feedback Summary
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                    C4 Feedback Loop
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Student-reported helpfulness and uptake evaluation (F39) across completed support initiatives.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-6 sm:gap-8 border-t md:border-t-0 md:border-l border-slate-100 pt-3 md:pt-0 md:pl-6 text-center">
+              <div>
+                <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">
+                  Responses
+                </span>
+                <span className="text-base font-bold text-slate-900">
+                  {feedbackSummary.n}
+                </span>
+              </div>
+              <div>
+                <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">
+                  Response Rate
+                </span>
+                <span className="text-base font-bold text-indigo-600">
+                  {(feedbackSummary.response_rate * 100).toFixed(0)}%
+                </span>
+              </div>
+              <div>
+                <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">
+                  Avg Helpfulness
+                </span>
+                <span className="text-base font-bold text-amber-600 flex items-center justify-center gap-1">
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  {feedbackSummary.mean_helpfulness > 0
+                    ? feedbackSummary.mean_helpfulness.toFixed(1)
+                    : 'N/A'}
+                  {feedbackSummary.mean_helpfulness > 0 && (
+                    <span className="text-[11px] text-slate-400 font-normal">/5</span>
+                  )}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filter and Control Bar */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm mb-6 space-y-4">

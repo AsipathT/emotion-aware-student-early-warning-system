@@ -33,6 +33,7 @@ import {
 import { StaffTabs } from '../components/staff/StaffTabs';
 import { OutcomeSection } from '../components/staff/OutcomeSection';
 import { DeliveryPanel } from '../components/staff/DeliveryPanel';
+import { FeedbackPanel } from '../components/staff/FeedbackPanel';
 
 import {
   staffInterventionsApi,
@@ -682,6 +683,7 @@ export const StaffInterventionDetailPage: React.FC = () => {
 
 
           {/* Dushan: F39 feedback panel */}
+          <FeedbackPanel interventionId={detail.id} />
         </div>
       </div>
 

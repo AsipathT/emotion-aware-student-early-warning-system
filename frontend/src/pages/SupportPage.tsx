@@ -37,6 +37,7 @@ import {
   DeclineReason,
 } from '../api/support';
 import { CounsellingBookingWidget } from '../components/student/CounsellingBookingWidget';
+import { FeedbackSurveyForm } from '../components/student/FeedbackSurveyForm';
 
 const DECLINE_CHIPS: { value: DeclineReason; label: string }[] = [
   { value: 'no_time', label: 'Schedule conflict / No time' },
@@ -542,6 +543,30 @@ export const SupportPage: React.FC = () => {
                 </div>
               )}
               {/* F39 feedback */}
+              {item.feedback_submitted ? (
+                <div className="pt-3 border-t border-slate-100">
+                  <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 text-xs text-emerald-800 flex items-center gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <div>
+                      <span className="font-bold block text-emerald-900">
+                        Feedback Submitted — Thank You!
+                      </span>
+                      <span className="text-[11px] text-emerald-700">
+                        Your confidential feedback has been recorded to help us continuously improve student support.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : item.can_give_feedback ? (
+                <FeedbackSurveyForm
+                  interventionId={item.id}
+                  studentLabel={item.student_label}
+                  onSubmitted={() => {
+                    setFeedbackMessage('Thank you for sharing your feedback! Your evaluation helps improve student support.');
+                    queryClient.invalidateQueries({ queryKey: ['my-support-interventions'] });
+                  }}
+                />
+              ) : null}
             </div>
           ))}
         </div>

@@ -115,6 +115,10 @@ export interface StudentSupportInterventionItem {
   slot?: BookedSlotItem | null;
   resources?: StudentSharedResourceItem[] | null;
   mentor?: StudentMentorInfo | null;
+
+  // Feature 39 feedback flags
+  feedback_submitted?: boolean;
+  can_give_feedback?: boolean;
 }
 
 export interface StudentSupportListResponse {
@@ -201,5 +205,31 @@ export const supportApi = {
     );
     return response.data;
   },
+
+  submitFeedback: async (
+    interventionId: string,
+    payload: StudentFeedbackPayload
+  ): Promise<StudentFeedbackSubmitResponse> => {
+    const response = await apiClient.post<StudentFeedbackSubmitResponse>(
+      `/support/me/interventions/${encodeURIComponent(interventionId)}/feedback`,
+      payload
+    );
+    return response.data;
+  },
 };
+
+export interface StudentFeedbackPayload {
+  helpfulness: number;
+  attended: 'yes' | 'partly' | 'no';
+  barrier?: 'time' | 'not_relevant' | 'uncomfortable' | 'technical' | 'other' | null;
+  comment?: string | null;
+}
+
+export interface StudentFeedbackSubmitResponse {
+  message: string;
+  feedback_id: string;
+  intervention_id: string;
+  feedback_submitted: boolean;
+}
+
 

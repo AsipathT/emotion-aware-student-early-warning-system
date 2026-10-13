@@ -20,10 +20,12 @@ from app.core.dependencies import get_current_user
 from app.db import collections as col
 from app.db.storage_models import Decision, InterventionOutcomeStorage
 from app.models.intervention_record import COL_INTERVENTION_RECORDS
+from app.models.intervention_feedback import COL_INTERVENTION_FEEDBACK
 from app.models.support_resource import COL_SUPPORT_RESOURCES
 from app.models.support_slot import COL_COUNSELLING_SLOTS
 from app.models.support_mentoring import COL_MENTORING_ASSIGNMENTS
 from app.models.user import User, UserRole
+from app.core.privacy import scrub_text
 from app.schemas.staff_slots import SlotBookRequest
 from app.schemas.support_student import (
     AvailableSlotItem,
@@ -34,6 +36,8 @@ from app.schemas.support_student import (
     MentorAssignmentListResponse,
     SlotBookingResult,
     SlotCancelResult,
+    StudentFeedbackResponse,
+    StudentFeedbackSubmission,
     StudentSharedResourceItem,
     StudentSupportInterventionItem,
     StudentSupportListResponse,
@@ -162,6 +166,16 @@ async def get_my_support_interventions(
             muid = str(mu.get("_id") or mu.get("id"))
             mentor_names[muid] = mu.get("full_name") or mu.get("name") or "Peer Mentor"
 
+    # Collect intervention feedback submissions (Feature 39)
+    feedback_ids_set = set()
+    if interv_ids:
+        fb_cursor = db[COL_INTERVENTION_FEEDBACK].find(
+            {"intervention_id": {"$in": interv_ids}},
+            {"intervention_id": 1},
+        )
+        async for fb in fb_cursor:
+            feedback_ids_set.add(str(fb.get("intervention_id")))
+
     items = []
     for doc in docs:
         doc_id = str(doc.get("id") or doc.get("_id"))
@@ -230,6 +244,9 @@ async def get_my_support_interventions(
                 "since": active_m.get("created_at"),
             }
 
+        has_fb = doc_id in feedback_ids_set
+        can_fb = (not has_fb) and (doc.get("status") in ["accepted", "in_progress", "completed"])
+
         items.append(
             StudentSupportInterventionItem(
                 id=doc_id,
@@ -244,6 +261,8 @@ async def get_my_support_interventions(
                 slot=slot_data,
                 resources=resources_list if resources_list else None,
                 mentor=mentor_data,
+                feedback_submitted=has_fb,
+                can_give_feedback=can_fb,
             )
         )
 
@@ -839,6 +858,116 @@ async def get_my_mentoring_assignments(
         )
 
     return MentorAssignmentListResponse(items=items, total_count=len(items))
+
+
+# ── Feature 39: Student Feedback Submission ───────────────────────────────────
+
+@router.post(
+    "/interventions/{intervention_id}/feedback",
+    response_model=StudentFeedbackResponse,
+    summary="Submit student experience feedback on intervention (Feature 39)",
+)
+async def submit_intervention_feedback(
+    intervention_id: str,
+    payload: StudentFeedbackSubmission,
+    current_user: User = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    """
+    Submits student-reported feedback ('did it help?') on their own support intervention.
+    Enforces:
+      - Authenticated student role
+      - Intervention belongs to student (PID match)
+      - Status is accepted, in_progress, or completed (offered/declined -> 403)
+      - One feedback submission per intervention (409 Conflict)
+      - Private free-text comment scrubbed via scrub_text before storage
+    """
+    _require_student(current_user)
+    student_pid = await _resolve_student_pid(current_user, db)
+    if not student_pid:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Student profile or pseudonym record not found.",
+        )
+
+    clean_id = str(intervention_id).strip()
+    rec = await db[COL_INTERVENTION_RECORDS].find_one({
+        "$or": [{"id": clean_id}, {"_id": clean_id}]
+    })
+    if not rec:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Intervention record '{clean_id}' not found.",
+        )
+
+    # Own intervention only
+    if str(rec.get("pid", "")).strip() != student_pid:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: You may only submit feedback for your own support interventions.",
+        )
+
+    # Eligible statuses only
+    current_status = str(rec.get("status", "")).strip().lower()
+    if current_status not in ["accepted", "in_progress", "completed"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Feedback cannot be submitted for intervention with status '{current_status}'. Status must be accepted, in_progress, or completed.",
+        )
+
+    canonical_id = str(rec.get("id") or rec.get("_id") or clean_id)
+
+    # Check for existing feedback (once only -> 409)
+    existing_fb = await db[COL_INTERVENTION_FEEDBACK].find_one({"intervention_id": canonical_id})
+    if existing_fb:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Feedback has already been submitted for this intervention.",
+        )
+
+    # Scrub private free-text comment if provided
+    scrubbed_comment = None
+    if payload.comment and payload.comment.strip():
+        scrubbed_comment, _ = scrub_text(payload.comment.strip())
+
+    fb_id = str(uuid.uuid4())
+    fb_doc = {
+        "id": fb_id,
+        "intervention_id": canonical_id,
+        "pid": student_pid,
+        "intervention_type": str(rec.get("intervention_type") or "general_support"),
+        "helpfulness": payload.helpfulness,
+        "attended": payload.attended,
+        "barrier": payload.barrier,
+        "comment": scrubbed_comment,
+        "created_at": datetime.now(timezone.utc),
+    }
+
+    try:
+        await db[COL_INTERVENTION_FEEDBACK].insert_one(fb_doc)
+    except Exception as exc:
+        if "duplicate key" in str(exc).lower():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Feedback has already been submitted for this intervention.",
+            )
+        raise
+
+    logger.info(
+        "[Feature 39] Student '%s' submitted feedback (helpfulness=%d, attended=%s) for intervention '%s'.",
+        student_pid,
+        payload.helpfulness,
+        payload.attended,
+        canonical_id,
+    )
+
+    return StudentFeedbackResponse(
+        message="Thank you for sharing your feedback!",
+        feedback_id=fb_id,
+        intervention_id=canonical_id,
+        feedback_submitted=True,
+    )
+
 
 
 

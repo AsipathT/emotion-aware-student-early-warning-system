@@ -214,10 +214,15 @@ async def record_intervention_outcome(
         )
         dec_val = existing_outcome.get("decision", "approved") if existing_outcome else "approved"
 
+        # Feature 39: append student-rated helpfulness if student feedback was submitted
+        fb_doc = await db["intervention_feedback"].find_one({"intervention_id": clean_id})
+        rating_val = int(fb_doc["helpfulness"]) if fb_doc and fb_doc.get("helpfulness") else None
+
         observed_change_text = build_observed_change_text(
             delta=delta,
             category=payload.staff_category,
             weeks_to_improvement=weeks,
+            helpfulness_rating=rating_val,
         )
 
         canonical_outcome = InterventionOutcomeStorage(
