@@ -19,12 +19,14 @@ import {
   Search,
   Layers,
   Award,
+  CheckCircle2,
 } from 'lucide-react';
 import { StaffTabs } from '../components/staff/StaffTabs';
 import {
   staffRecommendationsApi,
   StaffRecommendationListItem,
 } from '../api/staffRecommendations';
+import { staffReviewApi } from '../api/staffReview';
 
 const TIER_STYLES: Record<string, { bg: string; text: string; border: string }> = {
   critical: { bg: 'bg-rose-100', text: 'text-rose-800', border: 'border-rose-200' },
@@ -65,6 +67,11 @@ export const StaffRecommendationsPage: React.FC = () => {
         page,
         page_size: 20,
       }),
+  });
+
+  const { data: stats } = useQuery({
+    queryKey: ['staffReviewStats'],
+    queryFn: staffReviewApi.getReviewStats,
   });
 
   const recommendations = data?.items || [];
@@ -196,6 +203,53 @@ export const StaffRecommendationsPage: React.FC = () => {
           All Recommendations
         </button>
       </div>
+
+      {/* Review Rate & Human-in-the-Loop Coverage Card */}
+      {stats && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-900">
+                  Human-in-the-Loop Review Rate
+                </span>
+                <span className="text-xs font-mono font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                  {(stats.review_rate * 100).toFixed(1)}%
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                C4 Human Control NFR: 100% of candidate recommendations require authorized review before student action.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 text-xs">
+            <div className="text-center px-3 py-1 bg-slate-50 rounded-lg border border-slate-100">
+              <span className="text-[10px] text-slate-400 block font-semibold">TOTAL</span>
+              <span className="font-bold text-slate-800 font-mono">{stats.total}</span>
+            </div>
+            <div className="text-center px-3 py-1 bg-amber-50 rounded-lg border border-amber-100">
+              <span className="text-[10px] text-amber-600 block font-semibold">PENDING</span>
+              <span className="font-bold text-amber-800 font-mono">{stats.pending}</span>
+            </div>
+            <div className="text-center px-3 py-1 bg-emerald-50 rounded-lg border border-emerald-100">
+              <span className="text-[10px] text-emerald-600 block font-semibold">APPROVED</span>
+              <span className="font-bold text-emerald-800 font-mono">{stats.approved}</span>
+            </div>
+            <div className="text-center px-3 py-1 bg-sky-50 rounded-lg border border-sky-100">
+              <span className="text-[10px] text-sky-600 block font-semibold">MODIFIED</span>
+              <span className="font-bold text-sky-800 font-mono">{stats.modified}</span>
+            </div>
+            <div className="text-center px-3 py-1 bg-rose-50 rounded-lg border border-rose-100">
+              <span className="text-[10px] text-rose-600 block font-semibold">REJECTED</span>
+              <span className="font-bold text-rose-800 font-mono">{stats.rejected}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filters Bar */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-6">

@@ -22,6 +22,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { StaffTabs } from '../components/staff/StaffTabs';
+import { ReviewActionPanel } from '../components/staff/ReviewActionPanel';
 import {
   staffRecommendationsApi,
   StaffRecommendationDetailResponse,
@@ -368,16 +369,11 @@ export const StaffRecommendationDetailPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Dushan: F33 review actions go here */}
-          <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-6 text-center shadow-sm">
-            <h3 className="text-sm font-semibold text-slate-700">
-              Staff Decision & Action Actions Slot
-            </h3>
-            <p className="text-xs text-slate-500 max-w-lg mx-auto mt-1">
-              Decision actions (Approve, Modify Candidate, Reject with Justification) are scheduled for Feature 33.
-            </p>
-            {/* Dushan: F33 review actions go here */}
-          </div>
+          {/* Dushan: F33 review action panel */}
+          <ReviewActionPanel
+            recommendation={detail}
+            onReviewed={() => refetch()}
+          />
         </div>
       )}
     </div>
