@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Outlet, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { AdminSidebar } from './AdminSidebar';
 import { StatusBadge } from './StatusBadge';
+import { ToastProvider } from './Toast';
 import {
   Menu,
   X,
@@ -22,8 +23,9 @@ export const AdminLayout: React.FC = () => {
     : 'Overview';
 
   return (
-    <div className="flex h-screen bg-slate-100 overflow-hidden font-sans">
-      {/* Desktop Sidebar */}
+    <ToastProvider>
+      <div className="flex h-screen bg-slate-100 overflow-hidden font-sans">
+        {/* Desktop Sidebar */}
       <div className="hidden md:flex md:shrink-0">
         <AdminSidebar />
       </div>
@@ -103,10 +105,20 @@ export const AdminLayout: React.FC = () => {
         {/* Scrollable Page Body */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           <div className="max-w-7xl mx-auto">
-            <Outlet />
+            <Suspense
+              fallback={
+                <div className="flex flex-col items-center justify-center min-h-[320px] p-8">
+                  <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin mb-3" />
+                  <span className="text-xs font-medium text-slate-500">Loading admin module...</span>
+                </div>
+              }
+            >
+              <Outlet />
+            </Suspense>
           </div>
         </main>
       </div>
     </div>
+    </ToastProvider>
   );
 };

@@ -886,10 +886,11 @@ async def test_admin_pipeline_trigger_and_advance_audit_and_rbac(admin_api_clien
     )
     assert res.status_code in (200, 202)
 
-    # Verify PIPELINE_TRIGGERED audit event was logged
+    # Verify PIPELINE_TRIGGERED audit event was logged (exactly 1 audit entry for trigger)
     audit_trig = await db[col.AUDIT_LOGS].find_one({"action": AuditAction.PIPELINE_TRIGGERED})
     assert audit_trig is not None
     assert audit_trig["actor_id"] == admin["_id"]
+    assert await db[col.AUDIT_LOGS].count_documents({"action": AuditAction.PIPELINE_TRIGGERED}) == 1
 
     # 3. Auditor cannot advance run (403)
     res_adv_aud = await admin_api_client.post(

@@ -28,7 +28,7 @@ from app.core.security import hash_password
 from app.db import collections as col
 from app.models.user import User, UserRole
 from app.routers.audit import _sanitize_csv_cell
-from app.routers.export import get_eligible_consenting_pids
+from app.routers.export import build_export_filter, get_eligible_consenting_pids
 from app.schemas.admin import (
     AdminBulkEnrolmentRequest,
     AdminBulkEnrolmentResponse,
@@ -1998,20 +1998,13 @@ async def download_admin_export(
             detail=f"Unknown dataset '{dataset}'. Supported datasets: {list(DATASET_COLLECTION_MAP.keys())}",
         )
 
-    # 1. Strictly exclude withdrawn students via active consent notice
-    eligible_pids = await get_eligible_consenting_pids(db)
-
-    # 2. Build collection query
-    query: Dict[str, Any] = {}
-    if eligible_pids:
-        query["$or"] = [{"source": "oulad"}, {"pid": {"$in": list(eligible_pids)}}]
-    else:
-        query["source"] = "oulad"
-
-    if course_id:
-        query["course_id"] = course_id.strip()
-    if week_index is not None:
-        query["week_index"] = week_index
+    # 1. Build collection query using shared export filter (strictly excludes withdrawn students)
+    query = await build_export_filter(
+        db=db,
+        course_id=course_id.strip() if course_id else None,
+        week_from=week_index,
+        week_to=week_index,
+    )
 
     # 3. Retrieve documents (exclude _id)
     cursor = db[target_coll].find(query, {"_id": 0}).limit(5000)
@@ -2174,7 +2167,7 @@ async def get_admin_system_health(
         "imported_students": oulad_vault_count,
         "imported_courses": oulad_course_count,
         "imported_enrolments": oulad_enrol_count,
-        "cli_command": "python -m app.importers.oulad.cli --data-dir <path-to-oulad-csvs>",
+        "cli_command": "python scripts/import_oulad.py --data-dir <path-to-oulad-csvs>",
     }
 
     return AdminSystemHealthResponse(

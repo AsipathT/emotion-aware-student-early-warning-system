@@ -62,23 +62,24 @@ async def advance_pipeline_run(
     if initial_status in TERMINAL_RUN_STATUSES:
         return run
 
-    # If run is pending, log PIPELINE_RUN_STARTED and mark running
+    # If run is pending, log PIPELINE_RUN_STARTED and mark running (scheduled runs only; manual trigger already logged PIPELINE_TRIGGERED)
     if initial_status == "pending":
         run["status"] = "running"
-        try:
-            await log_event(
-                request=None,
-                db=db,
-                action=AuditAction.PIPELINE_RUN_STARTED,
-                actor_id=run.get("triggered_by", "system:scheduler"),
-                actor_role="scheduler",
-                target_type="pipeline_run",
-                target_id=run_id,
-                outcome=AuditOutcome.SUCCESS,
-                details={"course_id": course_id, "week_index": week_index},
-            )
-        except Exception as exc:
-            logger.warning("Failed to emit PIPELINE_RUN_STARTED audit log: %s", exc)
+        if run.get("trigger") != "manual":
+            try:
+                await log_event(
+                    request=None,
+                    db=db,
+                    action=AuditAction.PIPELINE_RUN_STARTED,
+                    actor_id=run.get("triggered_by", "system:scheduler"),
+                    actor_role="scheduler",
+                    target_type="pipeline_run",
+                    target_id=run_id,
+                    outcome=AuditOutcome.SUCCESS,
+                    details={"course_id": course_id, "week_index": week_index},
+                )
+            except Exception as exc:
+                logger.warning("Failed to emit PIPELINE_RUN_STARTED audit log: %s", exc)
 
     # Pre-fetch eligible student PIDs for the course and week once
     eligible_pids: Set[str] = await get_eligible_course_pids(db, course_id, week_index)
