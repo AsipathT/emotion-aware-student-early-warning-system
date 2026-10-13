@@ -37,6 +37,87 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         from app.core.database import client, db
         await client.admin.command('ping')
         print("[startup]  MongoDB Atlas connected successfully.")
+
+        # Feature 6: Seed initial default consent notice if collection is empty
+        notice_count = await db.consent_notices.count_documents({})
+        if notice_count == 0:
+            import uuid
+            DEFAULT_NOTICE_TEXT = (
+                "To help us notice when students may need support, this LMS records how you use it: "
+                "logins, page and video activity, submissions, grades, attendance and the messages you post. "
+                "Messages and activity are processed with your identity replaced by a code before any analysis. "
+                "Results are only seen by authorised counsellors and academic staff, who use them to offer help. "
+                "They are never used for grading or disciplinary action. "
+                "You can withdraw at any time in your profile, and this will not affect your access to your courses."
+            )
+            now = datetime.now(timezone.utc)
+            seed_doc = {
+                "_id": str(uuid.uuid4()),
+                "id": str(uuid.uuid4()),
+                "version": 1,
+                "text": DEFAULT_NOTICE_TEXT,
+                "effective_from": now,
+                "is_active": True,
+            }
+            await db.consent_notices.insert_one(seed_doc)
+        # Feature 7: Ensure audit log collection indexes
+        from app.repositories.audit_repo import ensure_indexes
+        await ensure_indexes(db)
+        print("[startup]  Feature 7: Audit log indexes ensured.")
+
+        # Feature 21/23/Readback: Validate component API keys on startup
+        from app.core.component_auth import validate_component_api_keys
+        validate_component_api_keys(settings.COMPONENT_API_KEYS, settings.app_env)
+    except Exception as exc:
+        print(f"[startup]  Warning: MongoDB startup check failed: {exc}")
+
+    # --- Dushan: forum indexes ---
+    try:
+        from app.core.database import db as _db
+        await _db.forum_threads.create_index(
+            [("course_id", 1), ("last_activity_at", -1)],
+            background=True,
+        )
+        await _db.forum_posts.create_index(
+            [("thread_id", 1), ("created_at", 1)],
+            background=True,
+        )
+    except Exception as exc:
+        print(f"[startup]  Warning: forum index creation failed: {exc}")
+
+    # --- Dushan: chat indexes ---
+    try:
+        from app.core.database import db as _db2
+        await _db2.chat_conversations.create_index(
+            "participant_key", unique=True, background=True,
+        )
+        await _db2.chat_conversations.create_index(
+            [("participant_ids", 1), ("last_message_at", -1)],
+            background=True,
+        )
+        await _db2.chat_messages.create_index(
+            [("conversation_id", 1), ("created_at", 1)],
+            background=True,
+        )
+        await _db2.chat_messages.create_index(
+            [("recipient_id", 1), ("read_at", 1)],
+            background=True,
+        )
+    except Exception as exc:
+        print(f"[startup]  Warning: chat index creation failed: {exc}")
+
+    # --- Dushan: journal indexes ---
+    try:
+        from app.core.database import db as _db3
+        await _db3.journal_entries.create_index(
+            [("author_id", 1), ("course_id", 1), ("week_start", 1)],
+            unique=True,
+            background=True,
+        )
+        await _db3.journal_entries.create_index(
+            [("course_id", 1), ("week_start", 1)],
+            background=True,
+        )
     except Exception as exc:
         print(f"[startup]  Warning: journal index creation failed: {exc}")
 
@@ -48,8 +129,25 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         except Exception as exc:
             print(f"[startup]  Warning: failed to start scheduler: {exc}")
 
+    # Feature 22: Pipeline scheduler lifecycle
+    if getattr(settings, "SCHEDULER_ENABLED", False):
+        try:
+            from app.pipeline.scheduler import start_pipeline_scheduler
+            start_pipeline_scheduler()
+            print("[startup]  Feature 22 Pipeline scheduler started.")
+        except Exception as exc:
+            print(f"[startup]  Warning: failed to start pipeline scheduler: {exc}")
+
     yield
     # ---- shutdown ----
+    if getattr(settings, "SCHEDULER_ENABLED", False):
+        try:
+            from app.pipeline.scheduler import stop_pipeline_scheduler
+            stop_pipeline_scheduler()
+            print("[shutdown] Feature 22 Pipeline scheduler stopped.")
+        except Exception:
+            pass
+
     if getattr(settings, "ENABLE_SCHEDULER", False):
         try:
             from app.jobs.scheduler import stop_scheduler

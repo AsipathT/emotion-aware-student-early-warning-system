@@ -251,6 +251,8 @@ COLLECTION_STORAGE_MODELS: Dict[str, Type[BaseModel]] = {
     col.INTERVENTION_OUTCOMES: sm.InterventionOutcomeStorage,
     col.SCHEMA_MIGRATIONS: sm.SchemaMigrationStorage,
     col.INGESTION_RUNS: sm.IngestionRunStorage,
+    col.PIPELINE_RUNS: sm.PipelineRunStorage,
+    col.SCHEDULER_LOCKS: sm.SchedulerLockStorage,
 }
 
 # Pre-compiled MongoDB $jsonSchema validator dictionary for each collection

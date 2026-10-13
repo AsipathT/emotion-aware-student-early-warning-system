@@ -176,3 +176,10 @@ Every request creates an execution record:
   "rejected_records": []
 }
 ```
+
+---
+
+## 8. Pipeline Orchestration & Scheduling
+
+For details on automated weekly scheduling, readiness polling (`GET /api/v1/pipeline/ready`), HMAC-signed webhook dispatches, and stage coverage progression, refer to [docs/PIPELINE.md](file:///d:/4Y%201S/LMS/emotion-aware-student-early-warning-system/docs/PIPELINE.md).
+

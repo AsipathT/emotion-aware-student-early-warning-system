@@ -826,3 +826,33 @@ def test_routes_strictly_post():
         assert hasattr(route, "methods"), f"Route {route} has no methods defined."
         methods = set(route.methods)
         assert methods == {"POST"}, f"Route {route.path} allows non-POST methods: {methods}"
+
+
+@pytest.mark.asyncio
+async def test_mid_ingest_failure_tracks_failed_status(throwaway_ingest_db):
+    """Forces an error in the middle of an ingest request and asserts ingestion_runs ends with status 'failed'."""
+    _, _, db, _, test_keys = throwaway_ingest_db
+    pid = pseudonymize("STU_FAIL_001")
+    course_id = "CS101"
+    await setup_test_student_context(db, pid, course_id)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        headers = {"X-Component-Key": test_keys["c1"]}
+        payload = build_c1_envelope(pid, course_id, week=0)
+
+        with patch("motor.motor_asyncio.AsyncIOMotorCollection.bulk_write", side_effect=RuntimeError("Simulated database write crash")):
+            try:
+                resp = await client.post("/api/v1/ingest/affective", json=payload, headers=headers)
+                assert resp.status_code == 500
+            except RuntimeError as exc:
+                assert "Simulated database write crash" in str(exc)
+
+        # Assert ingestion_runs recorded the failure
+        failed_run = await db[col.INGESTION_RUNS].find_one(
+            {"component": "c1"},
+            sort=[("started_at", -1)],
+        )
+        assert failed_run is not None
+        assert failed_run["status"] == "failed"
+        assert "Simulated database write crash" in failed_run["error_message"]
+        assert failed_run["ended_at"] is not None
