@@ -5,6 +5,7 @@ Pydantic schemas for Feature 32: Staff Intervention Recommendation Panel (C4 FR5
 Provides response models for recommendation triage list and ranked candidate inspection.
 """
 
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
@@ -26,6 +27,8 @@ class StaffRecommendationListItem(BaseModel):
     candidate_count: int
     top_candidate: Optional[StaffRecommendationTopCandidate] = None
     risk_tier: Optional[str] = None
+    reviewed_at: Optional[datetime] = None
+    reviewer_id: Optional[str] = None
 
 
 class StaffRecommendationListResponse(BaseModel):
@@ -57,3 +60,5 @@ class StaffRecommendationDetailResponse(BaseModel):
     candidates: List[StaffRecommendationCandidateDetail]
     risk_tier: Optional[str] = None
     context_course_id: Optional[str] = None
+    reviewed_at: Optional[datetime] = None
+    reviewer_id: Optional[str] = None

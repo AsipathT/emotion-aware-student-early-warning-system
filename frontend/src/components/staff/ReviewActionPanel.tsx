@@ -81,6 +81,12 @@ export const ReviewActionPanel: React.FC<ReviewActionPanelProps> = ({
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
               Ground truth feedback outcome recorded and dispatched to Component 4 feedback loop.
+              {(result?.reviewed_at || recommendation.reviewed_at) && (
+                <span className="block mt-0.5 text-slate-400">
+                  Reviewed: {new Date(result?.reviewed_at || recommendation.reviewed_at!).toLocaleString()}
+                  {recommendation.reviewer_id ? ` • Reviewer: ${recommendation.reviewer_id}` : ''}
+                </span>
+              )}
             </p>
           </div>
         </div>

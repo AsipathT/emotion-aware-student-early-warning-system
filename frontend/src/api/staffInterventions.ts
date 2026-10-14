@@ -49,10 +49,9 @@ export interface StaffInterventionNoteItem {
 }
 
 export interface StatusHistoryEntry {
-  from_status?: string | null;
-  to_status: string;
-  changed_at: string;
-  changed_by: string;
+  status: string;
+  at: string;
+  by: string;
   note?: string | null;
 }
 

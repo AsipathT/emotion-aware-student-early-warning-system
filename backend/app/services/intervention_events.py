@@ -43,6 +43,12 @@ async def on_intervention_offered(
         catalog_entry = get_entry(itype)
         student_label = catalog_entry.get("student_label") or "Academic Guidance & Support"
 
+        # Derive n = number of entries with status == "offered" in the record's status_history
+        status_history = record.get("status_history") or []
+        n = sum(1 for entry in status_history if str(entry.get("status", "")).strip().lower() == "offered")
+        if n == 0:
+            n = 1
+
         await notify_pid(
             db=db,
             pid=pid,
@@ -50,12 +56,13 @@ async def on_intervention_offered(
             student_label=student_label,
             link="/support",
             related_id=interv_id,
-            dedupe_key=f"support_offered:{interv_id}",
+            dedupe_key=f"support_offered:{interv_id}:{n}",
         )
         logger.info(
-            "[HOOK: on_intervention_offered] Notification dispatched for intervention '%s', student '%s'.",
+            "[HOOK: on_intervention_offered] Notification dispatched for intervention '%s', student '%s' (offer #%d).",
             interv_id,
             pid,
+            n,
         )
     except Exception as exc:
         logger.warning("[HOOK: on_intervention_offered] Failed to dispatch notification: %s", exc)
@@ -77,18 +84,25 @@ async def on_intervention_completed(
 
         from app.services.notification_service import notify_pid
 
+        # Derive n = number of entries with status == "completed" in status_history
+        status_history = record.get("status_history") or []
+        n = sum(1 for entry in status_history if str(entry.get("status", "")).strip().lower() == "completed")
+        if n == 0:
+            n = 1
+
         await notify_pid(
             db=db,
             pid=pid,
             template_key="feedback_request",
             link="/support",
             related_id=interv_id,
-            dedupe_key=f"feedback_request:{interv_id}",
+            dedupe_key=f"feedback_request:{interv_id}:{n}",
         )
         logger.info(
-            "[HOOK: on_intervention_completed] Feedback request notification dispatched for intervention '%s', student '%s'.",
+            "[HOOK: on_intervention_completed] Feedback request notification dispatched for intervention '%s', student '%s' (completion #%d).",
             interv_id,
             pid,
+            n,
         )
     except Exception as exc:
         logger.warning("[HOOK: on_intervention_completed] Failed to dispatch feedback request notification: %s", exc)

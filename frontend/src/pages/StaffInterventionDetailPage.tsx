@@ -553,31 +553,46 @@ export const StaffInterventionDetailPage: React.FC = () => {
             </div>
 
             <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
-              {detail.status_history.map((sh, idx) => (
-                <div key={idx} className="relative">
-                  <div className="absolute -left-6 top-0.5 w-4 h-4 rounded-full bg-white border-2 border-indigo-600 flex items-center justify-center">
-                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-xs uppercase tracking-wider text-slate-900">
-                        {sh.to_status}
-                      </span>
-                      <span className="text-[11px] text-slate-400">
-                        {new Date(sh.changed_at).toLocaleString()}
+              {(detail.status_history || []).map((sh, idx) => {
+                const statusLabel = sh.status || 'Unknown';
+                let formattedDate = 'Unknown date';
+                if (sh.at) {
+                  try {
+                    const parsed = new Date(sh.at);
+                    if (!isNaN(parsed.getTime())) {
+                      formattedDate = parsed.toLocaleString();
+                    }
+                  } catch {
+                    formattedDate = 'Unknown date';
+                  }
+                }
+
+                return (
+                  <div key={idx} className="relative">
+                    <div className="absolute -left-6 top-0.5 w-4 h-4 rounded-full bg-white border-2 border-indigo-600 flex items-center justify-center">
+                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-xs uppercase tracking-wider text-slate-900">
+                          {statusLabel}
+                        </span>
+                        <span className="text-[11px] text-slate-400">
+                          {formattedDate}
+                        </span>
+                      </div>
+                      {sh.note && (
+                        <p className="mt-1 text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                          "{sh.note}"
+                        </p>
+                      )}
+                      <span className="text-[10px] text-slate-400 block mt-0.5">
+                        Actor: {sh.by || 'system'}
                       </span>
                     </div>
-                    {sh.note && (
-                      <p className="mt-1 text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                        "{sh.note}"
-                      </p>
-                    )}
-                    <span className="text-[10px] text-slate-400 block mt-0.5">
-                      Actor: {sh.changed_by}
-                    </span>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

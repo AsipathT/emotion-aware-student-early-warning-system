@@ -22,6 +22,8 @@ export interface StaffRecommendationListItem {
   candidate_count: number;
   top_candidate: StaffRecommendationTopCandidate | null;
   risk_tier: string | null;
+  reviewed_at?: string | null;
+  reviewer_id?: string | null;
 }
 
 export interface StaffRecommendationListResponse {
@@ -50,6 +52,8 @@ export interface StaffRecommendationDetailResponse {
   candidates: StaffRecommendationCandidateDetail[];
   risk_tier: string | null;
   context_course_id: string | null;
+  reviewed_at?: string | null;
+  reviewer_id?: string | null;
 }
 
 export const staffRecommendationsApi = {

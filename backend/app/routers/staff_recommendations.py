@@ -15,6 +15,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.core.database import get_db
 from app.db import collections as col
+from app.models.intervention_record import COL_RECOMMENDATION_REVIEWS
 from app.models.user import User
 from app.routers.export import get_eligible_consenting_pids
 from app.schemas.staff_recommendations import (
@@ -132,6 +133,16 @@ async def list_recommendations(
         ):
             risk_tier_map[(rdoc["pid"], rdoc["week_index"])] = str(rdoc.get("risk_tier", "unknown")).lower()
 
+    # Batch lookup joined recommendation reviews for reviewed_at and reviewer_id
+    rec_ids = [str(r.get("recommendation_id") or r.get("_id")) for r in raw_recs if r.get("recommendation_id") or r.get("_id")]
+    review_map: Dict[str, Dict[str, Any]] = {}
+    if rec_ids:
+        async for rev_doc in db[COL_RECOMMENDATION_REVIEWS].find(
+            {"recommendation_id": {"$in": rec_ids}},
+            {"_id": 0, "recommendation_id": 1, "reviewed_at": 1, "reviewer_id": 1},
+        ):
+            review_map[str(rev_doc["recommendation_id"])] = rev_doc
+
     # Process items
     processed_items: List[StaffRecommendationListItem] = []
     for r in raw_recs:
@@ -168,6 +179,10 @@ async def list_recommendations(
                 suitability_score=round(float(first_c.get("suitability_score", 0.0)), 4),
             )
 
+        rev_info = review_map.get(rec_id)
+        r_reviewed_at = rev_info.get("reviewed_at") if rev_info else None
+        r_reviewer_id = str(rev_info.get("reviewer_id")) if rev_info and rev_info.get("reviewer_id") else None
+
         processed_items.append(
             StaffRecommendationListItem(
                 recommendation_id=rec_id,
@@ -177,6 +192,8 @@ async def list_recommendations(
                 candidate_count=len(candidates),
                 top_candidate=top_cand,
                 risk_tier=r_tier if r_tier != "unknown" else None,
+                reviewed_at=r_reviewed_at,
+                reviewer_id=r_reviewer_id,
             )
         )
 
@@ -294,6 +311,15 @@ async def get_recommendation_detail(
             )
         )
 
+    # Look up recommendation_reviews for reviewed_at and reviewer_id
+    rev_doc = await db[COL_RECOMMENDATION_REVIEWS].find_one(
+        {"recommendation_id": clean_id},
+        {"_id": 0, "reviewed_at": 1, "reviewer_id": 1},
+        sort=[("reviewed_at", -1)],
+    )
+    detail_reviewed_at = rev_doc.get("reviewed_at") if rev_doc else None
+    detail_reviewer_id = str(rev_doc.get("reviewer_id")) if rev_doc and rev_doc.get("reviewer_id") else None
+
     # Audited view access
     await audit_student_view(
         request,
@@ -313,4 +339,6 @@ async def get_recommendation_detail(
         candidates=detail_candidates,
         risk_tier=risk_tier,
         context_course_id=context_course_id,
+        reviewed_at=detail_reviewed_at,
+        reviewer_id=detail_reviewer_id,
     )

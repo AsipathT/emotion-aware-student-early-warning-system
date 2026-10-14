@@ -205,8 +205,6 @@ async def review_recommendation(
         {
             "$set": {
                 "status": payload.decision,
-                "reviewed_at": now_utc,
-                "reviewer_id": str(current_user.id),
             }
         },
     )

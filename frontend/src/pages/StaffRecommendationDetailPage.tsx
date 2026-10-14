@@ -179,6 +179,12 @@ export const StaffRecommendationDetailPage: React.FC = () => {
                   <span className="px-2.5 py-0.5 rounded text-xs font-semibold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
                     Status: {detail.status}
                   </span>
+                  {detail.reviewed_at && (
+                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Reviewed: {new Date(detail.reviewed_at).toLocaleDateString()}
+                      {detail.reviewer_id ? ` by ${detail.reviewer_id}` : ''}
+                    </span>
+                  )}
                 </div>
                 <h1 className="text-xl font-bold text-slate-900 mt-2">
                   Ranked Adaptive Interventions for Student {detail.pid}
