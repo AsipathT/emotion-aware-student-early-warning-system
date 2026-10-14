@@ -15,6 +15,7 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     strictPort: true,
+    open: process.env.VITE_NO_OPEN ? false : 'http://localhost:5173',
     watch: {
       usePolling: true,
     },

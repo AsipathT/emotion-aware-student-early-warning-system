@@ -28,8 +28,12 @@ export const Navbar: React.FC = () => {
     return location.pathname.startsWith(path);
   };
 
-  // Do not render top navigation on auth screens
-  if (location.pathname === '/login' || location.pathname === '/register') {
+  // Do not render top navigation on auth screens or inside admin console
+  if (
+    location.pathname === '/login' ||
+    location.pathname === '/register' ||
+    location.pathname.startsWith('/admin')
+  ) {
     return null;
   }
 

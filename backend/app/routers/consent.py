@@ -333,12 +333,14 @@ async def withdraw_consent(
 )
 async def publish_new_notice(
     body: ConsentNoticeCreate,
+    request: Request = None,
     current_user: User = Depends(require_roles(UserRole.ADMIN)),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> ConsentNotice:
     # 1. Determine next version number
     highest_notice = await db.consent_notices.find_one(sort=[("version", -1)])
-    next_version = (highest_notice.get("version", 0) + 1) if highest_notice else 1
+    old_version = highest_notice.get("version") if highest_notice else None
+    next_version = (old_version + 1) if old_version else 1
 
     # 2. Deactivate existing notices
     await db.consent_notices.update_many({"is_active": True}, {"$set": {"is_active": False}})
@@ -363,13 +365,14 @@ async def publish_new_notice(
         else str(current_user.role)
     )
     await log_event(
-        request=None,
+        request=request,
         db=db,
-        action="NOTICE_PUBLISHED",
+        action=AuditAction.CONSENT_NOTICE_PUBLISHED,
         actor_id=str(current_user.id),
         actor_role=role_str,
         outcome=AuditOutcome.SUCCESS,
         details={
+            "old_version": old_version,
             "new_version": next_version,
             "notice_length": len(body.text),
         },

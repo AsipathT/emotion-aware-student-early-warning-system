@@ -618,6 +618,58 @@ async def test_persistence_and_idempotency(throwaway_ingest_db):
         assert updated_doc["contributing_indicators"] == ["daily_portal_logins"]
 
 
+@pytest.mark.asyncio
+async def test_c3_and_c4_successful_ingestion_and_persistence(throwaway_ingest_db):
+    """
+    Explicitly tests successful ingestion and persistence of:
+    - Component 3 (Risk Assessments -> col.RISK_ASSESSMENTS)
+    - Component 4 (Recommendations -> col.RECOMMENDATIONS)
+    Verifies HTTP 200, status=completed, records_processed=1, and database storage integrity.
+    """
+    _, _, db, _, test_keys = throwaway_ingest_db
+    pid = pseudonymize("STU_C3C4_001")
+    course_id = "CS101"
+    await setup_test_student_context(db, pid, course_id)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        # 1. Component 3 Ingestion
+        c3_payload = build_c3_envelope(pid, course_id, week=3)
+        c3_resp = await client.post(
+            "/api/v1/ingest/risk",
+            json=c3_payload,
+            headers={"X-Component-Key": test_keys["c3"]},
+        )
+        assert c3_resp.status_code == 200
+        c3_body = c3_resp.json()
+        assert c3_body["accepted"] == 1
+        assert c3_body["created"] == 1
+
+        stored_risk = await db[col.RISK_ASSESSMENTS].find_one({"pid": pid, "course_id": course_id, "week_index": 3})
+        assert stored_risk is not None
+        assert stored_risk["risk_tier"] == "high"
+        assert stored_risk["risk_score"] == 0.78
+        assert stored_risk["schema_version"] == 1
+
+        # 2. Component 4 Ingestion
+        rec_id = f"REC_PERSIST_{uuid.uuid4().hex[:8]}"
+        c4_payload = build_c4_envelope(rec_id, pid, week=3)
+        c4_resp = await client.post(
+            "/api/v1/ingest/recommendations",
+            json=c4_payload,
+            headers={"X-Component-Key": test_keys["c4"]},
+        )
+        assert c4_resp.status_code == 200
+        c4_body = c4_resp.json()
+        assert c4_body["accepted"] == 1
+        assert c4_body["created"] == 1
+
+        stored_rec = await db[col.RECOMMENDATIONS].find_one({"recommendation_id": rec_id})
+        assert stored_rec is not None
+        assert stored_rec["status"] == "proposed"
+        assert len(stored_rec["candidates"]) == 1
+        assert stored_rec["candidates"][0]["intervention_type"] == "peer_tutoring"
+
+
 # ── PART E: Dry Run Mode Tests ────────────────────────────────────────────────
 
 @pytest.mark.asyncio

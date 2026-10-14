@@ -14,9 +14,21 @@ import { CourseAssignmentsPage } from './pages/CourseAssignmentsPage';
 import { AssignmentDetailPage } from './pages/AssignmentDetailPage';
 import { CourseGradebookPage } from './pages/CourseGradebookPage';
 import { MyEnrollmentsPage } from './pages/MyEnrollmentsPage';
-import { AdminDashboardPage } from './pages/AdminDashboardPage';
-import { AuditLogPage } from './pages/admin/AuditLogPage';
+import { AdminLayout } from './components/admin/AdminLayout';
 import { ForumPage } from './pages/ForumPage';
+
+// Lazy-loaded admin pages to optimize bundle size
+const AdminOverviewPage = React.lazy(() => import('./pages/admin/AdminOverviewPage').then(m => ({ default: m.AdminOverviewPage })));
+const AdminUsersPage = React.lazy(() => import('./pages/admin/AdminUsersPage').then(m => ({ default: m.AdminUsersPage })));
+const AdminCoursesPage = React.lazy(() => import('./pages/admin/AdminCoursesPage').then(m => ({ default: m.AdminCoursesPage })));
+const AdminEnrolmentsPage = React.lazy(() => import('./pages/admin/AdminEnrolmentsPage').then(m => ({ default: m.AdminEnrolmentsPage })));
+const AdminConsentPage = React.lazy(() => import('./pages/admin/AdminConsentPage').then(m => ({ default: m.AdminConsentPage })));
+const AuditLogPage = React.lazy(() => import('./pages/admin/AuditLogPage').then(m => ({ default: m.AuditLogPage })));
+const AdminPipelinePage = React.lazy(() => import('./pages/admin/AdminPipelinePage').then(m => ({ default: m.AdminPipelinePage })));
+const AdminIngestionPage = React.lazy(() => import('./pages/admin/AdminIngestionPage').then(m => ({ default: m.AdminIngestionPage })));
+const AdminPrivacyPage = React.lazy(() => import('./pages/admin/AdminPrivacyPage').then(m => ({ default: m.AdminPrivacyPage })));
+const AdminExportsPage = React.lazy(() => import('./pages/admin/AdminExportsPage').then(m => ({ default: m.AdminExportsPage })));
+const AdminSystemPage = React.lazy(() => import('./pages/admin/AdminSystemPage').then(m => ({ default: m.AdminSystemPage })));
 import { ForumThreadPage } from './pages/ForumThreadPage';
 import { ChatPage } from './pages/ChatPage';
 import { JournalPage } from './pages/JournalPage';
@@ -181,25 +193,55 @@ export const App: React.FC = () => {
                 }
               />
 
-              {/* Protected Admin Governance Panel (Admin Only) */}
+              {/* Feature 40: Protected Admin & Auditor Governance Console */}
               <Route
                 path="/admin"
                 element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <AdminDashboardPage />
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* Feature 7: Protected Compliance Audit Log (Admin & Auditor Only) */}
-              <Route
-                path="/admin/audit"
-                element={
                   <ProtectedRoute allowedRoles={['admin', 'auditor']}>
-                    <AuditLogPage />
+                    <AdminLayout />
                   </ProtectedRoute>
                 }
-              />
+              >
+                <Route index element={<AdminOverviewPage />} />
+                <Route
+                  path="users"
+                  element={
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <AdminUsersPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="courses"
+                  element={
+                    <ProtectedRoute allowedRoles={['admin', 'auditor']}>
+                      <AdminCoursesPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="enrolments"
+                  element={
+                    <ProtectedRoute allowedRoles={['admin', 'auditor']}>
+                      <AdminEnrolmentsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="consent"
+                  element={
+                    <ProtectedRoute allowedRoles={['admin', 'auditor']}>
+                      <AdminConsentPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="audit" element={<AuditLogPage />} />
+                <Route path="pipeline" element={<AdminPipelinePage />} />
+                <Route path="ingestion" element={<AdminIngestionPage />} />
+                <Route path="privacy" element={<AdminPrivacyPage />} />
+                <Route path="exports" element={<AdminExportsPage />} />
+                <Route path="system" element={<AdminSystemPage />} />
+              </Route>
 
               {/* Feature 42 & 20: Research Data Export & Telemetry Pipeline (Admin & Lecturer) */}
               <Route

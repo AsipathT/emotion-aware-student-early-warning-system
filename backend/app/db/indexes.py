@@ -19,10 +19,15 @@ COLLECTION_INDEXES: Dict[str, List[IndexModel]] = {
     col.USERS: [
         IndexModel([("email", ASCENDING)], unique=True, name="idx_users_email_unique"),
         IndexModel([("role", ASCENDING)], name="idx_users_role"),
+        IndexModel([("role", ASCENDING), ("is_active", ASCENDING)], name="idx_users_role_status"),
+        IndexModel([("created_at", DESCENDING)], name="idx_users_created_at_desc"),
+        IndexModel([("full_name", ASCENDING)], name="idx_users_full_name"),
     ],
     col.COURSES: [
         IndexModel([("course_id", ASCENDING)], unique=True, name="idx_courses_course_id_unique"),
         IndexModel([("lecturer_id", ASCENDING)], name="idx_courses_lecturer_id"),
+        IndexModel([("is_published", ASCENDING)], name="idx_courses_is_published"),
+        IndexModel([("title", ASCENDING)], name="idx_courses_title"),
     ],
     col.COURSE_WEEKS: [
         IndexModel(
@@ -82,6 +87,9 @@ COLLECTION_INDEXES: Dict[str, List[IndexModel]] = {
         IndexModel([("actor_id", ASCENDING)], name="idx_audit_actor_id"),
         IndexModel([("target_id", ASCENDING)], name="idx_audit_target_id"),
         IndexModel([("action", ASCENDING)], name="idx_audit_action"),
+        IndexModel([("actor_id", ASCENDING), ("timestamp", DESCENDING)], name="idx_audit_actor_timestamp"),
+        IndexModel([("action", ASCENDING), ("timestamp", DESCENDING)], name="idx_audit_action_timestamp"),
+        IndexModel([("target_type", ASCENDING), ("timestamp", DESCENDING)], name="idx_audit_target_type_timestamp"),
     ],
 
     # ── Telemetry & Observability ─────────────────────────────────────────────
