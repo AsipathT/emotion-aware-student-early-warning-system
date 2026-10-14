@@ -1,0 +1,39 @@
+# C1 Student Affective State Detection: dependencies
+# Use Python 3.10 to 3.12.
+# Install PyTorch FIRST with the command from https://pytorch.org
+# (CPU or CUDA build), then run: pip install -r requirements.txt
+# torch>=2.2
+
+# ── Data handling ───────────────────────────
+pandas>=2.2
+numpy>=1.26
+pyarrow>=15.0
+
+# ── NLP and model training ──────────────────
+transformers>=4.40
+datasets>=2.19
+accelerate>=0.30
+scikit-learn>=1.4
+vaderSentiment>=3.3.2
+
+# ── Explainability ──────────────────────────
+shap>=0.45
+
+# ── Plots for reports and slides ────────────
+matplotlib>=3.8
+seaborn>=0.13
+
+# ── Notebooks ───────────────────────────────
+jupyterlab>=4.1
+ipykernel>=6.29
+nbstripout>=0.7
+
+# ── Serving and platform integration ────────
+fastapi>=0.110
+uvicorn>=0.29
+pydantic>=2.6
+httpx>=0.27
+python-dotenv>=1.0
+
+# ── Testing ─────────────────────────────────
+pytest>=8.0
