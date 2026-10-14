@@ -196,6 +196,11 @@ async def review_recommendation(
             enr_doc = await db[col.ENROLMENTS].find_one({"pid": clean_pid, "status": "active"})
             target_course_id = str(enr_doc["course_id"]) if enr_doc and enr_doc.get("course_id") else "GENERAL"
 
+    # Scrub reason before atomic claim and before any DB write
+    clean_reason: Optional[str] = None
+    if payload.reason and payload.reason.strip():
+        clean_reason, _ = scrub_text(payload.reason.strip())
+
     # ── Step (a): Atomic claim update ─────────────────────────────────────────
     claim_result = await db[col.RECOMMENDATIONS].update_one(
         {
@@ -231,7 +236,7 @@ async def review_recommendation(
             "chosen_intervention_type": chosen_type,
             "original_top_ranked_type": str(top_cand.get("intervention_type", "unknown")),
             "original_top_ranked_score": float(top_cand.get("suitability_score", 0.0)) if top_cand.get("suitability_score") is not None else 0.0,
-            "reason": scrub_text(payload.reason.strip()) if payload.reason else None,
+            "reason": clean_reason,
             "course_id": target_course_id,
             "reviewed_at": now_utc,
         }

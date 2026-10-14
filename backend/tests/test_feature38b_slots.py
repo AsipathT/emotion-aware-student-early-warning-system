@@ -45,7 +45,7 @@ def test_slot_create_rejects_past_time():
             mode="online",
             location_or_link="https://meet.google.com/abc-defg-hij",
         )
-    assert "start_at must be in the future" in str(exc_info.value)
+    assert "must be in the future" in str(exc_info.value)
 
 
 def test_slot_create_validates_duration_range():

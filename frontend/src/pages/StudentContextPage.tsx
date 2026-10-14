@@ -700,9 +700,9 @@ export const StudentContextPage: React.FC = () => {
                           >
                             {inv.outcome.completed ? 'Completed' : 'Incomplete'}
                           </span>
-                          {inv.outcome.observed_change !== undefined && inv.outcome.observed_change !== null && (
+                          {inv.outcome.observed_change && (
                             <span>
-                              Change: <strong>{inv.outcome.observed_change > 0 ? `+${inv.outcome.observed_change}` : inv.outcome.observed_change}</strong>
+                              Change: <strong>{inv.outcome.observed_change}</strong>
                             </span>
                           )}
                         </div>

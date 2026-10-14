@@ -104,7 +104,7 @@ export interface StudentContextBehaviour {
 export interface InterventionOutcomeDetail {
   decision: string;
   completed: boolean;
-  observed_change?: number | null;
+  observed_change?: string | null;
   notes_present: boolean;
 }
 

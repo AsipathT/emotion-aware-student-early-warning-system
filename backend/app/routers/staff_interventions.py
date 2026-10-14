@@ -11,6 +11,7 @@ Provides:
   - POST /api/v1/staff/interventions/{intervention_id}/notes: Append immutable counselor case note.
 """
 
+import logging
 import math
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -58,6 +59,8 @@ from app.services.staff_access import (
     validate_pid,
 )
 from app.services.student_context import get_analytics_snapshot
+
+logger = logging.getLogger("app.staff_interventions")
 
 router = APIRouter(prefix="/api/v1/staff/interventions", tags=["staff-interventions"])
 
@@ -377,6 +380,9 @@ async def create_manual_intervention(
     now_utc = datetime.now(timezone.utc)
     interv_id = f"int_man_{uuid.uuid4().hex[:10]}"
 
+    # Scrub reason before any DB write
+    clean_reason, _ = scrub_text(payload.reason.strip())
+
     # Capture baseline snapshot at creation time
     baseline_snapshot = await get_analytics_snapshot(db, clean_pid, cid)
 
@@ -398,7 +404,7 @@ async def create_manual_intervention(
         status="approved",
         at=now_utc,
         by=str(current_user.id),
-        note=f"Manual intervention initiated by staff: {scrub_text(payload.reason.strip())}",
+        note=f"Manual intervention initiated by staff: {clean_reason}",
     )
     operational_record = InterventionRecord(
         id=interv_id,
@@ -646,7 +652,7 @@ async def add_intervention_note(
             detail="Maximum limit of 50 case notes reached for this intervention record.",
         )
 
-    clean_content = scrub_text(payload.content.strip())
+    clean_content, _ = scrub_text(payload.content.strip())
     now_utc = datetime.now(timezone.utc)
     note_id = f"not_{uuid.uuid4().hex[:10]}"
 
