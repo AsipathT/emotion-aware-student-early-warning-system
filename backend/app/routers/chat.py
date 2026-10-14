@@ -36,6 +36,7 @@ from app.services.communication_metadata import (
     compute_response_latency_seconds,
     compute_text_stats,
 )
+from app.services.message_export_bridge import export_chat_message
 
 router = APIRouter(prefix="/api/v1/chat", tags=["chat"])
 
@@ -413,6 +414,7 @@ async def send_message(
     }
 
     await db.chat_messages.insert_one(msg_doc)
+    await export_chat_message(db, msg_doc, current_user)
 
     # Update conversation last_message_* fields.
     preview = body[:80]

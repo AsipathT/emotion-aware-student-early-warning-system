@@ -25,6 +25,19 @@ import { CourseQuizzesPage } from './pages/CourseQuizzesPage';
 import { VideoPlayerPage } from './pages/VideoPlayerPage';
 import { AttendancePage } from './pages/AttendancePage';
 import { GradebookPage } from './pages/GradebookPage';
+import { StaffAffectivePage } from './pages/StaffAffectivePage';
+import { StaffAffectiveDetailPage } from './pages/StaffAffectiveDetailPage';
+import { StaffStudentsPage } from './pages/StaffStudentsPage';
+import { StudentContextPage } from './pages/StudentContextPage';
+import { StaffRecommendationsPage } from './pages/StaffRecommendationsPage';
+import { StaffRecommendationDetailPage } from './pages/StaffRecommendationDetailPage';
+import { StaffInterventionsPage } from './pages/StaffInterventionsPage';
+import { StaffInterventionDetailPage } from './pages/StaffInterventionDetailPage';
+import { NotificationsPage } from './pages/NotificationsPage';
+import { SupportPage } from './pages/SupportPage';
+import { StaffResourcesPage } from './pages/StaffResourcesPage';
+import { StaffSlotsPage } from './pages/StaffSlotsPage';
+import { StaffValidationPage } from './pages/StaffValidationPage';
 import { ExportPipelinePage } from './pages/ExportPipelinePage';
 import { CohortRiskPage } from './pages/CohortRiskPage';
 
@@ -242,6 +255,135 @@ export const App: React.FC = () => {
                 element={
                   <ProtectedRoute allowedRoles={['student']}>
                     <JournalPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Dushan: F30 */}
+              <Route
+                path="/staff"
+                element={
+                  <ProtectedRoute allowedRoles={['counsellor', 'admin']}>
+                    <Navigate to="/staff/students" replace />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/staff/affective"
+                element={
+                  <ProtectedRoute allowedRoles={['counsellor', 'admin']}>
+                    <StaffAffectivePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/staff/affective/:pid"
+                element={
+                  <ProtectedRoute allowedRoles={['counsellor', 'admin']}>
+                    <StaffAffectiveDetailPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Dushan: F31 */}
+              <Route
+                path="/staff/students"
+                element={
+                  <ProtectedRoute allowedRoles={['counsellor', 'admin']}>
+                    <StaffStudentsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/staff/students/:pid"
+                element={
+                  <ProtectedRoute allowedRoles={['counsellor', 'admin']}>
+                    <StudentContextPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Dushan: F32 */}
+              <Route
+                path="/staff/recommendations"
+                element={
+                  <ProtectedRoute allowedRoles={['counsellor', 'admin']}>
+                    <StaffRecommendationsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/staff/recommendations/:id"
+                element={
+                  <ProtectedRoute allowedRoles={['counsellor', 'admin']}>
+                    <StaffRecommendationDetailPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Dushan: F34 */}
+              <Route
+                path="/staff/interventions"
+                element={
+                  <ProtectedRoute allowedRoles={['counsellor', 'admin']}>
+                    <StaffInterventionsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/staff/interventions/:id"
+                element={
+                  <ProtectedRoute allowedRoles={['counsellor', 'admin']}>
+                    <StaffInterventionDetailPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Dushan: F38-C */}
+              <Route
+                path="/staff/resources"
+                element={
+                  <ProtectedRoute allowedRoles={['counsellor', 'admin']}>
+                    <StaffResourcesPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Dushan: F38-B */}
+              <Route
+                path="/staff/slots"
+                element={
+                  <ProtectedRoute allowedRoles={['counsellor', 'admin']}>
+                    <StaffSlotsPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Dushan: F36 */}
+              <Route
+                path="/staff/validation"
+                element={
+                  <ProtectedRoute allowedRoles={['counsellor', 'admin']}>
+                    <StaffValidationPage />
+                  </ProtectedRoute>
+                }
+              />
+
+
+              {/* Dushan: F37 */}
+              <Route
+                path="/notifications"
+                element={
+                  <ProtectedRoute>
+                    <NotificationsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/support"
+                element={
+                  <ProtectedRoute allowedRoles={['student']}>
+                    <SupportPage />
                   </ProtectedRoute>
                 }
               />

@@ -121,6 +121,141 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception as exc:
         print(f"[startup]  Warning: journal index creation failed: {exc}")
 
+    # --- Dushan: review indexes ---
+    try:
+        from app.core.database import db as _db_rev
+        await _db_rev.recommendation_reviews.create_index(
+            [("recommendation_id", 1)],
+            unique=True,
+            background=True,
+        )
+        await _db_rev.intervention_records.create_index(
+            [("id", 1)],
+            unique=True,
+            background=True,
+        )
+        await _db_rev.intervention_records.create_index(
+            [("pid", 1), ("created_at", -1)],
+            background=True,
+        )
+        await _db_rev.intervention_records.create_index(
+            [("status", 1)],
+            background=True,
+        )
+    except Exception as exc:
+        print(f"[startup]  Warning: review index creation failed: {exc}")
+
+    # --- Dushan: intervention indexes ---
+    try:
+        from app.core.database import db as _db_int
+        await _db_int.intervention_records.create_index(
+            [("assigned_to", 1)],
+            background=True,
+        )
+    except Exception as exc:
+        print(f"[startup]  Warning: intervention index creation failed: {exc}")
+
+    # --- Dushan: notification indexes ---
+    try:
+        from app.core.database import db as _db_notif
+        await _db_notif.notifications.create_index(
+            [("user_id", 1), ("created_at", -1)],
+            background=True,
+        )
+        await _db_notif.notifications.create_index(
+            [("user_id", 1), ("read_at", 1)],
+            background=True,
+        )
+        await _db_notif.notifications.create_index(
+            [("dedupe_key", 1)],
+            unique=True,
+            sparse=True,
+            background=True,
+        )
+    except Exception as exc:
+        print(f"[startup]  Warning: notification index creation failed: {exc}")
+
+    # --- Dushan: resource indexes ---
+    try:
+        from app.core.database import db as _db_res
+        await _db_res.support_resources.create_index(
+            [("is_active", 1), ("resource_type", 1)],
+            background=True,
+        )
+    except Exception as exc:
+        print(f"[startup]  Warning: resource index creation failed: {exc}")
+
+    # --- Dushan: slot indexes ---
+    try:
+        from app.core.database import db as _db_slot
+        await _db_slot.counselling_slots.create_index(
+            [("counsellor_id", 1), ("start_at", 1)],
+            background=True,
+        )
+        await _db_slot.counselling_slots.create_index(
+            [("booked_by_user_id", 1), ("start_at", 1)],
+            background=True,
+        )
+        await _db_slot.counselling_slots.create_index(
+            [("start_at", 1)],
+            background=True,
+        )
+    except Exception as exc:
+        print(f"[startup]  Warning: counselling slot index creation failed: {exc}")
+
+    # --- Dushan: mentoring indexes ---
+    try:
+        from app.core.database import db as _db_mentor
+        await _db_mentor.mentoring_assignments.create_index(
+            [("intervention_id", 1)],
+            unique=True,
+            partialFilterExpression={"status": "active"},
+            background=True,
+        )
+        await _db_mentor.mentoring_assignments.create_index(
+            [("mentor_user_id", 1), ("status", 1)],
+            background=True,
+        )
+        await _db_mentor.mentoring_assignments.create_index(
+            [("mentee_user_id", 1), ("status", 1)],
+            background=True,
+        )
+    except Exception as exc:
+        print(f"[startup]  Warning: mentoring assignment index creation failed: {exc}")
+
+    # --- Dushan: feedback indexes ---
+    try:
+        from app.core.database import db as _db_fb
+        await _db_fb.intervention_feedback.create_index(
+            [("intervention_id", 1)],
+            unique=True,
+            background=True,
+        )
+        await _db_fb.intervention_feedback.create_index(
+            [("intervention_type", 1), ("created_at", -1)],
+            background=True,
+        )
+    except Exception as exc:
+        print(f"[startup]  Warning: feedback index creation failed: {exc}")
+
+    # --- Dushan: validation indexes ---
+    try:
+        from app.core.database import db as _db_val
+        await _db_val.validation_labels.create_index(
+            [("reviewer_id", 1), ("pid", 1), ("course_id", 1), ("week_index", 1)],
+            unique=True,
+            background=True,
+        )
+        await _db_val.recommendation_ratings.create_index(
+            [("recommendation_id", 1), ("reviewer_id", 1)],
+            unique=True,
+            background=True,
+        )
+    except Exception as exc:
+        print(f"[startup]  Warning: validation index creation failed: {exc}")
+
+
+
     if getattr(settings, "ENABLE_SCHEDULER", False):
         try:
             from app.jobs.scheduler import start_scheduler
@@ -305,6 +440,126 @@ def create_app() -> FastAPI:
 
     from app.routers import telemetry  # noqa: E402
     app.include_router(telemetry.router)
+
+    # --- Dushan: staff workspace ---
+    try:
+        from app.routers import staff_affective  # noqa: E402
+        app.include_router(staff_affective.router)
+    except Exception as exc:
+        import logging
+        logging.getLogger("app.main").warning(
+            "Failed to register staff_affective router: %s", exc
+        )
+
+    try:
+        from app.routers import staff_students  # noqa: E402
+        app.include_router(staff_students.router)
+    except Exception as exc:
+        import logging
+        logging.getLogger("app.main").warning(
+            "Failed to register staff_students router: %s", exc
+        )
+
+    try:
+        from app.routers import staff_recommendations  # noqa: E402
+        app.include_router(staff_recommendations.router)
+    except Exception as exc:
+        import logging
+        logging.getLogger("app.main").warning(
+            "Failed to register staff_recommendations router: %s", exc
+        )
+
+    try:
+        from app.routers import staff_review  # noqa: E402
+        app.include_router(staff_review.router)
+    except Exception as exc:
+        import logging
+        logging.getLogger("app.main").warning(
+            "Failed to register staff_review router: %s", exc
+        )
+
+    try:
+        from app.routers import staff_interventions  # noqa: E402
+        app.include_router(staff_interventions.router)
+    except Exception as exc:
+        import logging
+        logging.getLogger("app.main").warning(
+            "Failed to register staff_interventions router: %s", exc
+        )
+
+    try:
+        from app.routers import notifications  # noqa: E402
+        app.include_router(notifications.router)
+    except Exception as exc:
+        import logging
+        logging.getLogger("app.main").warning(
+            "Failed to register notifications router: %s", exc
+        )
+
+    try:
+        from app.routers import support_student  # noqa: E402
+        app.include_router(support_student.router)
+    except Exception as exc:
+        import logging
+        logging.getLogger("app.main").warning(
+            "Failed to register support_student router: %s", exc
+        )
+
+    try:
+        from app.routers import staff_outcomes  # noqa: E402
+        app.include_router(staff_outcomes.router)
+    except Exception as exc:
+        import logging
+        logging.getLogger("app.main").warning(
+            "Failed to register staff_outcomes router: %s", exc
+        )
+
+    try:
+        from app.routers import support_staff_resources  # noqa: E402
+        app.include_router(support_staff_resources.router)
+    except Exception as exc:
+        import logging
+        logging.getLogger("app.main").warning(
+            "Failed to register support_staff_resources router: %s", exc
+        )
+
+    try:
+        from app.routers import support_staff_slots  # noqa: E402
+        app.include_router(support_staff_slots.router)
+    except Exception as exc:
+        import logging
+        logging.getLogger("app.main").warning(
+            "Failed to register support_staff_slots router: %s", exc
+        )
+
+    try:
+        from app.routers import support_staff_mentoring  # noqa: E402
+        app.include_router(support_staff_mentoring.router)
+    except Exception as exc:
+        import logging
+        logging.getLogger("app.main").warning(
+            "Failed to register support_staff_mentoring router: %s", exc
+        )
+
+    # --- Dushan: staff feedback router ---
+    try:
+        from app.routers import staff_feedback  # noqa: E402
+        app.include_router(staff_feedback.router)
+    except Exception as exc:
+        import logging
+        logging.getLogger("app.main").warning(
+            "Failed to register staff_feedback router: %s", exc
+        )
+
+    # --- Dushan: staff validation router ---
+    try:
+        from app.routers import staff_validation  # noqa: E402
+        app.include_router(staff_validation.router)
+    except Exception as exc:
+        import logging
+        logging.getLogger("app.main").warning(
+            "Failed to register staff_validation router: %s", exc
+        )
 
     from app.routers import analytics  # noqa: E402
     app.include_router(analytics.router)
