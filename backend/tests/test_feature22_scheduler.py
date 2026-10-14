@@ -73,7 +73,7 @@ async def throwaway_pipeline_db():
     sync_client = MongoClient(uri, tz_aware=True)
     sync_db = sync_client[test_db_name]
 
-    yield uri, test_db_name, db, sync_db, admin_token
+    yield db, admin_token
 
     app.dependency_overrides.pop(get_db, None)
     sync_client.close()
@@ -85,7 +85,7 @@ async def throwaway_pipeline_db():
 
 @pytest.mark.asyncio
 async def test_weekly_behavior_aggregation(throwaway_pipeline_db):
-    _, _, db, _, _ = throwaway_pipeline_db
+    db, _ = throwaway_pipeline_db
 
     course_id = "CS201"
     pid = "STU_9f8e7d6c"
@@ -184,12 +184,13 @@ async def test_weekly_behavior_aggregation(throwaway_pipeline_db):
 
 @pytest.mark.asyncio
 async def test_weekly_pipeline_endpoints(throwaway_pipeline_db):
-    _, _, db, _, admin_token = throwaway_pipeline_db
+    db, admin_token = throwaway_pipeline_db
 
     course_id = "CS301"
+    week_index = 1
     now = datetime.now(timezone.utc)
 
-    # Insert course
+    # Insert course and course_week
     await db[col.COURSES].insert_one({
         "_id": course_id,
         "course_id": course_id,
@@ -201,30 +202,39 @@ async def test_weekly_pipeline_endpoints(throwaway_pipeline_db):
         "ingested_at": now,
         "source_version": "1.0",
     })
+    await db[col.COURSE_WEEKS].insert_one({
+        "_id": f"{course_id}_W{week_index}",
+        "course_id": course_id,
+        "week_index": week_index,
+        "title": "Week 2",
+        "start_date": now,
+        "end_date": now,
+    })
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         # 1. Unauthenticated request rejected
-        res = await client.post("/api/v1/pipeline/trigger-weekly")
+        res = await client.post(
+            "/api/v1/pipeline/trigger",
+            json={"course_id": course_id, "week_index": week_index},
+        )
         assert res.status_code == 401
 
         # 2. Admin trigger succeeds
         res = await client.post(
-            f"/api/v1/pipeline/trigger-weekly?course_id={course_id}&week_index=1",
+            "/api/v1/pipeline/trigger",
+            json={"course_id": course_id, "week_index": week_index, "force": True},
             headers={"Authorization": f"Bearer {admin_token}"},
         )
-        assert res.status_code == 200
+        assert res.status_code in (200, 202)
         res_data = res.json()
-        assert res_data["status"] == "success"
-        run_data = res_data["data"]
-        assert run_data["status"] == "completed"
-        assert run_data["courses_processed"] == 1
+        assert res_data["status"] == "accepted"
+        assert "run" in res_data
+        run_data = res_data["run"]
+        assert run_data["course_id"] == course_id
 
-        # Verify run in col.INGESTION_RUNS
-        run_id = run_data["run_id"]
-        run_record = await db[col.INGESTION_RUNS].find_one({"run_id": run_id})
+        # Verify run in col.PIPELINE_RUNS
+        run_record = await db[col.PIPELINE_RUNS].find_one({"course_id": course_id, "week_index": week_index})
         assert run_record is not None
-        assert run_record["component"] == "weekly_pipeline"
-        assert run_record["status"] == "completed"
 
         # 3. Check status endpoint
         status_res = await client.get(
@@ -234,5 +244,4 @@ async def test_weekly_pipeline_endpoints(throwaway_pipeline_db):
         assert status_res.status_code == 200
         status_data = status_res.json()
         assert "scheduler" in status_data
-        assert "latest_execution" in status_data
-        assert status_data["latest_execution"]["run_id"] == run_id
+        assert "latest_run" in status_data

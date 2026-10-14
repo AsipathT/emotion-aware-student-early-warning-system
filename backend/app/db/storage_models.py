@@ -368,6 +368,7 @@ class ActivityEventStorage(StorageDocument):
     timestamp_precision: Optional[str] = Field(default=None, description="Temporal resolution e.g. 'day', 'second'")
     resource_id: Optional[str] = Field(default=None, description="VLE site/resource identifier")
     clicks: Optional[int] = Field(default=None, ge=0, description="Sum of clicks for daily interaction")
+    session_minutes: Optional[float] = Field(default=None, ge=0.0, description="Session duration in minutes")
 
 
 class InterventionStorage(StorageDocument):
