@@ -121,3 +121,21 @@ For production deployments on MongoDB Atlas, configure three distinct database u
    - Role: `read` on `lms_db.courses`, `lms_db.course_weeks`, `lms_db.messages`, `lms_db.behavior_weekly`.
    - Dedicated `readWrite` on respective component output collections (`affective_weekly`, `engagement_trajectories`, `risk_assessments`, `recommendations`).
    - Strictly denied access to `users` and `identity_vault`.
+
+---
+
+## 6. Schema Migrations Ledger
+
+Database schema updates are managed sequentially via `app.db.migrations.runner`:
+
+| Migration ID | Subsystem | Description |
+| :--- | :--- | :--- |
+| `0001_init` | Core Platform | Initial database collections, strict Pydantic storage schemas, and unique indexes. |
+| `0002_oulad_storage` | OULAD Ingestion | Storage schema extensions and indexes for high-volume OULAD import records. |
+| `0003_export_indexes` | Feature 21 | Compound indexes on `(course_id, week_index)` for component exports. |
+| `0004_ingestion_runs_index` | Feature 23 | Ingestion batch execution tracking index. |
+| `0005_readback_export_indexes` | Readback API | Read-back optimization compound indexes. |
+| `0006_feature22_pipeline_orchestrator` | Feature 22 | Pipeline runs and distributed scheduler lock collections and schemas. |
+| `0007_admin_panel_indexes` | Feature 40 | Optimization compound indexes for user management, course searches, and audit logs. |
+| `0008_activity_events_session_minutes` | Feature 22 / 25 | Updates `activity_events` `$jsonSchema` via `collMod` to accept `session_minutes`. |
+
