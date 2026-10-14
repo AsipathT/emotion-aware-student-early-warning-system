@@ -83,10 +83,12 @@ def test_student_feedback_submission_schema():
 
 def test_privacy_scrub_comment():
     """Validates that privacy scrub_text removes identifying patterns from comments."""
-    raw = "My advisor john.smith@university.ac.uk was helpful, reg REG123456."
-    scrubbed, modified = scrub_text(raw)
-    assert "[REDACTED_EMAIL]" in scrubbed
+    raw = "My advisor john.smith@university.ac.uk was helpful, reg IT23123456."
+    scrubbed, report = scrub_text(raw)
+    assert "[EMAIL]" in scrubbed
+    assert "[REG_ID]" in scrubbed
     assert "john.smith@university.ac.uk" not in scrubbed
+    assert "IT23123456" not in scrubbed
 
 
 def test_build_observed_change_text_with_feedback():
