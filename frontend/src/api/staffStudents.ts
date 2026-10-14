@@ -92,8 +92,8 @@ export interface BehaviorWeeklyItem {
   clicks: number;
   video_play_count: number;
   video_pause_count: number;
-  video_rewind_count: number;
-  video_avg_completion_ratio: number;
+  video_completion_pct: number;
+  submissions_count: number;
   avg_submission_delay_hours: number;
 }
 
@@ -101,19 +101,21 @@ export interface StudentContextBehaviour {
   history: BehaviorWeeklyItem[];
 }
 
+export interface InterventionOutcomeDetail {
+  decision: string;
+  completed: boolean;
+  observed_change?: number | null;
+  notes_present: boolean;
+}
+
 export interface InterventionHistoryItem {
-  id: string;
+  intervention_id: string;
+  recommendation_id?: string | null;
+  course_id?: string;
   intervention_type: string;
   status: string;
-  channel?: string;
-  recommended_at?: string;
-  approved_at?: string;
-  applied_at?: string;
-  recorded_at?: string;
-  notes?: string;
-  outcome_metric?: string;
-  change_observed?: number;
-  resolved?: boolean;
+  created_at?: string | null;
+  outcome?: InterventionOutcomeDetail | null;
 }
 
 export interface StudentContextInterventions {
@@ -122,8 +124,8 @@ export interface StudentContextInterventions {
 
 export interface LaggingSourceItem {
   source: string;
-  week: number | null;
-  lag_weeks: number;
+  status?: string;
+  lag_weeks: number | null;
 }
 
 export interface StudentContextFreshness {

@@ -76,3 +76,11 @@ class SlotListResponse(BaseModel):
 class SlotBookRequest(BaseModel):
     """Payload for student booking an available counselling slot."""
     slot_id: str = Field(..., min_length=1, description="ID of open slot to book")
+
+    @field_validator("slot_id")
+    @classmethod
+    def validate_slot_id_not_blank(cls, v: str) -> str:
+        s = v.strip()
+        if not s:
+            raise ValueError("slot_id cannot be blank or whitespace.")
+        return s

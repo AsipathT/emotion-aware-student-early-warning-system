@@ -6,23 +6,7 @@
  * guidance guides, and campus referrals, and sharing them with interventions.
  */
 
-import axios from 'axios';
-
-const api = axios.create({
-  baseURL: '/api/v1/support/resources',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Interceptor to attach JWT token
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+import { apiClient } from './client';
 
 export type ResourceType = 'resource' | 'guidance' | 'referral';
 
@@ -97,7 +81,7 @@ export const staffResourcesApi = {
     intervention_type?: string;
     active?: boolean;
   }): Promise<ResourceListResponse> => {
-    const res = await api.get<ResourceListResponse>('', { params });
+    const res = await apiClient.get<ResourceListResponse>('/support/resources', { params });
     return res.data;
   },
 
@@ -105,7 +89,7 @@ export const staffResourcesApi = {
    * Retrieves a single support resource by ID.
    */
   getResource: async (id: string): Promise<SupportResourceItem> => {
-    const res = await api.get<SupportResourceItem>(`/${encodeURIComponent(id)}`);
+    const res = await apiClient.get<SupportResourceItem>(`/support/resources/${encodeURIComponent(id)}`);
     return res.data;
   },
 
@@ -113,7 +97,7 @@ export const staffResourcesApi = {
    * Creates a new support resource, guidance note, or campus referral.
    */
   createResource: async (payload: ResourceCreatePayload): Promise<SupportResourceItem> => {
-    const res = await api.post<SupportResourceItem>('', payload);
+    const res = await apiClient.post<SupportResourceItem>('/support/resources', payload);
     return res.data;
   },
 
@@ -124,7 +108,7 @@ export const staffResourcesApi = {
     id: string,
     payload: ResourceUpdatePayload,
   ): Promise<SupportResourceItem> => {
-    const res = await api.patch<SupportResourceItem>(`/${encodeURIComponent(id)}`, payload);
+    const res = await apiClient.patch<SupportResourceItem>(`/support/resources/${encodeURIComponent(id)}`, payload);
     return res.data;
   },
 
@@ -132,8 +116,8 @@ export const staffResourcesApi = {
    * Retrieves shared resources for a specific intervention.
    */
   getSharedResources: async (interventionId: string): Promise<SharedResourceListResponse> => {
-    const res = await api.get<SharedResourceListResponse>(
-      `/interventions/${encodeURIComponent(interventionId)}/shared`,
+    const res = await apiClient.get<SharedResourceListResponse>(
+      `/support/resources/interventions/${encodeURIComponent(interventionId)}/shared`,
     );
     return res.data;
   },
@@ -145,8 +129,8 @@ export const staffResourcesApi = {
     interventionId: string,
     payload: ShareResourceRequestPayload,
   ): Promise<SharedResourceItem> => {
-    const res = await api.post<SharedResourceItem>(
-      `/interventions/${encodeURIComponent(interventionId)}/share`,
+    const res = await apiClient.post<SharedResourceItem>(
+      `/support/resources/interventions/${encodeURIComponent(interventionId)}/share`,
       payload,
     );
     return res.data;

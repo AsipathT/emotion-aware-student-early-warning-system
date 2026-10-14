@@ -272,6 +272,7 @@ async def build_student_context(
             "risk_tier": str(latest_risk.get("risk_tier") or "unknown"),
             "modality_contributions": mod_contrib,
             "dominant_modality": dom_mod,
+            "dominant_modality_value": mod_contrib.get(dom_mod, 0.0),
             "top_drivers": [str(d) for d in latest_risk.get("top_drivers") or []],
         }
         for doc in risk_docs[-10:]:

@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from pydantic import ValidationError
 
-from app.models.support_slot import CounsellingSlot, SlotMode
+from app.models.support_slot import CounsellingSlot
 from app.schemas.staff_slots import (
     SlotBookRequest,
     SlotCreateRequest,
@@ -27,11 +27,11 @@ def test_slot_create_valid():
     req = SlotCreateRequest(
         start_at=future_time,
         duration_minutes=45,
-        mode=SlotMode.ONLINE,
+        mode="online",
         location_or_link="https://meet.google.com/abc-defg-hij",
     )
     assert req.duration_minutes == 45
-    assert req.mode == SlotMode.ONLINE
+    assert req.mode == "online"
     assert req.location_or_link == "https://meet.google.com/abc-defg-hij"
 
 
@@ -42,7 +42,7 @@ def test_slot_create_rejects_past_time():
         SlotCreateRequest(
             start_at=past_time,
             duration_minutes=45,
-            mode=SlotMode.ONLINE,
+            mode="online",
             location_or_link="https://meet.google.com/abc-defg-hij",
         )
     assert "start_at must be in the future" in str(exc_info.value)
@@ -57,7 +57,7 @@ def test_slot_create_validates_duration_range():
         SlotCreateRequest(
             start_at=future_time,
             duration_minutes=10,
-            mode=SlotMode.ONLINE,
+            mode="online",
             location_or_link="Room 101",
         )
 
@@ -66,7 +66,7 @@ def test_slot_create_validates_duration_range():
         SlotCreateRequest(
             start_at=future_time,
             duration_minutes=150,
-            mode=SlotMode.ONLINE,
+            mode="online",
             location_or_link="Room 101",
         )
 
@@ -80,7 +80,7 @@ def test_slot_create_validates_location_or_link_length():
         SlotCreateRequest(
             start_at=future_time,
             duration_minutes=30,
-            mode=SlotMode.IN_PERSON,
+            mode="in_person",
             location_or_link="   ",
         )
 
@@ -89,7 +89,7 @@ def test_slot_create_validates_location_or_link_length():
         SlotCreateRequest(
             start_at=future_time,
             duration_minutes=30,
-            mode=SlotMode.IN_PERSON,
+            mode="in_person",
             location_or_link="A" * 201,
         )
 
@@ -145,7 +145,7 @@ def test_counselling_slot_entity_model():
         counsellor_id="counsellor-999",
         start_at=future_time,
         duration_minutes=60,
-        mode=SlotMode.IN_PERSON,
+        mode="in_person",
         location_or_link="Wellbeing Suite 204",
     )
     assert slot.id is not None
