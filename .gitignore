@@ -216,3 +216,16 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ── Additions for component development ──────────────────────
+# OS files
+.DS_Store
+Thumbs.db
+
+# Env variants (the existing rule only matches a file named exactly .env)
+.env.*
+!.env.example
+
+# Local tool output
+test-results.txt
+.vite/
