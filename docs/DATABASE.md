@@ -139,3 +139,13 @@ Database schema updates are managed sequentially via `app.db.migrations.runner`:
 | `0007_admin_panel_indexes` | Feature 40 | Optimization compound indexes for user management, course searches, and audit logs. |
 | `0008_activity_events_session_minutes` | Feature 22 / 25 | Updates `activity_events` `$jsonSchema` via `collMod` to accept `session_minutes`. |
 
+---
+
+## 7. Identity Vault Backfill & Student PID Lifecycle
+
+- **Placeholder Identifiers**:
+  For student accounts lacking an official institutional registration ID at the time of backfill (`scripts/backfill_identity_vault.py`), the placeholder pattern `UNKNOWN-<pid>` is stored in `identity_vault.student_id`. This satisfies schema validation constraints while upholding the unique index constraint on `student_id`.
+- **PID Mutability Warning**:
+  Because student Pseudonym IDs (`Pid`) are deterministically derived via `HMAC-SHA256(student_id)`, updating a student's profile via `PATCH /users/me/profile` (or `PUT /users/me/profile`) with a genuine institutional `student_id` **will alter their PID**. Downstream pipelines, enrollments, and historical telemetry linked to the former placeholder PID must be considered prior to profile modifications.
+
+

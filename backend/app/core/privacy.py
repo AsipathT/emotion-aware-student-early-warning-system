@@ -49,20 +49,15 @@ _nlp = None
 
 
 def get_nlp():
-    """Returns the loaded spaCy en_core_web_sm pipeline."""
-    global _nlp, spacy
+    """Returns the loaded spaCy en_core_web_sm pipeline, or None if unavailable."""
+    global _nlp
     if spacy is None:
         return None
     if _nlp is None:
         try:
             _nlp = spacy.load("en_core_web_sm")
         except Exception:
-            try:
-                import spacy.cli
-                spacy.cli.download("en_core_web_sm")
-                _nlp = spacy.load("en_core_web_sm")
-            except Exception:
-                _nlp = None
+            _nlp = None
     return _nlp
 
 
@@ -165,31 +160,34 @@ def scrub_text(
                 redaction_report["NAME"] += len(matches)
                 clean_text = name_pattern.sub("[NAME]", clean_text)
 
-    # 6. spaCy NER Person Detection
-    nlp = get_nlp()
-    if nlp is not None:
-        doc = nlp(clean_text)
-        person_spans = []
+    # 6. spaCy NER Person Detection (optional with resilient fallback)
+    try:
+        nlp = get_nlp()
+        if nlp is not None:
+            doc = nlp(clean_text)
+            person_spans = []
 
-        for ent in doc.ents:
-            if ent.label_ == "PERSON":
-                # Check if this token is a placeholder word or tag
-                ent_str = ent.text.strip()
-                if ent_str in PLACEHOLDER_WORDS or ent_str in PLACEHOLDER_TAGS:
-                    continue
+            for ent in doc.ents:
+                if ent.label_ == "PERSON":
+                    # Check if this token is a placeholder word or tag
+                    ent_str = ent.text.strip()
+                    if ent_str in PLACEHOLDER_WORDS or ent_str in PLACEHOLDER_TAGS:
+                        continue
 
-                # Check if it is enclosed inside square brackets e.g. [REG_ID]
-                start, end = ent.start_char, ent.end_char
-                if start > 0 and end < len(clean_text) and clean_text[start - 1] == "[" and clean_text[end] == "]":
-                    continue
+                    # Check if it is enclosed inside square brackets e.g. [REG_ID]
+                    start, end = ent.start_char, ent.end_char
+                    if start > 0 and end < len(clean_text) and clean_text[start - 1] == "[" and clean_text[end] == "]":
+                        continue
 
-                person_spans.append((start, end, ent_str))
+                    person_spans.append((start, end, ent_str))
 
-        # Replace from back to front to maintain index offsets
-        person_spans.sort(key=lambda s: s[0], reverse=True)
-        for start, end, _ in person_spans:
-            clean_text = clean_text[:start] + "[NAME]" + clean_text[end:]
-            redaction_report["NAME"] += 1
+            # Replace from back to front to maintain index offsets
+            person_spans.sort(key=lambda s: s[0], reverse=True)
+            for start, end, _ in person_spans:
+                clean_text = clean_text[:start] + "[NAME]" + clean_text[end:]
+                redaction_report["NAME"] += 1
+    except Exception:
+        pass
 
     return clean_text, redaction_report
 

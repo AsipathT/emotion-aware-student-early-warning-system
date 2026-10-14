@@ -410,11 +410,18 @@ async def create_user_by_admin(
         user_doc["pid"] = pid
 
         vault_record = {
+            "_id": pid,
             "pid": pid,
             "student_id": student_id,
             "name": body.full_name.strip(),
             "email": email_clean,
+            "schema_version": 1,
+            "ingested_at": now,
+            "source_version": "1.0",
+            "is_imported": False,
+            "source": "internal",
             "created_at": now,
+            "updated_at": now,
         }
         await db[col.IDENTITY_VAULT].update_one(
             {"_id": pid},
@@ -655,25 +662,42 @@ async def update_user_role(
     now = datetime.now(timezone.utc)
     update_fields: Dict[str, Any] = {"role": role_val, "updated_at": now}
 
-    # If role changed to student and user doesn't have a PID yet:
-    if role_val == "student" and not user_doc.get("pid"):
-        student_id = user_doc.get("student_id") or f"IT{abs(hash(uid_str)) % 100000000:08d}"
-        pid = pseudonymize(student_id)
-        update_fields["student_id"] = student_id
-        update_fields["pid"] = pid
+    # If role changed to student, guarantee PID and identity_vault entry exist:
+    if role_val == "student":
+        student_id = user_doc.get("student_id")
+        pid = user_doc.get("pid")
+        if not pid:
+            if not student_id:
+                student_id = f"IT{abs(hash(uid_str)) % 100000000:08d}"
+            pid = pseudonymize(student_id)
+            update_fields["student_id"] = student_id
+            update_fields["pid"] = pid
+        elif not student_id:
+            student_id = f"UNKNOWN-{pid}"
+            update_fields["student_id"] = student_id
 
-        vault_record = {
-            "pid": pid,
-            "student_id": student_id,
-            "name": user_doc.get("full_name"),
-            "email": user_doc.get("email"),
-            "created_at": now,
-        }
-        await db[col.IDENTITY_VAULT].update_one(
-            {"_id": pid},
-            {"$setOnInsert": vault_record},
-            upsert=True,
-        )
+        # Check if identity_vault entry already exists
+        existing_vault = await db[col.IDENTITY_VAULT].find_one({"_id": pid})
+        if not existing_vault:
+            vault_record = {
+                "_id": pid,
+                "pid": pid,
+                "student_id": student_id,
+                "name": user_doc.get("full_name") or "Student",
+                "email": user_doc.get("email") or "",
+                "schema_version": 1,
+                "ingested_at": now,
+                "source_version": "1.0",
+                "is_imported": False,
+                "source": "internal",
+                "created_at": now,
+                "updated_at": now,
+            }
+            await db[col.IDENTITY_VAULT].update_one(
+                {"_id": pid},
+                {"$setOnInsert": vault_record},
+                upsert=True,
+            )
 
     updated_doc = await db[col.USERS].find_one_and_update(
         {"_id": user_doc["_id"]},

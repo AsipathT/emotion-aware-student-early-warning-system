@@ -352,6 +352,82 @@ async def test_admin_safeguards_last_admin_and_self_lockout(admin_api_client, th
     assert audit_status["target_id"] == str(student["id"])
 
 
+@pytest.mark.asyncio
+async def test_admin_change_user_role_to_student_creates_pid_and_vault(admin_api_client, throwaway_admin_db):
+    """
+    Verifies that when an administrator updates a user's role to 'student':
+      1. A valid pseudonym (PID) is assigned to the user document.
+      2. An identity_vault entry is created with full schema fields.
+      3. If a student already had a PID but no vault entry, changing role ensures vault entry is created without altering the existing PID.
+    """
+    db = throwaway_admin_db
+    admin = await _seed_user(db, "admin")
+    admin_headers = _make_auth_header(admin)
+
+    # 1. User initially seeded as lecturer (no PID, no student_id)
+    lecturer = await _seed_user(db, "lecturer")
+    assert lecturer.get("pid") is None
+
+    # Admin changes lecturer role to student
+    resp = await admin_api_client.put(
+        f"/api/v1/admin/users/{lecturer['id']}/role",
+        json={"role": "student"},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 200
+    res_data = resp.json()
+    assert res_data["role"] == "student"
+
+    # Verify user document in DB has PID and student_id
+    updated_user = await db[col.USERS].find_one({"_id": str(lecturer["id"])})
+    assert updated_user is not None
+    assert updated_user["role"] == "student"
+    pid = updated_user.get("pid")
+    assert pid is not None
+    assert pid.startswith("STU_")
+    student_id = updated_user.get("student_id")
+    assert student_id is not None
+
+    # Verify vault entry was created in identity_vault
+    vault_entry = await db[col.IDENTITY_VAULT].find_one({"_id": pid})
+    assert vault_entry is not None
+    assert vault_entry["pid"] == pid
+    assert vault_entry["student_id"] == student_id
+    assert vault_entry["name"] == lecturer["full_name"]
+    assert vault_entry["email"] == lecturer["email"]
+    assert vault_entry["schema_version"] == 1
+    assert vault_entry["source_version"] == "1.0"
+    assert vault_entry["is_imported"] is False
+
+    # 2. Case where user already has a PID but missing vault entry
+    existing_pid = pseudonymize("IT99999999")
+    unregistered_student = await _seed_user(db, "student")
+    await db[col.USERS].update_one(
+        {"_id": str(unregistered_student["id"])},
+        {"$set": {"pid": existing_pid, "student_id": "IT99999999"}},
+    )
+    # Ensure no vault entry exists initially
+    await db[col.IDENTITY_VAULT].delete_one({"_id": existing_pid})
+
+    # Admin triggers role update to student
+    resp_reassert = await admin_api_client.put(
+        f"/api/v1/admin/users/{unregistered_student['id']}/role",
+        json={"role": "student"},
+        headers=admin_headers,
+    )
+    assert resp_reassert.status_code == 200
+
+    # User PID must be preserved (not recomputed)
+    rechecked_user = await db[col.USERS].find_one({"_id": str(unregistered_student["id"])})
+    assert rechecked_user["pid"] == existing_pid
+
+    # Vault entry must now exist
+    new_vault = await db[col.IDENTITY_VAULT].find_one({"_id": existing_pid})
+    assert new_vault is not None
+    assert new_vault["pid"] == existing_pid
+    assert new_vault["student_id"] == "IT99999999"
+
+
 # ── Phase 2: Course Administration Tests ──────────────────────────────────────
 
 @pytest.mark.asyncio
