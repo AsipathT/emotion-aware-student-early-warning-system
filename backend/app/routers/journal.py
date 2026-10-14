@@ -29,6 +29,7 @@ from app.services.journal_service import (
     require_student_role,
     verify_active_enrolment,
 )
+from app.services.message_export_bridge import export_journal_entry
 
 router = APIRouter(prefix="/api/v1/journal", tags=["journal"])
 
@@ -118,6 +119,8 @@ async def create_journal_entry(
             status_code=status.HTTP_409_CONFLICT,
             detail="You have already submitted a journal entry for this course this week.",
         )
+
+    await export_journal_entry(db, doc, current_user)
 
     return JournalEntryResponse(**doc)
 

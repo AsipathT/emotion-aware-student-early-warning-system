@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { contentApi, assessmentApi } from '../api/assessment';
+import { QuizPlayerModal } from '../components/quiz/QuizPlayerModal';
 import {
   ArrowLeft,
   BookOpen,
@@ -9,10 +10,12 @@ import {
   HelpCircle,
   PlayCircle,
   Layers,
+  Play,
 } from 'lucide-react';
 
 export const CourseContentPage: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
+  const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
 
   const { data: modules = [], isLoading: isLoadingModules } = useQuery({
     queryKey: ['course_modules', courseId],
@@ -176,28 +179,49 @@ export const CourseContentPage: React.FC = () => {
                 <HelpCircle className="w-4 h-4 text-purple-600 mr-2" />
                 Quizzes ({quizzes.length})
               </h2>
+              <Link
+                to={`/courses/${courseId}/quizzes`}
+                className="text-xs font-semibold text-purple-600 hover:text-purple-800"
+              >
+                View all &rarr;
+              </Link>
             </div>
 
             {quizzes.length === 0 ? (
               <p className="text-xs text-slate-400 text-center py-4">No quizzes available.</p>
             ) : (
               <div className="space-y-2.5">
-                {quizzes.slice(0, 4).map(q => (
-                  <div
+                {quizzes.slice(0, 4).map((q) => (
+                  <button
                     key={q.id}
-                    className="flex justify-between items-center p-3 bg-purple-50/30 rounded-xl border border-purple-100/60 text-sm"
+                    type="button"
+                    onClick={() => setSelectedQuizId(q.id)}
+                    className="w-full flex justify-between items-center p-3 bg-purple-50/40 hover:bg-purple-100/60 rounded-xl border border-purple-100/80 text-sm transition text-left group"
                   >
-                    <span className="font-medium text-slate-800 truncate mr-2">{q.title}</span>
-                    <span className="text-xs text-purple-700 bg-purple-100 px-2 py-0.5 rounded-md font-medium">
-                      Max {q.max_score || 100}pts
+                    <div className="flex items-center space-x-2 mr-2 truncate">
+                      <Play className="w-3.5 h-3.5 text-purple-600 flex-shrink-0 group-hover:scale-110 transition" />
+                      <span className="font-medium text-slate-800 truncate">{q.title}</span>
+                    </div>
+                    <span className="text-xs text-purple-700 bg-purple-100 px-2 py-0.5 rounded-md font-bold flex-shrink-0">
+                      {q.max_score || 100} pts
                     </span>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* Interactive Quiz Modal */}
+      {selectedQuizId && (
+        <QuizPlayerModal
+          courseId={courseId!}
+          quizId={selectedQuizId}
+          isOpen={!!selectedQuizId}
+          onClose={() => setSelectedQuizId(null)}
+        />
+      )}
     </div>
   );
 };

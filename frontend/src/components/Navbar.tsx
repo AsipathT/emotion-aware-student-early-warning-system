@@ -12,7 +12,11 @@ import {
   ShieldCheck,
   BookmarkCheck,
   MessageCircle,
+  HeartHandshake,
+  Database,
+  ShieldAlert,
 } from 'lucide-react';
+import { NotificationBell } from './NotificationBell';
 
 
 export const Navbar: React.FC = () => {
@@ -50,11 +54,10 @@ export const Navbar: React.FC = () => {
                 <div className="flex items-center space-x-2 sm:space-x-3">
                   <Link
                     to="/"
-                    className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                      isCurrent('/')
-                        ? 'text-indigo-600 bg-indigo-50/80 font-semibold'
-                        : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
-                    }`}
+                    className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${isCurrent('/')
+                      ? 'text-indigo-600 bg-indigo-50/80 font-semibold'
+                      : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+                      }`}
                   >
                     <BookOpen className="w-4 h-4 mr-1.5" />
                     Dashboard
@@ -62,11 +65,10 @@ export const Navbar: React.FC = () => {
 
                   <Link
                     to="/courses"
-                    className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                      isCurrent('/courses')
-                        ? 'text-indigo-600 bg-indigo-50/80 font-semibold'
-                        : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
-                    }`}
+                    className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${isCurrent('/courses')
+                      ? 'text-indigo-600 bg-indigo-50/80 font-semibold'
+                      : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+                      }`}
                   >
                     <GraduationCap className="w-4 h-4 mr-1.5" />
                     Courses
@@ -76,11 +78,10 @@ export const Navbar: React.FC = () => {
                   {user.role === 'student' && (
                     <Link
                       to="/my-courses"
-                      className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                        isCurrent('/my-courses')
-                          ? 'text-indigo-600 bg-indigo-50/80 font-semibold'
-                          : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
-                      }`}
+                      className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${isCurrent('/my-courses')
+                        ? 'text-indigo-600 bg-indigo-50/80 font-semibold'
+                        : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+                        }`}
                     >
                       <BookmarkCheck className="w-4 h-4 mr-1.5" />
                       My Courses
@@ -91,11 +92,10 @@ export const Navbar: React.FC = () => {
                   {user.role === 'student' && (
                     <Link
                       to="/journal"
-                      className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                        isCurrent('/journal')
-                          ? 'text-indigo-600 bg-indigo-50/80 font-semibold'
-                          : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
-                      }`}
+                      className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${isCurrent('/journal')
+                        ? 'text-indigo-600 bg-indigo-50/80 font-semibold'
+                        : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+                        }`}
                     >
                       <BookOpen className="w-4 h-4 mr-1.5" />
                       Journal
@@ -106,24 +106,36 @@ export const Navbar: React.FC = () => {
                   {(user.role === 'student' || user.role === 'lecturer' || user.role === 'counsellor') && (
                     <Link
                       to="/messages"
-                      className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                        isCurrent('/messages')
-                          ? 'text-indigo-600 bg-indigo-50/80 font-semibold'
-                          : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
-                      }`}
+                      className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${isCurrent('/messages')
+                        ? 'text-indigo-600 bg-indigo-50/80 font-semibold'
+                        : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+                        }`}
                     >
                       <MessageCircle className="w-4 h-4 mr-1.5" />
                       Messages
                     </Link>
                   )}
 
-                  <Link
-                    to="/profile"
-                    className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                      isCurrent('/profile')
+                  {/* Dushan: Student Support link for counsellor/admin */}
+                  {(user.role === 'counsellor' || user.role === 'admin') && (
+                    <Link
+                      to="/staff"
+                      className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${isCurrent('/staff')
                         ? 'text-indigo-600 bg-indigo-50/80 font-semibold'
                         : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
-                    }`}
+                        }`}
+                    >
+                      <HeartHandshake className="w-4 h-4 mr-1.5" />
+                      Student Support
+                    </Link>
+                  )}
+
+                  <Link
+                    to="/profile"
+                    className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${isCurrent('/profile')
+                      ? 'text-indigo-600 bg-indigo-50/80 font-semibold'
+                      : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+                      }`}
                   >
                     <UserCircle className="w-4 h-4 mr-1.5" />
                     Profile
@@ -132,11 +144,10 @@ export const Navbar: React.FC = () => {
                   {user.role === 'admin' && (
                     <Link
                       to="/admin"
-                      className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                        isCurrent('/admin')
-                          ? 'text-purple-700 bg-purple-50 font-semibold'
-                          : 'text-slate-600 hover:text-purple-700 hover:bg-slate-50'
-                      }`}
+                      className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${isCurrent('/admin')
+                        ? 'text-purple-700 bg-purple-50 font-semibold'
+                        : 'text-slate-600 hover:text-purple-700 hover:bg-slate-50'
+                        }`}
                     >
                       <Shield className="w-4 h-4 mr-1.5 text-purple-600" />
                       Admin
@@ -146,20 +157,46 @@ export const Navbar: React.FC = () => {
                   {(user.role === 'admin' || user.role === 'auditor') && (
                     <Link
                       to="/admin/audit"
-                      className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                        isCurrent('/admin/audit')
-                          ? 'text-indigo-600 bg-indigo-50 font-semibold'
-                          : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
-                      }`}
+                      className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${isCurrent('/admin/audit')
+                        ? 'text-indigo-600 bg-indigo-50 font-semibold'
+                        : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+                        }`}
                     >
                       <ShieldCheck className="w-4 h-4 mr-1.5 text-indigo-600" />
                       Audit Log
+                    </Link>
+                  )}
+
+                  {(user.role === 'admin' || user.role === 'lecturer') && (
+                    <Link
+                      to="/cohort-risk"
+                      className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${isCurrent('/cohort-risk')
+                        ? 'text-rose-600 bg-rose-50 font-semibold'
+                        : 'text-slate-600 hover:text-rose-600 hover:bg-slate-50'
+                        }`}
+                    >
+                      <ShieldAlert className="w-4 h-4 mr-1.5 text-rose-600" />
+                      Cohort Risk
+                    </Link>
+                  )}
+
+                  {(user.role === 'admin' || user.role === 'lecturer') && (
+                    <Link
+                      to="/export"
+                      className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition ${isCurrent('/export')
+                        ? 'text-indigo-600 bg-indigo-50 font-semibold'
+                        : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+                        }`}
+                    >
+                      <Database className="w-4 h-4 mr-1.5 text-indigo-600" />
+                      Data & Pipeline
                     </Link>
                   )}
                 </div>
 
 
                 <div className="flex items-center space-x-2 pl-3 sm:pl-4 border-l border-slate-200">
+                  <NotificationBell />
                   <Link
                     to="/profile"
                     title="View and edit your profile"

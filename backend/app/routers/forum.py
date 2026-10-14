@@ -34,6 +34,10 @@ from app.services.forum_access import (
     verify_forum_access,
     verify_forum_access_by_thread,
 )
+from app.services.message_export_bridge import (
+    export_forum_post,
+    export_forum_thread,
+)
 
 router = APIRouter(prefix="/api/v1/forum", tags=["forum"])
 
@@ -174,6 +178,7 @@ async def create_thread(
     }
 
     await db.forum_threads.insert_one(thread_doc)
+    await export_forum_thread(db, thread_doc, current_user)
 
     thread_doc["author"] = AuthorSummary(
         id=uid,
@@ -285,6 +290,7 @@ async def create_post(
     }
 
     await db.forum_posts.insert_one(post_doc)
+    await export_forum_post(db, post_doc, current_user)
 
     # Update thread counters atomically.
     await db.forum_threads.update_one(
@@ -348,6 +354,11 @@ async def moderate_thread(
 
     # Return updated thread.
     updated = await db.forum_threads.find_one({"_id": tid})
+    if updated is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Thread not found after update.",
+        )
     authors = await _bulk_author_summaries(db, {updated["author_id"]})
     updated["author"] = authors.get(updated["author_id"])
     return ThreadListItem(**updated)

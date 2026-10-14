@@ -27,6 +27,8 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_admin, require_roles
 from app.core.security import ACCESS_TOKEN_TYPE, decode_token
 from app.db import collections as col
+from app.jobs.scheduler import get_scheduler_status
+from app.jobs.weekly_aggregation import run_weekly_pipeline
 from app.models.user import User, UserRole
 from app.pipeline.advance import advance_pipeline_run
 from app.pipeline.clock import get_clock
@@ -411,13 +413,70 @@ async def advance_specific_run(
     }
 
 
+@router.post(
+    "/trigger-weekly",
+    summary="Manually Trigger Weekly Aggregation Pipeline",
+    description="Executes telemetry aggregation (col.BEHAVIOR_WEEKLY) and academic record derivation.",
+    status_code=status.HTTP_200_OK,
+)
+async def trigger_weekly_pipeline(
+    request: Request,
+    course_id: Optional[str] = Query(None, description="Optional target course identifier (processes all if omitted)"),
+    week_index: Optional[int] = Query(None, ge=0, description="Optional academic week index (defaults to 1)"),
+    admin: User = Depends(require_roles(UserRole.ADMIN, UserRole.LECTURER)),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    try:
+        results = await run_weekly_pipeline(
+            db=db,
+            course_id=course_id,
+            week_index=week_index,
+        )
+        await log_event(
+            request=request,
+            db=db,
+            action=AuditAction.DATA_IMPORTED,
+            actor_id=str(admin.id),
+            actor_role=admin.role.value if hasattr(admin.role, "value") else str(admin.role),
+            target_type="weekly_pipeline",
+            target_id=results.get("run_id"),
+            outcome=AuditOutcome.SUCCESS,
+            details={
+                "course_id": course_id,
+                "week_index": week_index,
+                "records_processed": results.get("behavior_records_created", 0),
+            },
+        )
+        return {
+            "status": "success",
+            "message": "Weekly aggregation pipeline completed successfully.",
+            "data": results,
+        }
+    except Exception as exc:
+        await log_event(
+            request=request,
+            db=db,
+            action=AuditAction.DATA_IMPORTED,
+            actor_id=str(admin.id),
+            actor_role=admin.role.value if hasattr(admin.role, "value") else str(admin.role),
+            target_type="weekly_pipeline",
+            target_id="failed",
+            outcome=AuditOutcome.FAILED,
+            reason=str(exc),
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Weekly pipeline execution failed: {exc}",
+        )
+
+
 @router.get(
     "/status",
     summary="Get Scheduler and Pipeline Status",
-    description="Returns scheduler heartbeat, execution statistics, and latest run summary. Admin/Auditor.",
+    description="Returns scheduler heartbeat, execution statistics, and latest run summary. Admin/Lecturer/Auditor.",
 )
 async def get_pipeline_scheduler_diagnostics(
-    current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.AUDITOR)),
+    current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.LECTURER, UserRole.AUDITOR)),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> Dict[str, Any]:
     """Returns scheduler operational status and recent run statistics."""
@@ -425,6 +484,12 @@ async def get_pipeline_scheduler_diagnostics(
 
     latest_run = await db[col.PIPELINE_RUNS].find_one(
         {},
+        {"_id": 0},
+        sort=[("started_at", -1)],
+    )
+
+    latest_ingestion_run = await db[col.INGESTION_RUNS].find_one(
+        {"component": "weekly_pipeline"},
         {"_id": 0},
         sort=[("started_at", -1)],
     )
@@ -438,6 +503,7 @@ async def get_pipeline_scheduler_diagnostics(
     return {
         "scheduler": sched_info,
         "latest_run": latest_run,
+        "latest_execution": latest_ingestion_run or latest_run,
         "counts": {
             "total": total_runs,
             "running": running_runs,
@@ -445,4 +511,6 @@ async def get_pipeline_scheduler_diagnostics(
             "partial": partial_runs,
             "failed": failed_runs,
         },
+        "server_time": datetime.now(timezone.utc).isoformat(),
     }
+

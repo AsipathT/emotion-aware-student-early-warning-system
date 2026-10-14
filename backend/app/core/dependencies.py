@@ -16,13 +16,13 @@ from app.core.security import ACCESS_TOKEN_TYPE, decode_token
 from app.models.user import User, UserRole
 
 # HTTPBearer extracts the `Authorization: Bearer <token>` header.
-_bearer_scheme = HTTPBearer(auto_error=True)
+_bearer_scheme = HTTPBearer(auto_error=False)
 
 
 # ── get_current_user ──────────────────────────────────────────────────────────
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> User:
     """
@@ -34,6 +34,9 @@ async def get_current_user(
         detail="Could not validate credentials.",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    if not credentials:
+        raise _unauth
 
     try:
         payload = decode_token(credentials.credentials)

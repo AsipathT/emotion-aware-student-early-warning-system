@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi, SystemStatsResponse, AdminUserResponse } from '../api/admin';
 import { UserRole } from '../api/auth';
@@ -17,8 +18,15 @@ import {
   GraduationCap,
   ToggleLeft,
   ToggleRight,
+  Database,
   ShieldAlert,
+  ShieldCheck,
+  ArrowRight,
+  Play,
+  RefreshCw,
+  Cpu,
 } from 'lucide-react';
+import { exportPipelineApi, PipelineStatusResponse } from '../api/exportPipeline';
 
 export const AdminDashboardPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -98,6 +106,36 @@ export const AdminDashboardPage: React.FC = () => {
     },
   });
 
+  // 5. Fetch Weekly Pipeline & Scheduler Status (Feature 20)
+  const {
+    data: pipelineStatus,
+    refetch: refetchPipeline,
+  } = useQuery<PipelineStatusResponse>({
+    queryKey: ['adminPipelineStatus'],
+    queryFn: exportPipelineApi.getPipelineStatus,
+    refetchInterval: 1000 * 45, // Refetch every 45s
+  });
+
+  // 6. Trigger Weekly Pipeline Mutation
+  const triggerPipelineMutation = useMutation({
+    mutationFn: () => exportPipelineApi.triggerWeeklyPipeline({}),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['adminPipelineStatus'] });
+      setActionFeedback({
+        type: 'success',
+        message:
+          data?.message ||
+          'Weekly aggregation pipeline executed successfully. Behavioral & academic records updated.',
+      });
+      setTimeout(() => setActionFeedback(null), 6000);
+    },
+    onError: (err: any) => {
+      const detail =
+        err.response?.data?.detail || 'Weekly aggregation execution encountered an error.';
+      setActionFeedback({ type: 'error', message: detail });
+    },
+  });
+
   // Filtered users
   const filteredUsers = users.filter((u) => {
     const matchesSearch =
@@ -149,9 +187,25 @@ export const AdminDashboardPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center space-x-2 px-3.5 py-2 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 font-mono">
-          <ShieldAlert className="w-4 h-4 text-purple-600" />
-          <span>Admin: {currentAdmin?.email}</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            to="/cohort-risk"
+            className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl border border-rose-200 text-xs font-bold flex items-center space-x-1.5 transition-colors shadow-2xs"
+          >
+            <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
+            <span>Cohort Risk (F27)</span>
+          </Link>
+          <Link
+            to="/export"
+            className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl border border-indigo-200 text-xs font-bold flex items-center space-x-1.5 transition-colors shadow-2xs"
+          >
+            <Database className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Export & Pipeline (F42/F20)</span>
+          </Link>
+          <div className="flex items-center space-x-2 px-3.5 py-2 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 font-mono">
+            <Shield className="w-3.5 h-3.5 text-purple-600" />
+            <span>Admin: {currentAdmin?.email}</span>
+          </div>
         </div>
       </div>
 
@@ -255,6 +309,105 @@ export const AdminDashboardPage: React.FC = () => {
               Live in student catalog
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Quick Access Tools: Export & Pipeline + Compliance */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Link
+          to="/export"
+          className="p-5 bg-gradient-to-r from-indigo-50/70 to-purple-50/70 border border-indigo-200/80 rounded-2xl flex items-center justify-between hover:border-indigo-400 hover:shadow-sm transition group"
+        >
+          <div className="flex items-center space-x-3.5">
+            <div className="p-3 bg-indigo-600 text-white rounded-xl shadow-sm group-hover:scale-105 transition">
+              <Database className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-bold text-slate-900 text-sm">Research Data Export & Telemetry Pipeline</h4>
+              <p className="text-xs text-slate-500">Export ML datasets (F42) & trigger weekly aggregations (F20)</p>
+            </div>
+          </div>
+          <ArrowRight className="w-4 h-4 text-indigo-600 group-hover:translate-x-1 transition" />
+        </Link>
+
+        <Link
+          to="/admin/audit"
+          className="p-5 bg-gradient-to-r from-purple-50/70 to-indigo-50/70 border border-purple-200/80 rounded-2xl flex items-center justify-between hover:border-purple-400 hover:shadow-sm transition group"
+        >
+          <div className="flex items-center space-x-3.5">
+            <div className="p-3 bg-purple-600 text-white rounded-xl shadow-sm group-hover:scale-105 transition">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-bold text-slate-900 text-sm">Compliance & Audit Log Center</h4>
+              <p className="text-xs text-slate-500">Inspect system access, exports, and integrity logs (F7)</p>
+            </div>
+          </div>
+          <ArrowRight className="w-4 h-4 text-purple-600 group-hover:translate-x-1 transition" />
+        </Link>
+      </div>
+
+      {/* Feature 20: Weekly Telemetry Aggregation & Scheduler Management */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-start space-x-3.5">
+          <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
+            <Cpu className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <h4 className="font-bold text-slate-900 text-sm">Weekly Telemetry Aggregation Pipeline</h4>
+              <span
+                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  pipelineStatus?.scheduler?.running
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : 'bg-slate-100 text-slate-600'
+                }`}
+              >
+                ● {pipelineStatus?.scheduler?.running ? 'Scheduler Active' : 'Scheduler Idle'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Derives longitudinal behavioral markers (F18) & academic summaries (F12) across all courses.
+            </p>
+            <div className="flex flex-wrap items-center gap-4 text-[11px] text-slate-400 mt-2 font-mono">
+              <span>
+                Last Run:{' '}
+                {pipelineStatus?.latest_execution?.started_at
+                  ? new Date(pipelineStatus.latest_execution.started_at).toLocaleString()
+                  : 'Pending first scheduled run'}
+              </span>
+              {pipelineStatus?.latest_execution?.records_processed !== undefined && (
+                <span>Processed: {pipelineStatus.latest_execution.records_processed} records</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => refetchPipeline()}
+            title="Refresh Status"
+            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => triggerPipelineMutation.mutate()}
+            disabled={triggerPipelineMutation.isPending}
+            className="inline-flex items-center space-x-1.5 px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-xl text-xs font-bold shadow-xs transition disabled:opacity-50"
+          >
+            {triggerPipelineMutation.isPending ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <span>Running Pipeline...</span>
+              </>
+            ) : (
+              <>
+                <Play className="w-3.5 h-3.5 fill-current" />
+                <span>Trigger Aggregation Now</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 

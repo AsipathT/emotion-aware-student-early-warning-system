@@ -26,6 +26,7 @@ import {
   Award,
   MessagesSquare,
   PlayCircle,
+  HelpCircle,
 } from 'lucide-react';
 
 export const CourseDetailPage: React.FC = () => {
@@ -353,13 +354,21 @@ export const CourseDetailPage: React.FC = () => {
               Attendance
             </Link>
 
-            {/* Assignments & Gradebook Navigation Buttons */}
+            {/* Assignments & Quizzes & Gradebook Navigation Buttons */}
             <Link
               to={`/courses/${courseId}/assignments`}
               className="inline-flex items-center px-3.5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-sm rounded-xl border border-indigo-200 shadow-sm transition"
             >
               <FileText className="w-4 h-4 mr-1.5" />
               Assignments
+            </Link>
+
+            <Link
+              to={`/courses/${courseId}/quizzes`}
+              className="inline-flex items-center px-3.5 py-2.5 bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold text-sm rounded-xl border border-purple-200 shadow-sm transition"
+            >
+              <HelpCircle className="w-4 h-4 mr-1.5" />
+              Quizzes
             </Link>
 
             <Link
