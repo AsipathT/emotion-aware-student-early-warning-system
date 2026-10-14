@@ -1,0 +1,9 @@
+[
+  {
+    "username": "admin",
+    "name": "Admin Counselor",
+    "role": "Counselor",
+    "unit": "Grade 10-11 Unit",
+    "password_hash": "pbkdf2_sha256$310000$nmhigFe2c8H8bR4wUVB8uQ==$p0R1bhZdaUtcdIuVm62W0z2b3GQGQmAk40XW2hb6z34="
+  }
+]

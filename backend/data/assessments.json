@@ -1,0 +1,457 @@
+[
+  {
+    "id": "736d77b434e4",
+    "student_id": "STU10235",
+    "created_at": "2026-08-12T04:15:00+00:00",
+    "created_by": "admin",
+    "inputs": {
+      "c1_condition": "Exam Anxiety",
+      "c2_trajectory": "Stable",
+      "risk_probability": 0.45,
+      "risk_tier": "Medium",
+      "c3": {
+        "affective": 0.45,
+        "behavioural": 0.3,
+        "academic": 0.25
+      },
+      "c3_dominant": "Affective"
+    },
+    "recommendations": [
+      {
+        "intervention": "Counselling",
+        "suitability": 0.8361
+      },
+      {
+        "intervention": "Peer Mentoring",
+        "suitability": 0.0611
+      },
+      {
+        "intervention": "Time Management Support",
+        "suitability": 0.0494
+      }
+    ],
+    "model": "Gradient Boosting",
+    "rationale": "Counselling has the highest suitability score (84%) from the Gradient Boosting model for a student with Exam Anxiety (C1), a stable trajectory (C2), medium dropout risk (0.45) and affective factors as the strongest cause (C3).",
+    "explanation": null
+  },
+  {
+    "id": "f7079d524f90",
+    "student_id": "STU10235",
+    "created_at": "2026-09-16T05:30:00+00:00",
+    "created_by": "admin",
+    "inputs": {
+      "c1_condition": "Conceptual Confusion",
+      "c2_trajectory": "Declining",
+      "risk_probability": 0.62,
+      "risk_tier": "High",
+      "c3": {
+        "affective": 0.25,
+        "behavioural": 0.3,
+        "academic": 0.45
+      },
+      "c3_dominant": "Academic"
+    },
+    "recommendations": [
+      {
+        "intervention": "Academic Support",
+        "suitability": 0.8357
+      },
+      {
+        "intervention": "Peer Mentoring",
+        "suitability": 0.094
+      },
+      {
+        "intervention": "Attendance Support",
+        "suitability": 0.0367
+      }
+    ],
+    "model": "Gradient Boosting",
+    "rationale": "Academic Support has the highest suitability score (84%) from the Gradient Boosting model for a student with Conceptual Confusion (C1), a declining trajectory (C2), high dropout risk (0.62) and academic factors as the strongest cause (C3).",
+    "explanation": null
+  },
+  {
+    "id": "2ff7853a5d9d",
+    "student_id": "STU10231",
+    "created_at": "2026-09-03T03:45:00+00:00",
+    "created_by": "admin",
+    "inputs": {
+      "c1_condition": "Motivation Erosion",
+      "c2_trajectory": "Declining",
+      "risk_probability": 0.71,
+      "risk_tier": "High",
+      "c3": {
+        "affective": 0.3,
+        "behavioural": 0.45,
+        "academic": 0.25
+      },
+      "c3_dominant": "Behavioural"
+    },
+    "recommendations": [
+      {
+        "intervention": "Attendance Support",
+        "suitability": 0.8458
+      },
+      {
+        "intervention": "Engagement Support",
+        "suitability": 0.0812
+      },
+      {
+        "intervention": "Career Guidance",
+        "suitability": 0.0281
+      }
+    ],
+    "model": "Gradient Boosting",
+    "rationale": "Attendance Support has the highest suitability score (85%) from the Gradient Boosting model for a student with Motivation Erosion (C1), a declining trajectory (C2), high dropout risk (0.71) and behavioural factors as the strongest cause (C3).",
+    "explanation": null
+  },
+  {
+    "id": "801fd63039da",
+    "student_id": "STU10232",
+    "created_at": "2026-08-20T06:00:00+00:00",
+    "created_by": "admin",
+    "inputs": {
+      "c1_condition": "Course Pacing Frustration",
+      "c2_trajectory": "Improving",
+      "risk_probability": 0.38,
+      "risk_tier": "Medium",
+      "c3": {
+        "affective": 0.2,
+        "behavioural": 0.5,
+        "academic": 0.3
+      },
+      "c3_dominant": "Behavioural"
+    },
+    "recommendations": [
+      {
+        "intervention": "Career Guidance",
+        "suitability": 0.9551
+      },
+      {
+        "intervention": "Time Management Support",
+        "suitability": 0.0239
+      },
+      {
+        "intervention": "Attendance Support",
+        "suitability": 0.0089
+      }
+    ],
+    "model": "Gradient Boosting",
+    "rationale": "Career Guidance has the highest suitability score (96%) from the Gradient Boosting model for a student with Course Pacing Frustration (C1), a improving trajectory (C2), medium dropout risk (0.38) and behavioural factors as the strongest cause (C3).",
+    "explanation": null
+  },
+  {
+    "id": "d863237ca591",
+    "student_id": "STU10232",
+    "created_at": "2026-09-24T04:40:00+00:00",
+    "created_by": "admin",
+    "inputs": {
+      "c1_condition": "Course Pacing Frustration",
+      "c2_trajectory": "Stable",
+      "risk_probability": 0.22,
+      "risk_tier": "Low",
+      "c3": {
+        "affective": 0.2,
+        "behavioural": 0.45,
+        "academic": 0.35
+      },
+      "c3_dominant": "Behavioural"
+    },
+    "recommendations": [
+      {
+        "intervention": "Additional Learning Resources",
+        "suitability": 0.8112
+      },
+      {
+        "intervention": "Time Management Support",
+        "suitability": 0.1217
+      },
+      {
+        "intervention": "Attendance Support",
+        "suitability": 0.0384
+      }
+    ],
+    "model": "Gradient Boosting",
+    "rationale": "Additional Learning Resources has the highest suitability score (81%) from the Gradient Boosting model for a student with Course Pacing Frustration (C1), a stable trajectory (C2), low dropout risk (0.22) and behavioural factors as the strongest cause (C3).",
+    "explanation": null
+  },
+  {
+    "id": "ea72844b0af4",
+    "student_id": "STU10234",
+    "created_at": "2026-09-10T08:20:00+00:00",
+    "created_by": "admin",
+    "inputs": {
+      "c1_condition": "Academic Helplessness",
+      "c2_trajectory": "Volatile",
+      "risk_probability": 0.83,
+      "risk_tier": "Critical",
+      "c3": {
+        "affective": 0.5,
+        "behavioural": 0.3,
+        "academic": 0.2
+      },
+      "c3_dominant": "Affective"
+    },
+    "recommendations": [
+      {
+        "intervention": "Referral to Relevant Services",
+        "suitability": 0.8245
+      },
+      {
+        "intervention": "Counselling",
+        "suitability": 0.126
+      },
+      {
+        "intervention": "Peer Mentoring",
+        "suitability": 0.0381
+      }
+    ],
+    "model": "Gradient Boosting",
+    "rationale": "Referral to Relevant Services has the highest suitability score (82%) from the Gradient Boosting model for a student with Academic Helplessness (C1), a volatile trajectory (C2), critical dropout risk (0.83) and affective factors as the strongest cause (C3).",
+    "explanation": null
+  },
+  {
+    "id": "71d6229d25f3",
+    "student_id": "STU10237",
+    "created_at": "2026-09-29T07:10:00+00:00",
+    "created_by": "admin",
+    "inputs": {
+      "c1_condition": "Exam Anxiety",
+      "c2_trajectory": "Improving",
+      "risk_probability": 0.18,
+      "risk_tier": "Low",
+      "c3": {
+        "affective": 0.55,
+        "behavioural": 0.2,
+        "academic": 0.25
+      },
+      "c3_dominant": "Affective"
+    },
+    "recommendations": [
+      {
+        "intervention": "Counselling",
+        "suitability": 0.4827
+      },
+      {
+        "intervention": "Peer Mentoring",
+        "suitability": 0.3631
+      },
+      {
+        "intervention": "Additional Learning Resources",
+        "suitability": 0.0594
+      }
+    ],
+    "model": "Gradient Boosting",
+    "rationale": "Counselling has the highest suitability score (48%) from the Gradient Boosting model for a student with Exam Anxiety (C1), a improving trajectory (C2), low dropout risk (0.18) and affective factors as the strongest cause (C3).",
+    "explanation": null
+  },
+  {
+    "id": "fc561f78d5a1",
+    "student_id": "STU10239",
+    "created_at": "2026-08-28T05:05:00+00:00",
+    "created_by": "admin",
+    "inputs": {
+      "c1_condition": "Conceptual Confusion",
+      "c2_trajectory": "Stable",
+      "risk_probability": 0.56,
+      "risk_tier": "High",
+      "c3": {
+        "affective": 0.2,
+        "behavioural": 0.3,
+        "academic": 0.5
+      },
+      "c3_dominant": "Academic"
+    },
+    "recommendations": [
+      {
+        "intervention": "Academic Support",
+        "suitability": 0.8679
+      },
+      {
+        "intervention": "Peer Mentoring",
+        "suitability": 0.0652
+      },
+      {
+        "intervention": "Financial Support",
+        "suitability": 0.0274
+      }
+    ],
+    "model": "Gradient Boosting",
+    "rationale": "Academic Support has the highest suitability score (87%) from the Gradient Boosting model for a student with Conceptual Confusion (C1), a stable trajectory (C2), high dropout risk (0.56) and academic factors as the strongest cause (C3).",
+    "explanation": null
+  },
+  {
+    "id": "9aabcfd329a0",
+    "student_id": "STU10233",
+    "created_at": "2026-10-10T15:19:46+00:00",
+    "created_by": "admin",
+    "inputs": {
+      "c1_condition": "Conceptual Confusion",
+      "c2_trajectory": "Stable",
+      "risk_probability": 0.5,
+      "risk_tier": "Medium",
+      "c3": {
+        "affective": 0.34,
+        "behavioural": 0.33,
+        "academic": 0.33
+      },
+      "c3_dominant": "Affective"
+    },
+    "recommendations": [
+      {
+        "intervention": "Peer Mentoring",
+        "suitability": 0.8343
+      },
+      {
+        "intervention": "Counselling",
+        "suitability": 0.0366
+      },
+      {
+        "intervention": "Academic Support",
+        "suitability": 0.0361
+      }
+    ],
+    "model": "Gradient Boosting",
+    "rationale": "Peer Mentoring has the highest suitability score (83%) from the Gradient Boosting model for a student with Conceptual Confusion (C1), a stable trajectory (C2), medium dropout risk (0.50) and affective factors as the strongest cause (C3).",
+    "explanation": null
+  },
+  {
+    "id": "ee16cb0832a8",
+    "student_id": "STU10232",
+    "created_at": "2026-10-10T15:21:07+00:00",
+    "created_by": "admin",
+    "inputs": {
+      "c1_condition": "Course Pacing Frustration",
+      "c2_trajectory": "Stable",
+      "risk_probability": 0.22,
+      "risk_tier": "Low",
+      "c3": {
+        "affective": 0.2,
+        "behavioural": 0.45,
+        "academic": 0.35
+      },
+      "c3_dominant": "Behavioural"
+    },
+    "recommendations": [
+      {
+        "intervention": "Additional Learning Resources",
+        "suitability": 0.8112
+      },
+      {
+        "intervention": "Time Management Support",
+        "suitability": 0.1217
+      },
+      {
+        "intervention": "Attendance Support",
+        "suitability": 0.0384
+      }
+    ],
+    "model": "Gradient Boosting",
+    "rationale": "Additional Learning Resources has the highest suitability score (81%) from the Gradient Boosting model for a student with Course Pacing Frustration (C1), a stable trajectory (C2), low dropout risk (0.22) and behavioural factors as the strongest cause (C3).",
+    "explanation": null
+  },
+  {
+    "id": "eda5408e3183",
+    "student_id": "STU10231",
+    "created_at": "2026-10-14T14:08:33+00:00",
+    "created_by": "admin",
+    "inputs": {
+      "c1_condition": "Motivation Erosion",
+      "c2_trajectory": "Declining",
+      "risk_probability": 0.71,
+      "risk_tier": "High",
+      "c3": {
+        "affective": 0.3,
+        "behavioural": 0.45,
+        "academic": 0.25
+      },
+      "c3_dominant": "Behavioural"
+    },
+    "recommendations": [
+      {
+        "intervention": "Attendance Support",
+        "suitability": 0.8458
+      },
+      {
+        "intervention": "Engagement Support",
+        "suitability": 0.0812
+      },
+      {
+        "intervention": "Career Guidance",
+        "suitability": 0.0281
+      }
+    ],
+    "model": "Gradient Boosting",
+    "rationale": "Attendance Support has the highest suitability score (85%) from the Gradient Boosting model for a student with Motivation Erosion (C1), a declining trajectory (C2), high dropout risk (0.71) and behavioural factors as the strongest cause (C3).",
+    "explanation": null
+  },
+  {
+    "id": "23a220508b66",
+    "student_id": "STU10231",
+    "created_at": "2026-10-14T14:08:41+00:00",
+    "created_by": "admin",
+    "inputs": {
+      "c1_condition": "Motivation Erosion",
+      "c2_trajectory": "Declining",
+      "risk_probability": 0.71,
+      "risk_tier": "High",
+      "c3": {
+        "affective": 0.3,
+        "behavioural": 0.45,
+        "academic": 0.25
+      },
+      "c3_dominant": "Behavioural"
+    },
+    "recommendations": [
+      {
+        "intervention": "Attendance Support",
+        "suitability": 0.8458
+      },
+      {
+        "intervention": "Engagement Support",
+        "suitability": 0.0812
+      },
+      {
+        "intervention": "Career Guidance",
+        "suitability": 0.0281
+      }
+    ],
+    "model": "Gradient Boosting",
+    "rationale": "Attendance Support has the highest suitability score (85%) from the Gradient Boosting model for a student with Motivation Erosion (C1), a declining trajectory (C2), high dropout risk (0.71) and behavioural factors as the strongest cause (C3).",
+    "explanation": null
+  },
+  {
+    "id": "70667ed473cb",
+    "student_id": "STU10231",
+    "created_at": "2026-10-14T14:09:26+00:00",
+    "created_by": "admin",
+    "inputs": {
+      "c1_condition": "Motivation Erosion",
+      "c2_trajectory": "Declining",
+      "risk_probability": 0.71,
+      "risk_tier": "High",
+      "c3": {
+        "affective": 0.3,
+        "behavioural": 0.45,
+        "academic": 0.25
+      },
+      "c3_dominant": "Behavioural"
+    },
+    "recommendations": [
+      {
+        "intervention": "Attendance Support",
+        "suitability": 0.8458
+      },
+      {
+        "intervention": "Engagement Support",
+        "suitability": 0.0812
+      },
+      {
+        "intervention": "Career Guidance",
+        "suitability": 0.0281
+      }
+    ],
+    "model": "Gradient Boosting",
+    "rationale": "Attendance Support has the highest suitability score (85%) from the Gradient Boosting model for a student with Motivation Erosion (C1), a declining trajectory (C2), high dropout risk (0.71) and behavioural factors as the strongest cause (C3).",
+    "explanation": null
+  }
+]

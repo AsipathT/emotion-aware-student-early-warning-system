@@ -1,0 +1,74 @@
+[
+  {
+    "id": "STU10231",
+    "name": "Kavindu Perera",
+    "grade": 10,
+    "class_name": "10-A"
+  },
+  {
+    "id": "STU10232",
+    "name": "Sanduni Fernando",
+    "grade": 11,
+    "class_name": "11-B"
+  },
+  {
+    "id": "STU10233",
+    "name": "Ravindu Silva",
+    "grade": 10,
+    "class_name": "10-C"
+  },
+  {
+    "id": "STU10234",
+    "name": "Tharindu Jayasinghe",
+    "grade": 11,
+    "class_name": "11-A"
+  },
+  {
+    "id": "STU10235",
+    "name": "Nethmi Dissanayake",
+    "grade": 11,
+    "class_name": "11-A"
+  },
+  {
+    "id": "STU10236",
+    "name": "Hasini Gunawardena",
+    "grade": 10,
+    "class_name": "10-B"
+  },
+  {
+    "id": "STU10237",
+    "name": "Ishara Wickramasinghe",
+    "grade": 11,
+    "class_name": "11-C"
+  },
+  {
+    "id": "STU10238",
+    "name": "Pasindu Bandara",
+    "grade": 10,
+    "class_name": "10-A"
+  },
+  {
+    "id": "STU10239",
+    "name": "Dilshan Rathnayake",
+    "grade": 11,
+    "class_name": "11-B"
+  },
+  {
+    "id": "STU10240",
+    "name": "Chamodi Herath",
+    "grade": 10,
+    "class_name": "10-C"
+  },
+  {
+    "id": "STU10241",
+    "name": "Yasiru Karunaratne",
+    "grade": 11,
+    "class_name": "11-C"
+  },
+  {
+    "id": "STU10242",
+    "name": "Amaya Senanayake",
+    "grade": 10,
+    "class_name": "10-B"
+  }
+]

@@ -1,0 +1,11 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.7
+scikit-learn>=1.5
+pandas>=2.2
+numpy>=1.26
+joblib>=1.4
+openpyxl>=3.1
+openai>=1.40
+PyJWT>=2.8
+python-dotenv>=1.0
