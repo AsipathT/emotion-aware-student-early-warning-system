@@ -1,0 +1,179 @@
+# Label Mapping Configuration: External Corpora to C1 Academic Distress Taxonomy
+#
+# RESEARCH HONESTY NOTICE:
+# GoEmotions (Reddit) and Emotion-4 (Twitter) are external social media corpora,
+# not authentic higher-education LMS communications. Every mapping to our 5-class
+# academic distress taxonomy is strictly a PROXY representation of affective
+# states. These proxy mappings are used for transfer learning / pre-training only.
+# Authentic student messages are separately captured and evaluated in the domain set.
+
+taxonomy_version: "1.0.0"
+target_classes:
+  - exam_anxiety
+  - conceptual_confusion
+  - academic_helplessness
+  - course_frustration
+  - motivation_erosion
+
+# ── GoEmotions Mapping (28 labels) ──────────────────────────────────────────
+# Each mapped entry is explicitly marked with mapping_type: proxy
+goemotions:
+  # Class 1: exam_anxiety
+  nervousness:
+    target: exam_anxiety
+    mapping_type: proxy
+    confidence_weight: 0.90
+    rationale: "Direct affective expression of acute anticipatory apprehension, physiological tension, and anxiety."
+  fear:
+    target: exam_anxiety
+    mapping_type: proxy
+    confidence_weight: 0.85
+    rationale: "Acute distress, dread, or panic regarding impending failure, tests, or severe negative academic outcomes."
+
+  # Class 2: conceptual_confusion
+  confusion:
+    target: conceptual_confusion
+    mapping_type: proxy
+    confidence_weight: 0.95
+    rationale: "Direct cognitive-affective marker of perplexity, ambiguity, and lack of comprehension of instructional material."
+
+  # Class 3: academic_helplessness
+  sadness:
+    target: academic_helplessness
+    mapping_type: proxy
+    confidence_weight: 0.80
+    rationale: "Sorrow, defeatism, and emotional deflatedness reflecting diminished academic self-efficacy and despair."
+  grief:
+    target: academic_helplessness
+    mapping_type: proxy
+    confidence_weight: 0.85
+    rationale: "Profound sorrow and despair representing extreme feeling of loss of control and overwhelming distress."
+  remorse:
+    target: academic_helplessness
+    mapping_type: proxy
+    confidence_weight: 0.75
+    rationale: "Guilt and regret over fallen performance, missed work, and inability to recover academic standing."
+
+  # Class 4: course_frustration
+  anger:
+    target: course_frustration
+    mapping_type: proxy
+    confidence_weight: 0.90
+    rationale: "High-arousal negative affect, resentment, or hostility directed toward course friction, rubrics, or deadlines."
+  annoyance:
+    target: course_frustration
+    mapping_type: proxy
+    confidence_weight: 0.90
+    rationale: "Irritation and exasperation regarding unclear assignment guidelines, technical glitches, or course logistics."
+  disapproval:
+    target: course_frustration
+    mapping_type: proxy
+    confidence_weight: 0.80
+    rationale: "Explicit dissatisfaction, criticism, or objection regarding instructional quality or course administration."
+  disgust:
+    target: course_frustration
+    mapping_type: proxy
+    confidence_weight: 0.70
+    rationale: "Strong aversion and rejection towards course structure, unfair evaluation, or chaotic coursework."
+
+  # Class 5: motivation_erosion
+  disappointment:
+    target: motivation_erosion
+    mapping_type: proxy
+    confidence_weight: 0.85
+    rationale: "Disillusionment, dashed expectations, and deflated morale leading to academic withdrawal and disengagement."
+  embarrassment:
+    target: motivation_erosion
+    mapping_type: proxy
+    confidence_weight: 0.75
+    rationale: "Shame or acute self-consciousness in learning contexts leading to social withdrawal and diminished participation."
+
+  # ── Unmapped / Non-Distress Emotions (16 categories) ──────────────────────
+  # Positive, social, or neutral states that do not indicate academic distress.
+  admiration:
+    target: null
+    mapping_type: unmapped_positive
+    rationale: "Positive appraisal of instructor or peer; non-distress."
+  amusement:
+    target: null
+    mapping_type: unmapped_positive
+    rationale: "Humor or lightheartedness; non-distress."
+  approval:
+    target: null
+    mapping_type: unmapped_positive
+    rationale: "Agreement or concurrence; non-distress."
+  caring:
+    target: null
+    mapping_type: unmapped_positive
+    rationale: "Peer empathy or community support; non-distress."
+  curiosity:
+    target: null
+    mapping_type: unmapped_epistemic
+    rationale: "Inquiry or active engagement with material; healthy epistemic emotion."
+  desire:
+    target: null
+    mapping_type: unmapped_positive
+    rationale: "Wanting to learn or aspiration; non-distress."
+  excitement:
+    target: null
+    mapping_type: unmapped_positive
+    rationale: "High-arousal positive affect and eagerness; non-distress."
+  gratitude:
+    target: null
+    mapping_type: unmapped_positive
+    rationale: "Thankfulness to instructors or peers; non-distress."
+  joy:
+    target: null
+    mapping_type: unmapped_positive
+    rationale: "Positive affect and satisfaction; non-distress."
+  love:
+    target: null
+    mapping_type: unmapped_positive
+    rationale: "Affection or enthusiasm; non-distress."
+  optimism:
+    target: null
+    mapping_type: unmapped_positive
+    rationale: "Hopeful outlook on performance; positive protective factor."
+  pride:
+    target: null
+    mapping_type: unmapped_positive
+    rationale: "Achievement satisfaction; positive protective factor."
+  realization:
+    target: null
+    mapping_type: unmapped_epistemic
+    rationale: "Cognitive insight or breakthrough ('Aha!' moment); resolution of confusion."
+  relief:
+    target: null
+    mapping_type: unmapped_positive
+    rationale: "Tension dissipation post-exam or submission; non-distress."
+  surprise:
+    target: null
+    mapping_type: unmapped_neutral
+    rationale: "Unexpected stimulus without intrinsic distress polarity."
+  neutral:
+    target: null
+    mapping_type: unmapped_neutral
+    rationale: "Informational queries, standard greetings, objective academic discourse."
+
+# ── Emotion-4 Dataset Mapping (eng_dataset.csv) ─────────────────────────────
+# 4 classes: fear, anger, joy, sadness
+emotion4:
+  fear:
+    target: exam_anxiety
+    mapping_type: proxy
+    confidence_weight: 0.85
+    rationale: "Proxy for academic anxiety, fear of failure, and exam dread."
+  anger:
+    target: course_frustration
+    mapping_type: proxy
+    confidence_weight: 0.85
+    rationale: "Proxy for course frustration, anger with grading, and exasperation."
+  sadness:
+    target: academic_helplessness
+    mapping_type: proxy
+    confidence_weight: 0.80
+    rationale: "Proxy for despair, academic helplessness, and feeling overwhelmed."
+  joy:
+    target: null
+    mapping_type: unmapped_positive
+    rationale: "Positive affect; non-distress."

@@ -1,0 +1,47 @@
+# Datasets: never commit data (size + privacy)
+data/*
+!data/.gitkeep
+!data/README.md
+
+# Trained models and checkpoints
+models/*
+!models/.gitkeep
+!models/README.md
+checkpoints/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+*.onnx
+*.joblib
+*.pkl
+
+# Experiment tracking and caches
+wandb/
+mlruns/
+runs/
+lightning_logs/
+.cache/
+huggingface/
+
+# Archives and large downloads
+*.zip
+*.tar
+*.gz
+*.7z
+*.parquet
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Notebook and local junk
+.ipynb_checkpoints/
+outputs/
+__pycache__/
+.venv/
+*.tmp

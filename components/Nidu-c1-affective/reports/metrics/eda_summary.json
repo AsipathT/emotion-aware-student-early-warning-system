@@ -1,0 +1,64 @@
+{
+  "goemotions": {
+    "total_train_samples": 43410,
+    "total_dev_samples": 5426,
+    "total_test_samples": 5427,
+    "raw_counts_train": {
+      "admiration": 4130,
+      "amusement": 2328,
+      "anger": 1567,
+      "annoyance": 2470,
+      "approval": 2939,
+      "caring": 1087,
+      "confusion": 1368,
+      "curiosity": 2191,
+      "desire": 641,
+      "disappointment": 1269,
+      "disapproval": 2022,
+      "disgust": 793,
+      "embarrassment": 303,
+      "excitement": 853,
+      "fear": 596,
+      "gratitude": 2662,
+      "grief": 77,
+      "joy": 1452,
+      "love": 2086,
+      "nervousness": 164,
+      "optimism": 1581,
+      "pride": 111,
+      "realization": 1110,
+      "relief": 153,
+      "remorse": 545,
+      "sadness": 1326,
+      "surprise": 1060,
+      "neutral": 14219
+    },
+    "mapped_distress_counts_train": {
+      "exam_anxiety": 726,
+      "conceptual_confusion": 1368,
+      "academic_helplessness": 1864,
+      "course_frustration": 6217,
+      "motivation_erosion": 1562,
+      "unmapped": 32293
+    },
+    "median_char_length": 65.0,
+    "median_word_length": 12.0
+  },
+  "emotion4": {
+    "total_samples": 7102,
+    "raw_counts": {
+      "fear": 2252,
+      "anger": 1701,
+      "joy": 1616,
+      "sadness": 1533
+    },
+    "mapped_counts": {
+      "exam_anxiety": 2252,
+      "conceptual_confusion": 0,
+      "academic_helplessness": 1533,
+      "course_frustration": 1701,
+      "motivation_erosion": 0,
+      "unmapped": 1616
+    }
+  }
+}
