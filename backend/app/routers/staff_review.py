@@ -331,10 +331,11 @@ async def review_recommendation(
             action=AuditAction.RECOMMENDATION_REVIEWED,
             actor_id=actor_id,
             actor_role=actor_role,
-            target_type="recommendation",
-            target_id=clean_id,
+            target_type="student",
+            target_id=clean_pid,
             outcome=AuditOutcome.SUCCESS,
             details={
+                "recommendation_id": clean_id,
                 "decision": payload.decision,
                 "chosen_intervention_type": chosen_type or "none",
                 "has_reason": bool(payload.reason and payload.reason.strip()),

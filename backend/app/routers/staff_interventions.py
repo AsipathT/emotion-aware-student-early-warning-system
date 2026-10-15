@@ -159,9 +159,11 @@ async def list_interventions(
 
     match_filter: Dict[str, Any] = {"pid": {"$in": list(eligible_pids)}}
 
+    clean_pid: Optional[str] = None
     if pid:
-        clean_pid = str(pid).strip()
+        clean_pid = validate_pid(str(pid).strip())
         if clean_pid not in eligible_pids:
+            # PID is unconsented -> empty results
             await audit_student_view(
                 request,
                 db,
@@ -236,7 +238,7 @@ async def list_interventions(
         request,
         db,
         current_user,
-        pid=pid or "cohort",
+        pid=clean_pid if pid else "cohort",
         view="intervention_list",
     )
 

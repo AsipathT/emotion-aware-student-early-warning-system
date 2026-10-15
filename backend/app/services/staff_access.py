@@ -79,7 +79,7 @@ async def audit_student_view(
     db: AsyncIOMotorDatabase,
     user: User,
     *,
-    pid: str,
+    pid: Optional[str] = None,
     view: str,
     course_id: Optional[str] = None,
     week_index: Optional[int] = None,
@@ -89,12 +89,25 @@ async def audit_student_view(
     Fails closed (HTTP 500) if the audit log write fails, ensuring zero data leakage
     without complete compliance traceability.
     """
+    clean_course_id = str(course_id).strip() if course_id and str(course_id).strip() else None
+
+    # Privacy-preserving target resolution:
+    # Single-student views: target_type="student" + validated PID (STU_xxxxxxxx)
+    # List/cohort views (no single student): target_type="course" + course_id or "all"
+    if pid and str(pid).strip().lower() != "cohort":
+        clean_pid = validate_pid(str(pid).strip())
+        target_type = "student"
+        target_id = clean_pid
+    else:
+        target_type = "course"
+        target_id = clean_course_id or "all"
+
     details: Dict[str, Any] = {
         "view": str(view),
         "requester_role": user.role.value if hasattr(user.role, "value") else str(user.role),
     }
-    if course_id:
-        details["course_id"] = str(course_id).strip()
+    if clean_course_id:
+        details["course_id"] = clean_course_id
     if week_index is not None:
         details["week_index"] = int(week_index)
 
@@ -108,16 +121,17 @@ async def audit_student_view(
             action=AuditAction.STUDENT_DATA_VIEWED,
             actor_id=actor_id,
             actor_role=actor_role,
-            target_type="student",
-            target_id=str(pid).strip(),
+            target_type=target_type,
+            target_id=target_id,
             outcome=AuditOutcome.SUCCESS,
             details=details,
         )
     except Exception as exc:
         logger.error(
-            "Audit logging failed for staff student view (actor=%s, pid=%s, view=%s): %s",
+            "Audit logging failed for staff student view (actor=%s, target_type=%s, target_id=%s, view=%s): %s",
             actor_id,
-            pid,
+            target_type,
+            target_id,
             view,
             exc,
             exc_info=True,

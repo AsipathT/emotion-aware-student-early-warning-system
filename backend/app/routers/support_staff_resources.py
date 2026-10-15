@@ -26,7 +26,7 @@ from app.models.support_resource import (
     VALID_RESOURCE_TYPES,
 )
 from app.models.user import User
-from app.schemas.audit import AuditOutcome
+from app.schemas.audit import AuditAction, AuditOutcome
 from app.schemas.staff_resources import (
     ResourceCreate,
     ResourceListResponse,
@@ -38,7 +38,7 @@ from app.schemas.staff_resources import (
 )
 from app.services.audit import log_event
 from app.services.notification_service import notify_pid
-from app.services.staff_access import require_staff
+from app.services.staff_access import require_staff, validate_pid
 
 logger = logging.getLogger("app.support_staff_resources")
 
@@ -419,16 +419,18 @@ async def share_resource_with_intervention(
     # 7. Audit log (exception-safe)
     try:
         actor_role_str = str(getattr(current_user.role, "value", current_user.role))
+        clean_student_pid = validate_pid(str(rec.get("pid", "")).strip())
         await log_event(
             request=request,
             db=db,
-            action="INTERVENTION_RESOURCE_SHARED",
+            action=AuditAction.STUDENT_DATA_VIEWED,
             actor_id=str(current_user.id),
             actor_role=actor_role_str,
-            target_type="intervention",
-            target_id=clean_interv_id,
+            target_type="student",
+            target_id=clean_student_pid,
             outcome=AuditOutcome.SUCCESS,
             details={
+                "view": "intervention_resource_shared",
                 "intervention_id": clean_interv_id,
                 "resource_id": canonical_res_id,
                 "resource_type": res_type,
