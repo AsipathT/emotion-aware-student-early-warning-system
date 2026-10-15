@@ -256,156 +256,160 @@ export const CourseDetailPage: React.FC = () => {
       </div>
 
       {/* Course Hero Header */}
-      <div className="relative bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-sm overflow-hidden">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="space-y-2.5 max-w-3xl">
-            <div className="flex items-center space-x-3">
-              <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-                  course.is_published
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                    : 'bg-amber-50 text-amber-700 border border-amber-200'
-                }`}
-              >
-                {course.is_published ? (
-                  <>
-                    <Globe className="w-3 h-3 mr-1" />
-                    Published
-                  </>
-                ) : (
-                  <>
-                    <Lock className="w-3 h-3 mr-1" />
-                    Draft (Unpublished)
-                  </>
-                )}
-              </span>
-
-              <span className="text-xs text-slate-400 flex items-center font-mono">
-                <Calendar className="w-3.5 h-3.5 mr-1" />
-                Created {new Date(course.created_at).toLocaleDateString()}
-              </span>
-            </div>
-
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              {course.title}
-            </h1>
-
-            <p className="text-sm text-slate-600 leading-relaxed">
-              {course.description || 'No detailed syllabus description provided.'}
-            </p>
-          </div>
-
-          {/* Action Area: Student Enroll button OR Instructor Add Module button */}
-          <div className="flex md:flex-col items-end gap-3 flex-shrink-0">
-            {/* Student Enrollment Control */}
-            {isStudent && (
-              <div>
-                {isEnrolled ? (
-                  <div className="inline-flex items-center px-4 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 font-semibold text-sm shadow-sm">
-                    <CheckCircle2 className="w-4 h-4 mr-2 text-emerald-600" />
-                    Enrolled
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => enrollMutation.mutate()}
-                    disabled={enrollMutation.isPending || !course.is_published}
-                    className="inline-flex items-center px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-60 text-white font-semibold text-sm rounded-xl shadow-sm hover:shadow transition"
-                  >
-                    {enrollMutation.isPending ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                        <span>Enrolling...</span>
-                      </>
-                    ) : (
-                      <>
-                        <UserCheck className="w-4 h-4 mr-1.5" />
-                        Enroll in Course
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* Feature 8: Course Content & Modules */}
-            <Link
-              to={`/courses/${courseId}/content`}
-              className="inline-flex items-center px-3.5 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-sm rounded-xl border border-blue-200 shadow-sm transition"
+      <div className="relative bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-sm overflow-hidden space-y-5">
+        {/* Top: Metadata & Badges */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <span
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
+                course.is_published
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : 'bg-amber-50 text-amber-700 border border-amber-200'
+              }`}
             >
-              <BookOpen className="w-4 h-4 mr-1.5" />
-              Content & Modules
-            </Link>
+              {course.is_published ? (
+                <>
+                  <Globe className="w-3 h-3 mr-1" />
+                  Published
+                </>
+              ) : (
+                <>
+                  <Lock className="w-3 h-3 mr-1" />
+                  Draft (Unpublished)
+                </>
+              )}
+            </span>
 
-            {/* Feature 9: Video Lectures */}
-            <Link
-              to={`/courses/${courseId}/video`}
-              className="inline-flex items-center px-3.5 py-2.5 bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold text-sm rounded-xl border border-purple-200 shadow-sm transition"
-            >
-              <PlayCircle className="w-4 h-4 mr-1.5" />
-              Video Lectures
-            </Link>
+            <span className="text-xs text-slate-400 flex items-center font-mono">
+              <Calendar className="w-3.5 h-3.5 mr-1" />
+              Created {new Date(course.created_at).toLocaleDateString()}
+            </span>
 
-            {/* Feature 13: Attendance Tracker */}
-            <Link
-              to={`/courses/${courseId}/attendance`}
-              className="inline-flex items-center px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 font-semibold text-sm rounded-xl border border-amber-200 shadow-sm transition"
-            >
-              <UserCheck className="w-4 h-4 mr-1.5" />
-              Attendance
-            </Link>
-
-            {/* Assignments & Quizzes & Gradebook Navigation Buttons */}
-            <Link
-              to={`/courses/${courseId}/assignments`}
-              className="inline-flex items-center px-3.5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-sm rounded-xl border border-indigo-200 shadow-sm transition"
-            >
-              <FileText className="w-4 h-4 mr-1.5" />
-              Assignments
-            </Link>
-
-            <Link
-              to={`/courses/${courseId}/quizzes`}
-              className="inline-flex items-center px-3.5 py-2.5 bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold text-sm rounded-xl border border-purple-200 shadow-sm transition"
-            >
-              <HelpCircle className="w-4 h-4 mr-1.5" />
-              Quizzes
-            </Link>
-
-            <Link
-              to={`/courses/${courseId}/gradebook`}
-              className="inline-flex items-center px-3.5 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold text-sm rounded-xl border border-emerald-200 shadow-sm transition"
-            >
-              <Award className="w-4 h-4 mr-1.5" />
-              Gradebook
-            </Link>
-
-            {/* Instructor Actions */}
-            {isInstructor && (
-              <button
-                onClick={handleOpenModal}
-                className="inline-flex items-center px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold text-sm rounded-xl shadow-sm hover:shadow transition"
-              >
-                <Plus className="w-4 h-4 mr-1.5" />
-                Add Module
-              </button>
-            )}
-
-            {/* Dushan: Discussion Forum Link */}
-            {canAccessForum && (
-              <Link
-                to={`/courses/${courseId}/forum`}
-                className="inline-flex items-center px-4 py-2.5 bg-white border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 font-semibold text-sm rounded-xl shadow-sm transition"
-              >
-                <MessagesSquare className="w-4 h-4 mr-1.5" />
-                Discussion Forum
-              </Link>
-            )}
-
-            <div className="inline-flex items-center px-3 py-1.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-slate-600 font-medium">
+            <div className="inline-flex items-center px-2.5 py-0.5 bg-slate-100 border border-slate-200/80 rounded-full text-xs text-slate-600 font-medium">
               <Layers className="w-3.5 h-3.5 mr-1.5 text-indigo-500" />
               <span>{sortedModules.length} Modules in Curriculum</span>
             </div>
           </div>
+        </div>
+
+        {/* Course Title & Details */}
+        <div className="space-y-2">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            {course.title}
+          </h1>
+
+          <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-4xl">
+            {course.description || 'No detailed syllabus description provided.'}
+          </p>
+        </div>
+
+        {/* Horizontal Navigation & Action Buttons */}
+        <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center gap-2.5 sm:gap-3">
+          {/* Feature 8: Course Content & Modules */}
+          <Link
+            to={`/courses/${courseId}/content`}
+            className="inline-flex items-center px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-xs sm:text-sm rounded-xl border border-blue-200 shadow-sm transition"
+          >
+            <BookOpen className="w-4 h-4 mr-1.5" />
+            Content & Modules
+          </Link>
+
+          {/* Feature 9: Video Lectures */}
+          <Link
+            to={`/courses/${courseId}/video`}
+            className="inline-flex items-center px-3.5 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold text-xs sm:text-sm rounded-xl border border-purple-200 shadow-sm transition"
+          >
+            <PlayCircle className="w-4 h-4 mr-1.5" />
+            Video Lectures
+          </Link>
+
+          {/* Feature 13: Attendance Tracker */}
+          <Link
+            to={`/courses/${courseId}/attendance`}
+            className="inline-flex items-center px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 font-semibold text-xs sm:text-sm rounded-xl border border-amber-200 shadow-sm transition"
+          >
+            <UserCheck className="w-4 h-4 mr-1.5" />
+            Attendance
+          </Link>
+
+          {/* Assignments */}
+          <Link
+            to={`/courses/${courseId}/assignments`}
+            className="inline-flex items-center px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs sm:text-sm rounded-xl border border-indigo-200 shadow-sm transition"
+          >
+            <FileText className="w-4 h-4 mr-1.5" />
+            Assignments
+          </Link>
+
+          {/* Quizzes */}
+          <Link
+            to={`/courses/${courseId}/quizzes`}
+            className="inline-flex items-center px-3.5 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold text-xs sm:text-sm rounded-xl border border-purple-200 shadow-sm transition"
+          >
+            <HelpCircle className="w-4 h-4 mr-1.5" />
+            Quizzes
+          </Link>
+
+          {/* Gradebook */}
+          <Link
+            to={`/courses/${courseId}/gradebook`}
+            className="inline-flex items-center px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold text-xs sm:text-sm rounded-xl border border-emerald-200 shadow-sm transition"
+          >
+            <Award className="w-4 h-4 mr-1.5" />
+            Gradebook
+          </Link>
+
+          {/* Discussion Forum */}
+          {canAccessForum && (
+            <Link
+              to={`/courses/${courseId}/forum`}
+              className="inline-flex items-center px-3.5 py-2 bg-white hover:bg-indigo-50/70 border border-slate-200 hover:border-indigo-300 text-slate-700 hover:text-indigo-700 font-semibold text-xs sm:text-sm rounded-xl shadow-sm transition"
+            >
+              <MessagesSquare className="w-4 h-4 mr-1.5" />
+              Discussion Forum
+            </Link>
+          )}
+
+          {/* Instructor Add Module Button */}
+          {isInstructor && (
+            <button
+              onClick={handleOpenModal}
+              className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-sm hover:shadow transition"
+            >
+              <Plus className="w-4 h-4 mr-1.5" />
+              Add Module
+            </button>
+          )}
+
+          {/* Student Enrollment Control */}
+          {isStudent && (
+            <div>
+              {isEnrolled ? (
+                <div className="inline-flex items-center px-3.5 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 font-semibold text-xs sm:text-sm shadow-sm">
+                  <CheckCircle2 className="w-4 h-4 mr-1.5 text-emerald-600" />
+                  Enrolled
+                </div>
+              ) : (
+                <button
+                  onClick={() => enrollMutation.mutate()}
+                  disabled={enrollMutation.isPending || !course.is_published}
+                  className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-60 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-sm hover:shadow transition"
+                >
+                  {enrollMutation.isPending ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-1.5" />
+                      <span>Enrolling...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserCheck className="w-4 h-4 mr-1.5" />
+                      Enroll in Course
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

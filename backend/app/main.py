@@ -563,6 +563,9 @@ def create_app() -> FastAPI:
 
     from app.routers import analytics  # noqa: E402
     app.include_router(analytics.router)
+
+    from app.routers import videos  # noqa: E402
+    app.include_router(videos.router)
     return app
 
 
