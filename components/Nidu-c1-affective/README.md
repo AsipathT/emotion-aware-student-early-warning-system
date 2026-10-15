@@ -120,7 +120,7 @@ Illustrative record (check the contract for the exact fields):
   "stress_label": "exam_anxiety",
   "confidence": 0.92,
   "message_count": 5,
-  "top_drivers": [{"token": "struggling", "weight": 0.78}]
+  "top_drivers": [{"token_or_marker": "struggling", "weight": 0.78}]
 }
 ```
 
