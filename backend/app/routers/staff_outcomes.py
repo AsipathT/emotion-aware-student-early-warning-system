@@ -35,7 +35,7 @@ from app.services.outcome_metrics import (
     compute_outcome_delta,
     weeks_to_improvement,
 )
-from app.services.staff_access import require_staff
+from app.services.staff_access import require_staff, validate_pid
 from app.services.student_context import get_analytics_snapshot
 
 logger = logging.getLogger("app.staff_outcomes")
@@ -247,14 +247,18 @@ async def record_intervention_outcome(
 
     # 9. Audit event logging
     actor_role_str = str(getattr(current_user.role, "value", current_user.role))
+    clean_student_pid = validate_pid(str(rec.get("pid", "")).strip())
     await log_event(
         request=request,
         db=db,
-        action=AuditAction.DATA_UPDATE,
+        action=AuditAction.STUDENT_DATA_VIEWED,
         actor_id=str(current_user.id),
         actor_role=actor_role_str,
+        target_type="student",
+        target_id=clean_student_pid,
         outcome=AuditOutcome.SUCCESS,
         details={
+            "view": "intervention_outcome_recorded",
             "intervention_id": clean_id,
             "result": payload.result,
             "category": payload.staff_category,
