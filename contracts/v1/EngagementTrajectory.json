@@ -1,0 +1,68 @@
+{
+  "$defs": {
+    "TrajectoryLabel": {
+      "description": "Longitudinal engagement pattern detected by C2.",
+      "enum": [
+        "stable",
+        "improving",
+        "declining",
+        "volatile"
+      ],
+      "title": "TrajectoryLabel",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Longitudinal engagement trajectory classification and confidence assessment.\nTransmitted from Component 2 to LMS database (Feature 23).",
+  "properties": {
+    "confidence": {
+      "description": "Model confidence in trajectory assignment between 0.0 and 1.0",
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Confidence",
+      "type": "number"
+    },
+    "contributing_indicators": {
+      "description": "Top behavioral features or metrics driving the trajectory classification (max 10)",
+      "items": {
+        "description": "Scrubbed text safe from personal identifiers",
+        "type": "string"
+      },
+      "maxItems": 10,
+      "title": "Contributing Indicators",
+      "type": "array"
+    },
+    "course_id": {
+      "description": "Course institutional identifier",
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Course Id",
+      "type": "string"
+    },
+    "pid": {
+      "description": "Pseudonymized student identifier (Feature 5 format)",
+      "pattern": "^STU_[0-9a-fA-F]{8}$",
+      "title": "Pid",
+      "type": "string"
+    },
+    "trajectory_label": {
+      "$ref": "#/$defs/TrajectoryLabel",
+      "description": "Longitudinal trend classification (stable, improving, declining, volatile)"
+    },
+    "week_index": {
+      "description": "Zero-indexed academic week of evaluation",
+      "minimum": 0,
+      "title": "Week Index",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "pid",
+    "course_id",
+    "week_index",
+    "trajectory_label",
+    "confidence"
+  ],
+  "title": "EngagementTrajectory",
+  "type": "object"
+}
