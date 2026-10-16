@@ -10,7 +10,6 @@ export default function StudentsPage() {
   const [students, setStudents] = useState(null);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
-  const [grade, setGrade] = useState("all");
 
   useEffect(() => {
     api("/students")
@@ -18,16 +17,13 @@ export default function StudentsPage() {
       .catch((err) => setError(err.message));
   }, []);
 
-  const grades = useMemo(() => [...new Set((students || []).map((s) => s.grade))].sort(), [students]);
-
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return (students || []).filter(
       (s) =>
-        (grade === "all" || String(s.grade) === grade) &&
         (!q || s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q)),
     );
-  }, [students, query, grade]);
+  }, [students, query]);
 
   if (error) return <div className="page"><ErrorBanner message={error} /></div>;
   if (!students) return <Loading label="Loading students…" />;
@@ -62,14 +58,6 @@ export default function StudentsPage() {
               aria-label="Search students"
             />
           </label>
-          <select value={grade} onChange={(e) => setGrade(e.target.value)} aria-label="Filter by grade">
-            <option value="all">All grades</option>
-            {grades.map((g) => (
-              <option key={g} value={String(g)}>
-                Grade {g}
-              </option>
-            ))}
-          </select>
         </div>
 
         {visible.length === 0 ? (
@@ -80,7 +68,6 @@ export default function StudentsPage() {
               <thead>
                 <tr>
                   <th>Student</th>
-                  <th>Grade</th>
                   <th>Latest risk</th>
                   <th>Latest recommendation</th>
                   <th>Last assessed</th>
@@ -106,9 +93,6 @@ export default function StudentsPage() {
                             <span className="muted small">{student.id}</span>
                           </div>
                         </div>
-                      </td>
-                      <td data-label="Grade" className="nowrap">
-                        {student.grade} <span className="muted small">({student.class_name})</span>
                       </td>
                       <td data-label="Latest risk">
                         <RiskBadge tier={latest?.risk_tier} probability={latest?.risk_probability} />

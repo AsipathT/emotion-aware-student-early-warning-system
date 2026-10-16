@@ -64,7 +64,7 @@ export default function StudentDashboardPage() {
           <div>
             <strong>{student.name}</strong>
             <span className="muted small">
-              {student.id} · Grade {student.grade} ({student.class_name})
+              {student.id}
             </span>
           </div>
         </section>
@@ -94,7 +94,6 @@ export default function StudentDashboardPage() {
           <dl className="summary-facts">
             <div><dt>Student ID:</dt><dd>{student.id}</dd></div>
             <div><dt>Name:</dt><dd>{student.name}</dd></div>
-            <div><dt>Grade:</dt><dd>{student.grade} ({student.class_name})</dd></div>
             <div><dt>Risk Category:</dt><dd style={{ color: riskColour, fontWeight: 700 }}>{inputs.risk_tier}</dd></div>
           </dl>
         </div>

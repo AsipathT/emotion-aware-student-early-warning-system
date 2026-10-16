@@ -87,5 +87,5 @@ Interactive docs: http://localhost:8000/docs
 
 ## Notes
 
-- **What is sent to OpenAI:** the student's grade, the model inputs, the model's top 3 and earlier recommendations. Names and student IDs are not sent.
+- **What is sent to OpenAI:** the model inputs, the model's top 3 and earlier recommendations. Names and student IDs are not sent.
 - **The training data is synthetic.** Suitability scores show how well the inputs match the labelling rules in the dataset. They are not evidence of real-world effectiveness. The counsellor makes the final decision.

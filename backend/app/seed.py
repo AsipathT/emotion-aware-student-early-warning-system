@@ -9,34 +9,33 @@ from . import config
 from .auth import hash_password
 from .recommend import build_assessment
 
-ADMIN = {"username": "admin", "password": "admin123", "name": "Admin Counselor", "role": "Counselor",
-         "unit": "Grade 10-11 Unit"}
+ADMIN = {"username": "admin", "password": "admin123", "name": "Admin Counselor", "role": "Counselor"}
 
 STUDENTS = [
-    {"id": "STU10231", "name": "Kavindu Perera", "grade": 10, "class_name": "10-A"},
-    {"id": "STU10232", "name": "Sanduni Fernando", "grade": 11, "class_name": "11-B"},
-    {"id": "STU10233", "name": "Ravindu Silva", "grade": 10, "class_name": "10-C"},
-    {"id": "STU10234", "name": "Tharindu Jayasinghe", "grade": 11, "class_name": "11-A"},
-    {"id": "STU10235", "name": "Nethmi Dissanayake", "grade": 11, "class_name": "11-A"},
-    {"id": "STU10236", "name": "Hasini Gunawardena", "grade": 10, "class_name": "10-B"},
-    {"id": "STU10237", "name": "Ishara Wickramasinghe", "grade": 11, "class_name": "11-C"},
-    {"id": "STU10238", "name": "Pasindu Bandara", "grade": 10, "class_name": "10-A"},
-    {"id": "STU10239", "name": "Dilshan Rathnayake", "grade": 11, "class_name": "11-B"},
-    {"id": "STU10240", "name": "Chamodi Herath", "grade": 10, "class_name": "10-C"},
-    {"id": "STU10241", "name": "Yasiru Karunaratne", "grade": 11, "class_name": "11-C"},
-    {"id": "STU10242", "name": "Amaya Senanayake", "grade": 10, "class_name": "10-B"},
+    {"id": "IT23149076", "name": "Kavindu Perera"},
+    {"id": "IT23157030", "name": "Sanduni Fernando"},
+    {"id": "IT23168421", "name": "Ravindu Silva"},
+    {"id": "IT23179205", "name": "Tharindu Jayasinghe"},
+    {"id": "IT23184567", "name": "Nethmi Dissanayake"},
+    {"id": "IT23193614", "name": "Hasini Gunawardena"},
+    {"id": "IT23204783", "name": "Ishara Wickramasinghe"},
+    {"id": "IT23215892", "name": "Pasindu Bandara"},
+    {"id": "IT23226405", "name": "Dilshan Rathnayake"},
+    {"id": "IT23237918", "name": "Chamodi Herath"},
+    {"id": "IT23248506", "name": "Yasiru Karunaratne"},
+    {"id": "IT23259631", "name": "Amaya Senanayake"},
 ]
 
 # (student, date, C1, C2, dropout risk score, (affective, behavioural, academic))
 PAST_ASSESSMENTS = [
-    ("STU10235", "2026-08-12T04:15:00+00:00", "Exam Anxiety", "Stable", 0.45, (0.45, 0.30, 0.25)),
-    ("STU10235", "2026-09-16T05:30:00+00:00", "Conceptual Confusion", "Declining", 0.62, (0.25, 0.30, 0.45)),
-    ("STU10231", "2026-09-03T03:45:00+00:00", "Motivation Erosion", "Declining", 0.71, (0.30, 0.45, 0.25)),
-    ("STU10232", "2026-08-20T06:00:00+00:00", "Course Pacing Frustration", "Improving", 0.38, (0.20, 0.50, 0.30)),
-    ("STU10232", "2026-09-24T04:40:00+00:00", "Course Pacing Frustration", "Stable", 0.22, (0.20, 0.45, 0.35)),
-    ("STU10234", "2026-09-10T08:20:00+00:00", "Academic Helplessness", "Volatile", 0.83, (0.50, 0.30, 0.20)),
-    ("STU10237", "2026-09-29T07:10:00+00:00", "Exam Anxiety", "Improving", 0.18, (0.55, 0.20, 0.25)),
-    ("STU10239", "2026-08-28T05:05:00+00:00", "Conceptual Confusion", "Stable", 0.56, (0.20, 0.30, 0.50)),
+    ("IT23184567", "2026-08-12T04:15:00+00:00", "Exam Anxiety", "Stable", 0.45, (0.45, 0.30, 0.25)),
+    ("IT23184567", "2026-09-16T05:30:00+00:00", "Conceptual Confusion", "Declining", 0.62, (0.25, 0.30, 0.45)),
+    ("IT23149076", "2026-09-03T03:45:00+00:00", "Motivation Erosion", "Declining", 0.71, (0.30, 0.45, 0.25)),
+    ("IT23157030", "2026-08-20T06:00:00+00:00", "Course Pacing Frustration", "Improving", 0.38, (0.20, 0.50, 0.30)),
+    ("IT23157030", "2026-09-24T04:40:00+00:00", "Course Pacing Frustration", "Stable", 0.22, (0.20, 0.45, 0.35)),
+    ("IT23179205", "2026-09-10T08:20:00+00:00", "Academic Helplessness", "Volatile", 0.83, (0.50, 0.30, 0.20)),
+    ("IT23204783", "2026-09-29T07:10:00+00:00", "Exam Anxiety", "Improving", 0.18, (0.55, 0.20, 0.25)),
+    ("IT23226405", "2026-08-28T05:05:00+00:00", "Conceptual Confusion", "Stable", 0.56, (0.20, 0.30, 0.50)),
 ]
 
 

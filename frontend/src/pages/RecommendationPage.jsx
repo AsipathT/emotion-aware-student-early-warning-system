@@ -57,7 +57,7 @@ export default function RecommendationPage() {
           <div>
             <strong>{student.name}</strong>
             <span className="muted small">
-              {student.id} · Grade {student.grade}
+              {student.id}
             </span>
           </div>
         </div>

@@ -1,74 +1,50 @@
 [
   {
-    "id": "STU10231",
-    "name": "Kavindu Perera",
-    "grade": 10,
-    "class_name": "10-A"
+    "id": "IT23149076",
+    "name": "Kavindu Perera"
   },
   {
-    "id": "STU10232",
-    "name": "Sanduni Fernando",
-    "grade": 11,
-    "class_name": "11-B"
+    "id": "IT23157030",
+    "name": "Sanduni Fernando"
   },
   {
-    "id": "STU10233",
-    "name": "Ravindu Silva",
-    "grade": 10,
-    "class_name": "10-C"
+    "id": "IT23168421",
+    "name": "Ravindu Silva"
   },
   {
-    "id": "STU10234",
-    "name": "Tharindu Jayasinghe",
-    "grade": 11,
-    "class_name": "11-A"
+    "id": "IT23179205",
+    "name": "Tharindu Jayasinghe"
   },
   {
-    "id": "STU10235",
-    "name": "Nethmi Dissanayake",
-    "grade": 11,
-    "class_name": "11-A"
+    "id": "IT23184567",
+    "name": "Nethmi Dissanayake"
   },
   {
-    "id": "STU10236",
-    "name": "Hasini Gunawardena",
-    "grade": 10,
-    "class_name": "10-B"
+    "id": "IT23193614",
+    "name": "Hasini Gunawardena"
   },
   {
-    "id": "STU10237",
-    "name": "Ishara Wickramasinghe",
-    "grade": 11,
-    "class_name": "11-C"
+    "id": "IT23204783",
+    "name": "Ishara Wickramasinghe"
   },
   {
-    "id": "STU10238",
-    "name": "Pasindu Bandara",
-    "grade": 10,
-    "class_name": "10-A"
+    "id": "IT23215892",
+    "name": "Pasindu Bandara"
   },
   {
-    "id": "STU10239",
-    "name": "Dilshan Rathnayake",
-    "grade": 11,
-    "class_name": "11-B"
+    "id": "IT23226405",
+    "name": "Dilshan Rathnayake"
   },
   {
-    "id": "STU10240",
-    "name": "Chamodi Herath",
-    "grade": 10,
-    "class_name": "10-C"
+    "id": "IT23237918",
+    "name": "Chamodi Herath"
   },
   {
-    "id": "STU10241",
-    "name": "Yasiru Karunaratne",
-    "grade": 11,
-    "class_name": "11-C"
+    "id": "IT23248506",
+    "name": "Yasiru Karunaratne"
   },
   {
-    "id": "STU10242",
-    "name": "Amaya Senanayake",
-    "grade": 10,
-    "class_name": "10-B"
+    "id": "IT23259631",
+    "name": "Amaya Senanayake"
   }
 ]

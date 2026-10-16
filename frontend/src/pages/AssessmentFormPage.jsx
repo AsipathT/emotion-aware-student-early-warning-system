@@ -9,7 +9,7 @@ import { riskTierFor, useReference } from "../reference";
 const C3_FIELDS = [
   { key: "affective", label: "Affective", hint: "Emotional factors such as stress or low mood" },
   { key: "behavioural", label: "Behavioural", hint: "Attendance, participation and study habits" },
-  { key: "academic", label: "Academic", hint: "Understanding of content and grades" },
+  { key: "academic", label: "Academic", hint: "Understanding of course content" },
 ];
 
 const DEFAULTS = {
@@ -111,7 +111,7 @@ export default function AssessmentFormPage() {
         <div>
           <strong>{student.name}</strong>
           <span className="muted small">
-            {student.id} · Grade {student.grade} ({student.class_name})
+            {student.id}
           </span>
         </div>
         <span className="muted small student-strip-note">

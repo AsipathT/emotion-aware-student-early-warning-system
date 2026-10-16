@@ -1,6 +1,6 @@
 """Short AI-generated explanation of a recommendation, using the OpenAI API.
 
-Only the grade, the model inputs and the model outputs are sent. Names and IDs are not.
+Only the model inputs and outputs are sent. Names and IDs are not.
 """
 import logging
 from datetime import datetime, timezone
@@ -39,7 +39,6 @@ def _describe(assessment: dict) -> str:
 def build_user_prompt(student: dict, assessment: dict, past: list[dict]) -> str:
     inputs = assessment["inputs"]
     lines = [
-        f"Student: grade {student.get('grade', 'unknown')}",
         f"Assessment date: {assessment['created_at'][:10]}",
         f"Inputs: {_describe(assessment)}",
         f"About the condition: {CONDITIONS.get(inputs['c1_condition'], '')}",

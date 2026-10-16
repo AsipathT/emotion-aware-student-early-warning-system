@@ -39,8 +39,7 @@ export default function Layout() {
           <div className="sidebar-user">
             <Avatar name={user.name} size={38} />
             <div className="sidebar-user-text">
-              <strong>{user.name}</strong>
-              <span>{user.unit || user.role}</span>
+              <strong>Admin</strong>
             </div>
             <button className="icon-button" onClick={logout} title="Log out" aria-label="Log out">
               <LogOut size={18} />
