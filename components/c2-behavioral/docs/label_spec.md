@@ -18,3 +18,14 @@ Split: train 2013B+2013J, validation 2014B, test 2014J; remove validation/test s
 Extra robustness: leave-CCC-out (CCC has no 2013 presentation). CV inside train: GroupKFold by id_student.
 Thresholds provisional until supervisor confirms, then frozen in a commit before any model evaluation.
 Claims allowed in the report: "reproduces a causal clicks-trend label"; withdrawal rate per predicted label is weak supporting evidence only. Not ground truth.
+
+---
+## FROZEN decisions (before any model evaluation unless stated)
+- Label = clicks trend (e_w = log1p(clicks)); thresholds FROZEN: S_TREND 0.20, RESID_SD_HI 1.0, S_FLAT 0.10 (fixed before model training, never tuned).
+- Dormant policy (inference, causal): if the last 7 weeks all have zero clicks, bypass the model and output trajectory_label "declining" with
+  contributing_indicator "no_activity_7w" (student had clicks earlier) or "never_active" (no clicks since week 0). confidence = DORMANT_RULE_CONFIDENCE (0.86),
+  an uncalibrated OULAD at-risk rate (Fail+Withdrawn share among such students), documented as rule-based. Reason: the contract has only 4 labels.
+- Video ablation is deferred to pilot LMS data. OULAD has no video events (limitation).
+- Result interpretation: the model reproduces a causal clicks-trend label; it does not prove true disengagement. Withdrawal analysis is weak supporting evidence only.
+---
+

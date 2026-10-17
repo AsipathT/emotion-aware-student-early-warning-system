@@ -15,7 +15,9 @@ MIN_T: int = 3
 S_TREND: float = 0.20
 RESID_SD_HI: float = 1.0
 S_FLAT: float = 0.10
-DORMANT_POLICY: str = "exclude_and_flag"  # Allowed: "exclude_and_flag", "stable_flag", "declining_flag"
+DORMANT_POLICY: str = "declining_flag"  # Allowed: "exclude_and_flag", "stable_flag", "declining_flag"
+DORMANT_ZERO_WEEKS: int = 7
+DORMANT_RULE_CONFIDENCE: float = 0.86
 
 REQUIRED_OULAD_FILES: List[str] = [
     "assessments.csv",

@@ -1,0 +1,85 @@
+{
+  "ablation": {
+    "clicks": {
+      "macro_f1": 0.5014270428950184,
+      "declining_f1": 0.6215682204334556
+    },
+    "clicks_activity": {
+      "macro_f1": 0.5021413740842118,
+      "declining_f1": 0.6269425315375708
+    },
+    "full": {
+      "macro_f1": 0.503849841738176,
+      "declining_f1": 0.6335335715915139
+    }
+  },
+  "withdrawal_evidence": {
+    "c2_model": {
+      "declining": {
+        "withdrawn_share": 0.0634217824278331,
+        "fail_share": 0.14405017017521746,
+        "n": 63464
+      },
+      "improving": {
+        "withdrawn_share": 0.061258483511420624,
+        "fail_share": 0.18108199103361508,
+        "n": 56433
+      },
+      "stable": {
+        "withdrawn_share": 0.05684669684106845,
+        "fail_share": 0.13953706526582396,
+        "n": 42641
+      },
+      "volatile": {
+        "withdrawn_share": 0.07841878818132117,
+        "fail_share": 0.18693099431885712,
+        "n": 42069
+      }
+    },
+    "b1_static": {
+      "declining": {
+        "withdrawn_share": 0.06621015654088355,
+        "fail_share": 0.13988312045715764,
+        "n": 61773
+      },
+      "improving": {
+        "withdrawn_share": 0.05261892999719615,
+        "fail_share": 0.17370522183799084,
+        "n": 74897
+      },
+      "stable": {
+        "withdrawn_share": 0.05912497408098581,
+        "fail_share": 0.11872389584999556,
+        "n": 33759
+      },
+      "volatile": {
+        "withdrawn_share": 0.09298379074258295,
+        "fail_share": 0.21990754286383055,
+        "n": 34178
+      }
+    },
+    "b2_rule": {
+      "declining": {
+        "withdrawn_share": 0.07203399031536585,
+        "fail_share": 0.18467395788848917,
+        "n": 138157
+      },
+      "improving": {
+        "withdrawn_share": 0.04669082336505719,
+        "fail_share": 0.11931371693006199,
+        "n": 45812
+      },
+      "stable": {
+        "withdrawn_share": 0.05397809865297025,
+        "fail_share": 0.10635720515553833,
+        "n": 20638
+      },
+      "volatile": {
+        "withdrawn_share": 0.0,
+        "fail_share": 0.0,
+        "n": 0
+      }
+    }
+  },
+  "base_withdrawn_share": 0.06453835890267684
+}
