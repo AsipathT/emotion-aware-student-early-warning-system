@@ -1,0 +1,36 @@
+# C1 Student Affective State Detection: Global Configuration
+seed: 42
+
+taxonomy:
+  classes:
+    - exam_anxiety
+    - conceptual_confusion
+    - academic_helplessness
+    - course_frustration
+    - motivation_erosion
+  contract_schema: "../../contracts/v1/AffectiveWeeklyVector.json"
+
+data:
+  raw_goemotions_dir: "data/raw/goemotions"
+  raw_emotion4_path: "data/raw/emotion4/eng_dataset.csv"
+  processed_dir: "data/processed"
+  train_file: "data/processed/train.csv"
+  val_file: "data/processed/val.csv"
+  test_proxy_file: "data/processed/test_proxy.csv"
+  emotion4_split:
+    train_ratio: 0.80
+    val_ratio: 0.10
+    test_ratio: 0.10
+  pos_weight_clip: 10.0
+
+model:
+  pretrained_model_name: "distilbert-base-uncased"
+  max_length: 128
+  batch_size: 32
+  learning_rate: 2.0e-5
+  num_epochs: 3
+  weight_decay: 0.01
+
+training:
+  loss: "BCEWithLogitsLoss"
+  thresholds_todo: "Per-class sigmoid classification thresholds to be tuned on the validation split during Phase 3."

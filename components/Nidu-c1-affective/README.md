@@ -80,6 +80,10 @@ Notebooks: run `nbstripout --install` once so outputs (which may contain student
 
 Real LMS messages are used only with student consent and after `scrub_text()` removes personal data.
 
+### Split Note
+- The proxy data pipeline produces `data/processed/train.csv`, `data/processed/val.csv`, and `data/processed/test_proxy.csv` derived from normalized external corpora (GoEmotions and Emotion-4).
+- `test_real.csv` will be a separate, human-written benchmark set containing authentic higher-education LMS communications. It is strictly held out and will never be mixed into `train.csv`, `val.csv`, or `test_proxy.csv`.
+
 ---
 
 ## 5. Pipeline
