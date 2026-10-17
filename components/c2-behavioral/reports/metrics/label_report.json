@@ -1,0 +1,104 @@
+{
+  "excluded_by_reason": {
+    "unreg_before_start": 2676,
+    "withdrawn_no_unreg_date": 93
+  },
+  "n_students_with_windows": 26949,
+  "n_windows_total": 755715,
+  "n_windows_dormant": 102356,
+  "dormant_share": 0.1354425940996275,
+  "label_counts_nondormant": {
+    "stable": 243452,
+    "declining": 209968,
+    "improving": 114865,
+    "volatile": 85074
+  },
+  "label_share_nondormant": {
+    "stable": 0.37261597376021455,
+    "declining": 0.3213669667058998,
+    "improving": 0.17580686881178648,
+    "volatile": 0.1302101907220992
+  },
+  "dormant_share_by_outcome": {
+    "Distinction": 0.004194356108229179,
+    "Fail": 0.419648862716029,
+    "Pass": 0.008505747126436782,
+    "Withdrawn": 0.12558021926418264
+  },
+  "declining_share_by_outcome": {
+    "Distinction": 0.29018397097205423,
+    "Fail": 0.3624343630256871,
+    "Pass": 0.3046994062893213,
+    "Withdrawn": 0.4066385756186227
+  },
+  "label_share_by_module_nondormant": {
+    "AAA": {
+      "stable": 0.4159132863160884,
+      "declining": 0.3092724949117243,
+      "improving": 0.1711553935722062,
+      "volatile": 0.10365882519998107
+    },
+    "BBB": {
+      "stable": 0.39131873002851414,
+      "declining": 0.28531355646265705,
+      "volatile": 0.16719482908046812,
+      "improving": 0.15617288442836066
+    },
+    "CCC": {
+      "declining": 0.33745275351849224,
+      "stable": 0.32444948980250005,
+      "improving": 0.196751764083644,
+      "volatile": 0.1413459925953637
+    },
+    "DDD": {
+      "stable": 0.4258760329897587,
+      "declining": 0.30762702787321516,
+      "improving": 0.15050547494871097,
+      "volatile": 0.11599146418831517
+    },
+    "EEE": {
+      "declining": 0.37892873633984914,
+      "stable": 0.32256426042788977,
+      "improving": 0.1883792519624442,
+      "volatile": 0.11012775126981685
+    },
+    "FFF": {
+      "stable": 0.3704475626365969,
+      "declining": 0.3452598904057521,
+      "improving": 0.1766621266352032,
+      "volatile": 0.10763042032244782
+    },
+    "GGG": {
+      "stable": 0.3241358399029715,
+      "declining": 0.29802573950542416,
+      "improving": 0.23579947442894683,
+      "volatile": 0.1420389461626575
+    }
+  },
+  "label_share_by_presentation_nondormant": {
+    "2013B": {
+      "stable": 0.4264934660858743,
+      "declining": 0.3033158502978042,
+      "improving": 0.14190150235576496,
+      "volatile": 0.1282891812605565
+    },
+    "2013J": {
+      "stable": 0.371739921976593,
+      "declining": 0.3268816644993498,
+      "improving": 0.172,
+      "volatile": 0.1293784135240572
+    },
+    "2014B": {
+      "stable": 0.3759202175883953,
+      "declining": 0.3075974614687217,
+      "improving": 0.1760362647325476,
+      "volatile": 0.14044605621033546
+    },
+    "2014J": {
+      "stable": 0.3505972337743631,
+      "declining": 0.3319256394645904,
+      "improving": 0.19189082583754213,
+      "volatile": 0.12558630092350434
+    }
+  }
+}
