@@ -1,0 +1,36 @@
+{
+  "rows": {
+    "assessments.csv": 206,
+    "courses.csv": 22,
+    "studentAssessment.csv": 173912,
+    "studentInfo.csv": 32593,
+    "studentRegistration.csv": 32593,
+    "studentVle.csv": 10655280,
+    "vle.csv": 6364
+  },
+  "final_result_counts": {
+    "Pass": 12361,
+    "Withdrawn": 10156,
+    "Fail": 7052,
+    "Distinction": 3024
+  },
+  "n_students_unique": 28785,
+  "n_students_multi_presentation": 3538,
+  "withdrawn_total": 10156,
+  "withdrawn_without_unreg_date": 93,
+  "unreg_date_negative": 2678,
+  "vle_date_min": -25,
+  "vle_date_max": 269,
+  "vle_clicks_share_precourse": 0.0542341025331107,
+  "vle_week0_precourse_share": 0.5162063472837456,
+  "students_without_vle_rows": 3365,
+  "assessments_by_type": {
+    "TMA": 106,
+    "CMA": 76,
+    "Exam": 24
+  },
+  "assessments_date_nan": 11,
+  "banked_submissions": 1909,
+  "presentation_overlap_2014_rows_with_2013_student": 0.10291649181703735,
+  "courses_max_length_days": 269
+}

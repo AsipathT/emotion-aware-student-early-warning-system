@@ -1,0 +1,30 @@
+# Datasets
+data/*
+!data/.gitkeep
+!data/README.md
+
+# Trained models
+models/*
+!models/.gitkeep
+!models/README.md
+
+# Reports and figures
+reports/figures/*
+!reports/figures/.gitkeep
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+
+# Python cache and temporary files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Serialized data and artifacts
+*.pkl
+*.parquet
