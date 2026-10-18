@@ -38,9 +38,10 @@ class C3IngestClient:
             "data": risk_records,
         }
 
-    def send_assessments(self, risk_records: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def send_assessments(self, risk_records: List[Dict[str, Any]], dry_run: bool = False) -> Dict[str, Any]:
         """
         Transmits risk assessments to LMS via HTTP POST with X-Component-Key header.
+        Supports dry_run parameter for non-destructive contract validation.
         """
         if not self.component_key:
             raise ValueError(
@@ -52,7 +53,8 @@ class C3IngestClient:
             "Content-Type": "application/json",
             "X-Component-Key": self.component_key,
         }
+        params = {"dry_run": "true"} if dry_run else {}
 
-        response = requests.post(self.endpoint, json=envelope, headers=headers, timeout=30)
+        response = requests.post(self.endpoint, json=envelope, headers=headers, params=params, timeout=30)
         response.raise_for_status()
         return response.json()
