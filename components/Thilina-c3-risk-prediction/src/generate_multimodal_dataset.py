@@ -82,9 +82,11 @@ def generate_multimodal_data(
         planted_driver = random.choice(["affective", "behavioural", "academic"])
 
         if is_crisis_student:
-            onset_week = int(np.random.randint(4, 22))
+            onset_week = int(np.random.randint(4, 20))
+            lag = int(np.random.randint(3, 6))
         else:
             onset_week = -1  # No crisis onset
+            lag = 0
 
         d_t = d_init
         e_t = e_init
@@ -105,31 +107,39 @@ def generate_multimodal_data(
 
             if is_crisis_student and week >= onset_week:
                 steps_since_onset = week - onset_week
-                lag = 2  # secondary modalities begin sliding after lag
 
                 if archetype == "sudden_dropout" and steps_since_onset >= 1:
                     # Acute collapse
-                    d_t += 0.20
-                    e_t -= 0.25
-                    p_t -= 0.20
+                    d_t += 0.25
+                    e_t -= 0.30
+                    p_t -= 0.25
                 elif planted_driver == "affective":
-                    # Distress jumps immediately; engagement & performance lag
-                    d_t += 0.045
-                    if steps_since_onset >= lag:
-                        e_t -= 0.035
-                        p_t -= 0.030
+                    # Distress jumps immediately; non-drivers lag by 3-5 weeks with extra noise
+                    d_t += 0.075
+                    if steps_since_onset < lag:
+                        e_t += np.random.normal(0, 0.035)
+                        p_t += np.random.normal(0, 0.035)
+                    else:
+                        e_t -= 0.035 + np.random.normal(0, 0.025)
+                        p_t -= 0.030 + np.random.normal(0, 0.025)
                 elif planted_driver == "behavioural":
-                    # Engagement collapses first; performance & distress lag
-                    e_t -= 0.050
-                    if steps_since_onset >= lag:
-                        p_t -= 0.035
-                        d_t += 0.035
+                    # Engagement collapses first; non-drivers lag by 3-5 weeks with extra noise
+                    e_t -= 0.080
+                    if steps_since_onset < lag:
+                        d_t += np.random.normal(0, 0.035)
+                        p_t += np.random.normal(0, 0.035)
+                    else:
+                        p_t -= 0.030 + np.random.normal(0, 0.025)
+                        d_t += 0.030 + np.random.normal(0, 0.025)
                 elif planted_driver == "academic":
-                    # Performance drops first; distress & engagement lag
-                    p_t -= 0.050
-                    if steps_since_onset >= lag:
-                        d_t += 0.040
-                        e_t -= 0.035
+                    # Performance drops first; non-drivers lag by 3-5 weeks with extra noise
+                    p_t -= 0.080
+                    if steps_since_onset < lag:
+                        d_t += np.random.normal(0, 0.035)
+                        e_t += np.random.normal(0, 0.035)
+                    else:
+                        d_t += 0.030 + np.random.normal(0, 0.025)
+                        e_t -= 0.030 + np.random.normal(0, 0.025)
             else:
                 # Normal minor drift
                 d_t += noise_d
@@ -143,7 +153,7 @@ def generate_multimodal_data(
 
             # ── 4. Weekly Hazard of Withdrawal ───────────────────────────────
             # Baseline hazard logit calibrated to yield ~25-30% cumulative withdrawal
-            hazard_logit = -4.1 + 3.4 * d_t - 3.0 * e_t - 2.8 * p_t
+            hazard_logit = -3.7 + 3.5 * d_t - 3.2 * e_t - 2.8 * p_t
             if archetype == "perfectionist":
                 hazard_logit -= 1.8  # Perfectionists rarely drop out despite high distress
 
@@ -205,11 +215,11 @@ def generate_multimodal_data(
                 confidence = float(np.round(np.clip(0.60 + 0.15 * np.random.rand(), 0.50, 0.95), 2))
             else:
                 message_count = int(max(1, np.random.poisson(lam=max(1.0, e * 7))))
-                exam_anxiety = float(np.round(np.clip(d * 0.85 + np.random.normal(0, 0.08), 0.01, 0.99), 3))
-                conceptual_confusion = float(np.round(np.clip(d * 0.55 + (1.0 - p) * 0.40 + np.random.normal(0, 0.07), 0.01, 0.99), 3))
-                academic_helplessness = float(np.round(np.clip(d * 0.50 + (1.0 - p) * 0.45 + np.random.normal(0, 0.06), 0.01, 0.99), 3))
-                course_frustration = float(np.round(np.clip(d * 0.60 + (1.0 - e) * 0.35 + np.random.normal(0, 0.07), 0.01, 0.99), 3))
-                motivation_erosion = float(np.round(np.clip((1.0 - e) * 0.75 + d * 0.20 + np.random.normal(0, 0.06), 0.01, 0.99), 3))
+                exam_anxiety = float(np.round(np.clip(d * 0.90 + np.random.normal(0, 0.05), 0.01, 0.99), 3))
+                conceptual_confusion = float(np.round(np.clip(d * 0.82 + (1.0 - p) * 0.12 + np.random.normal(0, 0.05), 0.01, 0.99), 3))
+                academic_helplessness = float(np.round(np.clip(d * 0.80 + (1.0 - p) * 0.15 + np.random.normal(0, 0.05), 0.01, 0.99), 3))
+                course_frustration = float(np.round(np.clip(d * 0.88 + np.random.normal(0, 0.05), 0.01, 0.99), 3))
+                motivation_erosion = float(np.round(np.clip(d * 0.78 + (1.0 - e) * 0.18 + np.random.normal(0, 0.05), 0.01, 0.99), 3))
 
                 emotions = {
                     "exam_anxiety": exam_anxiety,
@@ -222,16 +232,16 @@ def generate_multimodal_data(
                 confidence = float(np.round(np.clip(0.70 + 0.25 * e + np.random.normal(0, 0.04), 0.50, 0.99), 2))
 
             # ── B. Behavioral Modality (BehaviorWeeklyRecord & Trajectory) ────
-            login_count = int(max(0, np.random.poisson(lam=max(0.5, e * 6.5))))
-            session_minutes = float(np.round(max(0.0, e * 160.0 + np.random.normal(0, 22.0)), 1))
-            clicks = int(max(0, np.random.poisson(lam=max(4.0, e * 175.0 + np.random.normal(0, 20.0)))))
+            login_count = int(max(0, np.random.poisson(lam=max(0.4, e * 7.0))))
+            session_minutes = float(np.round(max(0.0, e * 180.0 + np.random.normal(0, 18.0)), 1))
+            clicks = int(max(0, np.random.poisson(lam=max(3.0, e * 185.0 + np.random.normal(0, 15.0)))))
             video_play_count = int(max(0, np.random.poisson(lam=max(0.2, e * 5.0))))
-            video_pause_count = int(max(0, np.random.poisson(lam=max(0.1, video_play_count * 1.8 + d * 2.0))))
-            video_rewind_count = int(max(0, np.random.poisson(lam=max(0.1, d * 3.5 + (1.0 - p) * 2.5))))
+            video_pause_count = int(max(0, np.random.poisson(lam=max(0.1, video_play_count * 1.5 + 0.5))))
+            video_rewind_count = int(max(0, np.random.poisson(lam=max(0.1, (1.0 - e) * 2.0 + 0.2))))
             video_skip_count = int(max(0, np.random.poisson(lam=max(0.0, (1.0 - e) * 3.0))))
-            video_completion_pct = float(np.round(np.clip(e * 95.0 - d * 15.0 + np.random.normal(0, 8.0), 0.0, 100.0), 1))
+            video_completion_pct = float(np.round(np.clip(e * 98.0 + np.random.normal(0, 6.0), 0.0, 100.0), 1))
             submissions_count = 1 if (w % 2 == 1 and np.random.rand() < e * 0.95 + 0.05) else (1 if np.random.rand() < 0.15 else 0)
-            avg_submission_delay_hours = float(np.round((1.0 - e) * 45.0 - e * 12.0 + np.random.normal(0, 6.0), 1))
+            avg_submission_delay_hours = float(np.round((1.0 - e) * 40.0 - e * 10.0 + np.random.normal(0, 5.0), 1))
 
             # Trajectory label (lowercase, derived from noisy delta over past 3 weeks)
             if len(hist) >= 3:
@@ -249,12 +259,12 @@ def generate_multimodal_data(
                 trajectory_label = "stable"
 
             # ── C. Academic Modality (AcademicRecord Contract) ────────────────
-            attendance_pct = float(np.round(np.clip(e * 98.0 + np.random.normal(0, 5.0), 0.0, 100.0), 1))
-            ca_marks = float(np.round(np.clip(p * 100.0 + np.random.normal(0, 5.5), 0.0, 100.0), 1))
+            attendance_pct = float(np.round(np.clip(p * 92.0 + 8.0 + np.random.normal(0, 6.0), 0.0, 100.0), 1))
+            ca_marks = float(np.round(np.clip(p * 100.0 + np.random.normal(0, 5.0), 0.0, 100.0), 1))
             # Midterm mark recorded in or after week 15
-            midterm_mark = float(np.round(np.clip(p * 100.0 + np.random.normal(0, 6.0), 0.0, 100.0), 1)) if w >= 15 else np.nan
-            quiz_score = float(np.round(np.clip(p * 100.0 + np.random.normal(0, 7.0), 0.0, 100.0), 1))
-            submission_delay_hours = avg_submission_delay_hours
+            midterm_mark = float(np.round(np.clip(p * 100.0 + np.random.normal(0, 5.5), 0.0, 100.0), 1)) if w >= 15 else np.nan
+            quiz_score = float(np.round(np.clip(p * 100.0 + np.random.normal(0, 6.0), 0.0, 100.0), 1))
+            submission_delay_hours = float(np.round((1.0 - p) * 36.0 + np.random.normal(0, 6.0), 1))
 
             training_rows.append({
                 # Identifiers & Split
