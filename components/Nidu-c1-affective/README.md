@@ -139,21 +139,46 @@ Illustrative record (check the contract for the exact fields):
 
 ---
 
-## 8. Progress checklist
+---
 
-- [ ] Taxonomy and labelling guide written
-- [ ] Datasets cleaned and label mapping documented
-- [ ] Domain dataset built and reviewed
-- [ ] Baselines trained and evaluated
-- [ ] Main model trained and evaluated
-- [ ] Explainability added
-- [ ] API wrapper integrated with the platform
-- [ ] Demo ready for PP1
+## 8. Interactive Demo & Probe Evaluation
+
+### Launch the Streamlit Demonstration App
+```powershell
+cd components\Nidu-c1-affective
+.venv\Scripts\activate
+streamlit run demo/app.py
+```
+**Features included in Demo:**
+- Interactive text analysis using fine-tuned DistilRoBERTa (`models/checkpoint-best`) on CPU.
+- Visual score bars with calibrated validation thresholds for all 5 distress categories.
+- Feature attribution highlighting influential tokens via leave-one-word-out occlusion (no SHAP dependency).
+- Side-by-side contrast against the generic VADER sentiment lexicon.
+- Dry-run `AffectiveWeeklyVector` record generator validated against `contracts/v1/AffectiveWeeklyVector.json`.
+- "Live from LMS" message stream viewer (active when `C1_COMPONENT_KEY` is set).
+
+### Run Domain Probe Evaluation
+```powershell
+python src/probe_eval.py --input data/interim/domain_reviewed_DRAFT.csv.csv
+```
 
 ---
 
-## 9. Run tests
+## 9. Progress checklist
+
+- [x] Taxonomy and labelling guide written (`docs/taxonomy.md`, `docs/annotation_guide.md`)
+- [x] Datasets cleaned and label mapping documented (`src/label_map.yaml`)
+- [x] Domain dataset built and reviewed templates created (`src/data/make_domain_template.py`, `src/data/split_reviewed.py`)
+- [x] Baselines trained and evaluated (`baseline_tfidf.json`, `baseline_vader.json`)
+- [x] Main model trained and evaluated on proxy test (`distilroberta_full.json`, Macro F1: 0.5648)
+- [x] Explainability added via word occlusion
+- [ ] API wrapper integrated with the platform
+- [x] Demo ready for PP1 (`demo/app.py`)
+
+---
+
+## 10. Run tests
 
 ```powershell
 pytest tests
-```
+```
