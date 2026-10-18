@@ -8,7 +8,7 @@ Aggregates daily clickstream telemetry into longitudinal weekly behavior records
 
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
@@ -16,6 +16,21 @@ from app.core.academic_derivation import build_academic_record
 from app.core.contract_version import CONTRACT_VERSION
 from app.db import collections as col
 from app.services.ingestion import complete_ingestion_run, create_ingestion_run
+from app.services.week_index import compute_week_index
+
+
+def select_submissions_for_week(
+    submissions: List[Dict[str, Any]],
+    week_index: int,
+    week_of: Callable[[Dict[str, Any]], Optional[int]],
+) -> List[Dict[str, Any]]:
+    """Filters submissions to those matching the target week_index."""
+    selected: List[Dict[str, Any]] = []
+    for sub in submissions:
+        w = week_of(sub)
+        if w is not None and w == week_index:
+            selected.append(sub)
+    return selected
 
 
 async def aggregate_weekly_behavior(
@@ -50,6 +65,42 @@ async def aggregate_weekly_behavior(
         return 0
 
     records_created = 0
+
+    try:
+        cid_str = str(course_id).strip()
+        course_weeks_cursor = db[col.COURSE_WEEKS].find(
+            {"course_id": cid_str},
+            {"week_index": 1, "start_date": 1, "end_date": 1, "_id": 0},
+        ).sort("week_index", 1)
+        course_week_docs = await course_weeks_cursor.to_list(length=1000)
+
+        course_doc = await db[col.COURSES].find_one({"_id": cid_str}, {"created_at": 1})
+        if not course_doc:
+            course_doc = await db[col.COURSES].find_one({"id": cid_str}, {"created_at": 1})
+        course_created_at = course_doc.get("created_at") if course_doc else None
+    except Exception:
+        course_week_docs = None
+        course_created_at = None
+
+    def get_sub_week(sub: Dict[str, Any]) -> Optional[int]:
+        if "week_index" in sub and sub["week_index"] is not None:
+            try:
+                return int(sub["week_index"])
+            except (ValueError, TypeError):
+                pass
+        submitted_at = sub.get("submitted_at")
+        if submitted_at is None:
+            return None
+        if isinstance(submitted_at, str):
+            try:
+                submitted_at = datetime.fromisoformat(submitted_at)
+            except (ValueError, TypeError):
+                return None
+        if not isinstance(submitted_at, datetime):
+            return None
+        if submitted_at.tzinfo is None:
+            submitted_at = submitted_at.replace(tzinfo=timezone.utc)
+        return compute_week_index(submitted_at, course_week_docs, course_created_at)
 
     for pid in enrolled_pids:
         # Fetch activity events for this student, course, and week
@@ -121,7 +172,11 @@ async def aggregate_weekly_behavior(
         submissions_count = 0
         delay_hours_sum = 0.0
 
-        for sub in submissions:
+        selected_submissions = select_submissions_for_week(
+            submissions, week_index, get_sub_week
+        )
+
+        for sub in selected_submissions:
             # Check if submission belongs to this week
             sub_delay = sub.get("delay_hours")
             submissions_count += 1
