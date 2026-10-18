@@ -224,6 +224,7 @@ async def login(
         if role_str == "student":
             try:
                 from app.db import collections as col
+                from app.services.event_week import resolve_event_week
                 pid = user_doc.get("pid") or pseudonymize(user_doc.get("student_id") or user_id_str)
                 event_id = str(uuid.uuid4())
                 now_utc = datetime.now(timezone.utc)
@@ -233,7 +234,7 @@ async def login(
                     "schema_version": 1,
                     "pid": pid,
                     "course_id": "CS101",
-                    "week_index": 1,
+                    "week_index": await resolve_event_week(db, "CS101", now_utc, 1),
                     "event_type": "login",
                     "event_payload": {
                         "ip": request.client.host if request.client else "127.0.0.1",
