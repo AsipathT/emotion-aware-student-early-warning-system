@@ -1,0 +1,2405 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-10-18T16:27:38.258654+00:00",
+  "source": "c2",
+  "request_id": "c2_sample_export_001",
+  "data": [
+    {
+      "pid": "STU_970b8ab5",
+      "course_id": "BBB_2014J",
+      "week_index": 7,
+      "trajectory_label": "declining",
+      "confidence": 0.7443201619953433,
+      "contributing_indicators": [
+        "recent_activity_rise",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_39b2a882",
+      "course_id": "CCC_2014J",
+      "week_index": 34,
+      "trajectory_label": "declining",
+      "confidence": 0.8002431110509989,
+      "contributing_indicators": [
+        "recent_activity_drop",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_1a330cd7",
+      "course_id": "CCC_2014J",
+      "week_index": 7,
+      "trajectory_label": "declining",
+      "confidence": 0.5960636507304886,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "frequent_zero_weeks",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_13e3eec5",
+      "course_id": "CCC_2014J",
+      "week_index": 32,
+      "trajectory_label": "declining",
+      "confidence": 0.8503722675807653,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_rise",
+        "high_weekly_variability",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_c65bbfa6",
+      "course_id": "EEE_2014J",
+      "week_index": 8,
+      "trajectory_label": "declining",
+      "confidence": 0.5889818344317134,
+      "contributing_indicators": [
+        "recent_activity_drop"
+      ]
+    },
+    {
+      "pid": "STU_47504e4e",
+      "course_id": "BBB_2014J",
+      "week_index": 5,
+      "trajectory_label": "declining",
+      "confidence": 0.4915694837356563,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_780e5dfe",
+      "course_id": "FFF_2014J",
+      "week_index": 6,
+      "trajectory_label": "declining",
+      "confidence": 0.4465224824298316,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_8b05b0d9",
+      "course_id": "CCC_2014J",
+      "week_index": 9,
+      "trajectory_label": "declining",
+      "confidence": 0.3791466322914577,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_2c45a4d9",
+      "course_id": "GGG_2014J",
+      "week_index": 21,
+      "trajectory_label": "declining",
+      "confidence": 0.47537957890281446,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_8a6675f5",
+      "course_id": "BBB_2014J",
+      "week_index": 8,
+      "trajectory_label": "declining",
+      "confidence": 0.823978975682414,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_f01a9a51",
+      "course_id": "BBB_2014J",
+      "week_index": 8,
+      "trajectory_label": "declining",
+      "confidence": 0.5232657891593041,
+      "contributing_indicators": [
+        "recent_activity_rise",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_3d43eeee",
+      "course_id": "DDD_2014J",
+      "week_index": 26,
+      "trajectory_label": "declining",
+      "confidence": 0.4057872831396124,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_19b15024",
+      "course_id": "CCC_2014J",
+      "week_index": 33,
+      "trajectory_label": "declining",
+      "confidence": 0.9399558999963327,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_rise",
+        "high_weekly_variability",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_4a5dd333",
+      "course_id": "EEE_2014J",
+      "week_index": 10,
+      "trajectory_label": "declining",
+      "confidence": 0.6418260810960623,
+      "contributing_indicators": [
+        "clicks_declining_trend"
+      ]
+    },
+    {
+      "pid": "STU_92f0b142",
+      "course_id": "FFF_2014J",
+      "week_index": 15,
+      "trajectory_label": "declining",
+      "confidence": 0.41264801631815445,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_7fc8d448",
+      "course_id": "EEE_2014J",
+      "week_index": 24,
+      "trajectory_label": "declining",
+      "confidence": 0.7063545799676595,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_rise",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_ab53059c",
+      "course_id": "CCC_2014J",
+      "week_index": 23,
+      "trajectory_label": "declining",
+      "confidence": 0.7388785275873202,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_252577b5",
+      "course_id": "EEE_2014J",
+      "week_index": 5,
+      "trajectory_label": "declining",
+      "confidence": 0.4662851906418914,
+      "contributing_indicators": [
+        "steady_activity"
+      ]
+    },
+    {
+      "pid": "STU_67349068",
+      "course_id": "EEE_2014J",
+      "week_index": 9,
+      "trajectory_label": "declining",
+      "confidence": 0.5490417171465739,
+      "contributing_indicators": [
+        "steady_activity"
+      ]
+    },
+    {
+      "pid": "STU_bc248f0e",
+      "course_id": "CCC_2014J",
+      "week_index": 9,
+      "trajectory_label": "declining",
+      "confidence": 0.56499831337209,
+      "contributing_indicators": [
+        "steady_activity"
+      ]
+    },
+    {
+      "pid": "STU_2d3a9299",
+      "course_id": "CCC_2014J",
+      "week_index": 8,
+      "trajectory_label": "declining",
+      "confidence": 0.4738197176413008,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_76edf1ee",
+      "course_id": "EEE_2014J",
+      "week_index": 34,
+      "trajectory_label": "declining",
+      "confidence": 0.9904699196772183,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_142482a9",
+      "course_id": "AAA_2014J",
+      "week_index": 34,
+      "trajectory_label": "declining",
+      "confidence": 0.3505881702835897,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_3418cadc",
+      "course_id": "CCC_2014J",
+      "week_index": 32,
+      "trajectory_label": "declining",
+      "confidence": 0.7698504427897069,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_rise",
+        "high_weekly_variability",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_9df6b3a2",
+      "course_id": "BBB_2014J",
+      "week_index": 32,
+      "trajectory_label": "declining",
+      "confidence": 0.8808540530286048,
+      "contributing_indicators": [
+        "clicks_declining_trend"
+      ]
+    },
+    {
+      "pid": "STU_18988270",
+      "course_id": "DDD_2014J",
+      "week_index": 30,
+      "trajectory_label": "declining",
+      "confidence": 0.44896032349677856,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_99d4e6d3",
+      "course_id": "DDD_2014J",
+      "week_index": 26,
+      "trajectory_label": "declining",
+      "confidence": 0.5961032568117027,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_c1400620",
+      "course_id": "DDD_2014J",
+      "week_index": 33,
+      "trajectory_label": "declining",
+      "confidence": 0.4922503981074444,
+      "contributing_indicators": [
+        "recent_activity_drop",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_06d323c6",
+      "course_id": "AAA_2014J",
+      "week_index": 12,
+      "trajectory_label": "declining",
+      "confidence": 0.44490552493117436,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "inactive_streak",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_c8b7be98",
+      "course_id": "DDD_2014J",
+      "week_index": 30,
+      "trajectory_label": "declining",
+      "confidence": 0.39293303802822144,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop"
+      ]
+    },
+    {
+      "pid": "STU_d6e98f3e",
+      "course_id": "CCC_2014J",
+      "week_index": 5,
+      "trajectory_label": "declining",
+      "confidence": 0.4954111852957338,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "high_weekly_variability",
+        "frequent_zero_weeks",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_a6d05050",
+      "course_id": "EEE_2014J",
+      "week_index": 3,
+      "trajectory_label": "declining",
+      "confidence": 0.5270764299183468,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop"
+      ]
+    },
+    {
+      "pid": "STU_be8a0a59",
+      "course_id": "GGG_2014J",
+      "week_index": 26,
+      "trajectory_label": "declining",
+      "confidence": 0.4562833611327284,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_511f4c8b",
+      "course_id": "DDD_2014J",
+      "week_index": 22,
+      "trajectory_label": "declining",
+      "confidence": 0.4317011940099189,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_ad5253b6",
+      "course_id": "CCC_2014J",
+      "week_index": 25,
+      "trajectory_label": "declining",
+      "confidence": 0.4593676434396655,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "high_weekly_variability",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_a5497617",
+      "course_id": "CCC_2014J",
+      "week_index": 25,
+      "trajectory_label": "declining",
+      "confidence": 0.5624198048634055,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "inactive_streak"
+      ]
+    },
+    {
+      "pid": "STU_0b0c7c3e",
+      "course_id": "FFF_2014J",
+      "week_index": 27,
+      "trajectory_label": "declining",
+      "confidence": 0.721937614881992,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_rise",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_ac881eb5",
+      "course_id": "BBB_2014J",
+      "week_index": 23,
+      "trajectory_label": "declining",
+      "confidence": 0.4715121163196116,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_cd90524f",
+      "course_id": "CCC_2014J",
+      "week_index": 34,
+      "trajectory_label": "declining",
+      "confidence": 0.7109103197477536,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_33c31d01",
+      "course_id": "GGG_2014J",
+      "week_index": 8,
+      "trajectory_label": "declining",
+      "confidence": 0.45157583139712815,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop"
+      ]
+    },
+    {
+      "pid": "STU_6100dbb0",
+      "course_id": "AAA_2014J",
+      "week_index": 11,
+      "trajectory_label": "declining",
+      "confidence": 0.41024803924033554,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_0e06ac47",
+      "course_id": "EEE_2014J",
+      "week_index": 6,
+      "trajectory_label": "declining",
+      "confidence": 0.47371587583926245,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_31ab030b",
+      "course_id": "FFF_2014J",
+      "week_index": 30,
+      "trajectory_label": "declining",
+      "confidence": 0.7139012323605057,
+      "contributing_indicators": [
+        "steady_activity"
+      ]
+    },
+    {
+      "pid": "STU_10b96f6e",
+      "course_id": "DDD_2014J",
+      "week_index": 6,
+      "trajectory_label": "declining",
+      "confidence": 0.36426729798101815,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "inactive_streak",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_18c51fc3",
+      "course_id": "DDD_2014J",
+      "week_index": 6,
+      "trajectory_label": "declining",
+      "confidence": 0.5159572462136153,
+      "contributing_indicators": [
+        "clicks_declining_trend"
+      ]
+    },
+    {
+      "pid": "STU_2431224d",
+      "course_id": "FFF_2014J",
+      "week_index": 17,
+      "trajectory_label": "declining",
+      "confidence": 0.5070467300009822,
+      "contributing_indicators": [
+        "recent_activity_rise",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_9198adda",
+      "course_id": "DDD_2014J",
+      "week_index": 32,
+      "trajectory_label": "declining",
+      "confidence": 0.814964892147949,
+      "contributing_indicators": [
+        "recent_activity_rise"
+      ]
+    },
+    {
+      "pid": "STU_769f1553",
+      "course_id": "DDD_2014J",
+      "week_index": 7,
+      "trajectory_label": "declining",
+      "confidence": 0.4524841854466683,
+      "contributing_indicators": [
+        "recent_activity_rise",
+        "high_weekly_variability",
+        "frequent_zero_weeks",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_de6378f7",
+      "course_id": "GGG_2014J",
+      "week_index": 7,
+      "trajectory_label": "declining",
+      "confidence": 0.6059360184550071,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_dbef25a2",
+      "course_id": "GGG_2014J",
+      "week_index": 25,
+      "trajectory_label": "declining",
+      "confidence": 0.44472609618672315,
+      "contributing_indicators": [
+        "recent_activity_rise",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_7d869591",
+      "course_id": "EEE_2014J",
+      "week_index": 17,
+      "trajectory_label": "improving",
+      "confidence": 0.402839152489253,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_6c592f06",
+      "course_id": "BBB_2014J",
+      "week_index": 21,
+      "trajectory_label": "improving",
+      "confidence": 0.5365584605369391,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_9514d322",
+      "course_id": "FFF_2014J",
+      "week_index": 12,
+      "trajectory_label": "improving",
+      "confidence": 0.6458959569239535,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "inactive_streak"
+      ]
+    },
+    {
+      "pid": "STU_27539d14",
+      "course_id": "CCC_2014J",
+      "week_index": 15,
+      "trajectory_label": "improving",
+      "confidence": 0.7954592366090416,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_381a8e57",
+      "course_id": "BBB_2014J",
+      "week_index": 15,
+      "trajectory_label": "improving",
+      "confidence": 0.6091094661016557,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_40ab2437",
+      "course_id": "BBB_2014J",
+      "week_index": 18,
+      "trajectory_label": "improving",
+      "confidence": 0.45799216723171504,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_61e3adb5",
+      "course_id": "BBB_2014J",
+      "week_index": 17,
+      "trajectory_label": "improving",
+      "confidence": 0.45794698477929785,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_000910cd",
+      "course_id": "EEE_2014J",
+      "week_index": 16,
+      "trajectory_label": "improving",
+      "confidence": 0.40160918246340155,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_ae092fe1",
+      "course_id": "CCC_2014J",
+      "week_index": 19,
+      "trajectory_label": "improving",
+      "confidence": 0.828460919761848,
+      "contributing_indicators": [
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "inactive_streak"
+      ]
+    },
+    {
+      "pid": "STU_b59bdcf1",
+      "course_id": "BBB_2014J",
+      "week_index": 21,
+      "trajectory_label": "improving",
+      "confidence": 0.3979324476554182,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_9fea4f1e",
+      "course_id": "BBB_2014J",
+      "week_index": 6,
+      "trajectory_label": "improving",
+      "confidence": 0.4612552164111112,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_29e94e3e",
+      "course_id": "BBB_2014J",
+      "week_index": 15,
+      "trajectory_label": "improving",
+      "confidence": 0.7333239531868471,
+      "contributing_indicators": [
+        "inactive_streak"
+      ]
+    },
+    {
+      "pid": "STU_ebde4170",
+      "course_id": "FFF_2014J",
+      "week_index": 12,
+      "trajectory_label": "improving",
+      "confidence": 0.6027373836744198,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "inactive_streak"
+      ]
+    },
+    {
+      "pid": "STU_d06e7d46",
+      "course_id": "BBB_2014J",
+      "week_index": 12,
+      "trajectory_label": "improving",
+      "confidence": 0.6710712846525526,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_e933e579",
+      "course_id": "CCC_2014J",
+      "week_index": 27,
+      "trajectory_label": "improving",
+      "confidence": 0.5664044864342735,
+      "contributing_indicators": [
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_03056591",
+      "course_id": "CCC_2014J",
+      "week_index": 16,
+      "trajectory_label": "improving",
+      "confidence": 0.4225867816813313,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability",
+        "frequent_zero_weeks",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_fd3a6a69",
+      "course_id": "CCC_2014J",
+      "week_index": 9,
+      "trajectory_label": "improving",
+      "confidence": 0.5303136840020154,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_drop",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_49e5d2d2",
+      "course_id": "FFF_2014J",
+      "week_index": 13,
+      "trajectory_label": "improving",
+      "confidence": 0.866195234836291,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_6de5442f",
+      "course_id": "CCC_2014J",
+      "week_index": 15,
+      "trajectory_label": "improving",
+      "confidence": 0.6641984868893903,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise"
+      ]
+    },
+    {
+      "pid": "STU_19ee5502",
+      "course_id": "CCC_2014J",
+      "week_index": 14,
+      "trajectory_label": "improving",
+      "confidence": 0.6529889374264382,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "high_weekly_variability",
+        "frequent_zero_weeks",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_ab8f1c5f",
+      "course_id": "CCC_2014J",
+      "week_index": 17,
+      "trajectory_label": "improving",
+      "confidence": 0.5057430321017515,
+      "contributing_indicators": [
+        "recent_activity_drop",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_3a8e28dc",
+      "course_id": "DDD_2014J",
+      "week_index": 20,
+      "trajectory_label": "improving",
+      "confidence": 0.5852858607010568,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_8ecd05b0",
+      "course_id": "EEE_2014J",
+      "week_index": 16,
+      "trajectory_label": "improving",
+      "confidence": 0.5466206017504914,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_767b4ca2",
+      "course_id": "EEE_2014J",
+      "week_index": 14,
+      "trajectory_label": "improving",
+      "confidence": 0.8621086369506659,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_890c1482",
+      "course_id": "BBB_2014J",
+      "week_index": 16,
+      "trajectory_label": "improving",
+      "confidence": 0.8396459781126718,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_2632778c",
+      "course_id": "FFF_2014J",
+      "week_index": 14,
+      "trajectory_label": "improving",
+      "confidence": 0.5971772935761662,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_c7229027",
+      "course_id": "EEE_2014J",
+      "week_index": 16,
+      "trajectory_label": "improving",
+      "confidence": 0.5283840793906908,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_1f806b5a",
+      "course_id": "FFF_2014J",
+      "week_index": 28,
+      "trajectory_label": "improving",
+      "confidence": 0.8178999177352513,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_drop",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_e297f4d6",
+      "course_id": "FFF_2014J",
+      "week_index": 26,
+      "trajectory_label": "improving",
+      "confidence": 0.6078387592443417,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_8a6675f5",
+      "course_id": "BBB_2014J",
+      "week_index": 25,
+      "trajectory_label": "improving",
+      "confidence": 0.5457893855684448,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_6b9340b3",
+      "course_id": "FFF_2014J",
+      "week_index": 23,
+      "trajectory_label": "improving",
+      "confidence": 0.7094537168171632,
+      "contributing_indicators": [
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "inactive_streak",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_3f07651e",
+      "course_id": "DDD_2014J",
+      "week_index": 13,
+      "trajectory_label": "improving",
+      "confidence": 0.5276945176422192,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_a9af9dc2",
+      "course_id": "BBB_2014J",
+      "week_index": 20,
+      "trajectory_label": "improving",
+      "confidence": 0.3110510231524539,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_f7b04be8",
+      "course_id": "FFF_2014J",
+      "week_index": 14,
+      "trajectory_label": "improving",
+      "confidence": 0.6181071873802431,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_a4142034",
+      "course_id": "EEE_2014J",
+      "week_index": 15,
+      "trajectory_label": "improving",
+      "confidence": 0.5434971467715075,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise"
+      ]
+    },
+    {
+      "pid": "STU_8130399c",
+      "course_id": "EEE_2014J",
+      "week_index": 28,
+      "trajectory_label": "improving",
+      "confidence": 0.8554150553267522,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_8ad50d1f",
+      "course_id": "BBB_2014J",
+      "week_index": 11,
+      "trajectory_label": "improving",
+      "confidence": 0.5872872312106162,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_fb42fff5",
+      "course_id": "BBB_2014J",
+      "week_index": 19,
+      "trajectory_label": "improving",
+      "confidence": 0.6922385706125833,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "inactive_streak"
+      ]
+    },
+    {
+      "pid": "STU_fb4f6516",
+      "course_id": "CCC_2014J",
+      "week_index": 19,
+      "trajectory_label": "improving",
+      "confidence": 0.5908111510761407,
+      "contributing_indicators": [
+        "recent_activity_drop",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_32ad4bf5",
+      "course_id": "BBB_2014J",
+      "week_index": 20,
+      "trajectory_label": "improving",
+      "confidence": 0.7195300509282415,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_5ac2ce61",
+      "course_id": "CCC_2014J",
+      "week_index": 14,
+      "trajectory_label": "improving",
+      "confidence": 0.7366610820499686,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "frequent_zero_weeks",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_b22f2fed",
+      "course_id": "FFF_2014J",
+      "week_index": 14,
+      "trajectory_label": "improving",
+      "confidence": 0.4027157111013617,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_drop",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_6acfdff8",
+      "course_id": "GGG_2014J",
+      "week_index": 12,
+      "trajectory_label": "improving",
+      "confidence": 0.4266848257701263,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_5b2bb83e",
+      "course_id": "BBB_2014J",
+      "week_index": 9,
+      "trajectory_label": "improving",
+      "confidence": 0.622469289943333,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_104ac326",
+      "course_id": "EEE_2014J",
+      "week_index": 11,
+      "trajectory_label": "improving",
+      "confidence": 0.5293355064641306,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_8707a4dd",
+      "course_id": "EEE_2014J",
+      "week_index": 27,
+      "trajectory_label": "improving",
+      "confidence": 0.45348032364126617,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_drop"
+      ]
+    },
+    {
+      "pid": "STU_07ddcb14",
+      "course_id": "FFF_2014J",
+      "week_index": 11,
+      "trajectory_label": "improving",
+      "confidence": 0.9284435564868501,
+      "contributing_indicators": [
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "inactive_streak"
+      ]
+    },
+    {
+      "pid": "STU_21812dbc",
+      "course_id": "FFF_2014J",
+      "week_index": 13,
+      "trajectory_label": "improving",
+      "confidence": 0.5932517146583139,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_drop",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_0e757b4a",
+      "course_id": "DDD_2014J",
+      "week_index": 16,
+      "trajectory_label": "improving",
+      "confidence": 0.6630766283703365,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_60ea7514",
+      "course_id": "GGG_2014J",
+      "week_index": 20,
+      "trajectory_label": "improving",
+      "confidence": 0.5604985414600195,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "inactive_streak"
+      ]
+    },
+    {
+      "pid": "STU_5e76e600",
+      "course_id": "DDD_2014J",
+      "week_index": 10,
+      "trajectory_label": "stable",
+      "confidence": 0.498551150545363,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop"
+      ]
+    },
+    {
+      "pid": "STU_3116c3b8",
+      "course_id": "CCC_2014J",
+      "week_index": 19,
+      "trajectory_label": "stable",
+      "confidence": 0.47585530389961467,
+      "contributing_indicators": [
+        "steady_activity"
+      ]
+    },
+    {
+      "pid": "STU_d9d89dcb",
+      "course_id": "FFF_2014J",
+      "week_index": 10,
+      "trajectory_label": "stable",
+      "confidence": 0.7464493720920798,
+      "contributing_indicators": [
+        "steady_activity"
+      ]
+    },
+    {
+      "pid": "STU_8d1e2568",
+      "course_id": "EEE_2014J",
+      "week_index": 10,
+      "trajectory_label": "stable",
+      "confidence": 0.641978243143689,
+      "contributing_indicators": [
+        "steady_activity"
+      ]
+    },
+    {
+      "pid": "STU_43adfc8f",
+      "course_id": "GGG_2014J",
+      "week_index": 8,
+      "trajectory_label": "stable",
+      "confidence": 0.581012748363744,
+      "contributing_indicators": [
+        "inactive_streak"
+      ]
+    },
+    {
+      "pid": "STU_ac1abc9b",
+      "course_id": "EEE_2014J",
+      "week_index": 20,
+      "trajectory_label": "stable",
+      "confidence": 0.6472806219095523,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_75d2acb9",
+      "course_id": "BBB_2014J",
+      "week_index": 18,
+      "trajectory_label": "stable",
+      "confidence": 0.5224816979284629,
+      "contributing_indicators": [
+        "clicks_rising_trend"
+      ]
+    },
+    {
+      "pid": "STU_fc8169da",
+      "course_id": "FFF_2014J",
+      "week_index": 7,
+      "trajectory_label": "stable",
+      "confidence": 0.6497304655029842,
+      "contributing_indicators": [
+        "steady_activity"
+      ]
+    },
+    {
+      "pid": "STU_33cf2b44",
+      "course_id": "FFF_2014J",
+      "week_index": 6,
+      "trajectory_label": "stable",
+      "confidence": 0.5195493057631837,
+      "contributing_indicators": [
+        "clicks_rising_trend"
+      ]
+    },
+    {
+      "pid": "STU_f077be29",
+      "course_id": "GGG_2014J",
+      "week_index": 3,
+      "trajectory_label": "stable",
+      "confidence": 0.6632535147632604,
+      "contributing_indicators": [
+        "recent_activity_rise",
+        "inactive_streak"
+      ]
+    },
+    {
+      "pid": "STU_bf30e4b0",
+      "course_id": "AAA_2014J",
+      "week_index": 21,
+      "trajectory_label": "stable",
+      "confidence": 0.5578338437030709,
+      "contributing_indicators": [
+        "recent_activity_drop"
+      ]
+    },
+    {
+      "pid": "STU_558f017f",
+      "course_id": "FFF_2014J",
+      "week_index": 28,
+      "trajectory_label": "stable",
+      "confidence": 0.4625037578016632,
+      "contributing_indicators": [
+        "clicks_rising_trend"
+      ]
+    },
+    {
+      "pid": "STU_4e308cbf",
+      "course_id": "CCC_2014J",
+      "week_index": 13,
+      "trajectory_label": "stable",
+      "confidence": 0.5154542167029427,
+      "contributing_indicators": [
+        "recent_activity_drop",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_c4f41c9a",
+      "course_id": "FFF_2014J",
+      "week_index": 19,
+      "trajectory_label": "stable",
+      "confidence": 0.6038954126989321,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise"
+      ]
+    },
+    {
+      "pid": "STU_e231a5bd",
+      "course_id": "DDD_2014J",
+      "week_index": 22,
+      "trajectory_label": "stable",
+      "confidence": 0.5109535384739596,
+      "contributing_indicators": [
+        "steady_activity"
+      ]
+    },
+    {
+      "pid": "STU_e8c2fcc5",
+      "course_id": "FFF_2014J",
+      "week_index": 16,
+      "trajectory_label": "stable",
+      "confidence": 0.8354618621733709,
+      "contributing_indicators": [
+        "clicks_declining_trend"
+      ]
+    },
+    {
+      "pid": "STU_a536f911",
+      "course_id": "CCC_2014J",
+      "week_index": 18,
+      "trajectory_label": "stable",
+      "confidence": 0.6982102763180768,
+      "contributing_indicators": [
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_beff6163",
+      "course_id": "DDD_2014J",
+      "week_index": 4,
+      "trajectory_label": "stable",
+      "confidence": 0.7111180947927055,
+      "contributing_indicators": [
+        "recent_activity_drop"
+      ]
+    },
+    {
+      "pid": "STU_cdc86ef6",
+      "course_id": "FFF_2014J",
+      "week_index": 25,
+      "trajectory_label": "stable",
+      "confidence": 0.41048492390629443,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_61485f5b",
+      "course_id": "FFF_2014J",
+      "week_index": 22,
+      "trajectory_label": "stable",
+      "confidence": 0.44948095937781335,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_02bd741a",
+      "course_id": "DDD_2014J",
+      "week_index": 21,
+      "trajectory_label": "stable",
+      "confidence": 0.49994371366774376,
+      "contributing_indicators": [
+        "steady_activity"
+      ]
+    },
+    {
+      "pid": "STU_6b2bc3ca",
+      "course_id": "DDD_2014J",
+      "week_index": 14,
+      "trajectory_label": "stable",
+      "confidence": 0.6547606307037143,
+      "contributing_indicators": [
+        "recent_activity_rise",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_f7ebe717",
+      "course_id": "BBB_2014J",
+      "week_index": 34,
+      "trajectory_label": "stable",
+      "confidence": 0.7388889263815364,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_45cfd446",
+      "course_id": "FFF_2014J",
+      "week_index": 12,
+      "trajectory_label": "stable",
+      "confidence": 0.33352614593564506,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_drop"
+      ]
+    },
+    {
+      "pid": "STU_98f70f4d",
+      "course_id": "BBB_2014J",
+      "week_index": 31,
+      "trajectory_label": "stable",
+      "confidence": 0.5617648478015647,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "inactive_streak"
+      ]
+    },
+    {
+      "pid": "STU_3bc42242",
+      "course_id": "FFF_2014J",
+      "week_index": 7,
+      "trajectory_label": "stable",
+      "confidence": 0.4514798944266662,
+      "contributing_indicators": [
+        "recent_activity_drop",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_2dd88814",
+      "course_id": "GGG_2014J",
+      "week_index": 21,
+      "trajectory_label": "stable",
+      "confidence": 0.5210478334670346,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_74e2d5c4",
+      "course_id": "GGG_2014J",
+      "week_index": 16,
+      "trajectory_label": "stable",
+      "confidence": 0.6395537713462752,
+      "contributing_indicators": [
+        "inactive_streak"
+      ]
+    },
+    {
+      "pid": "STU_28e5c2fa",
+      "course_id": "GGG_2014J",
+      "week_index": 8,
+      "trajectory_label": "stable",
+      "confidence": 0.5527945689052063,
+      "contributing_indicators": [
+        "inactive_streak"
+      ]
+    },
+    {
+      "pid": "STU_98fe048e",
+      "course_id": "CCC_2014J",
+      "week_index": 3,
+      "trajectory_label": "stable",
+      "confidence": 0.66700623257431,
+      "contributing_indicators": [
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_724e189b",
+      "course_id": "AAA_2014J",
+      "week_index": 18,
+      "trajectory_label": "stable",
+      "confidence": 0.48698658424397334,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_7311a516",
+      "course_id": "CCC_2014J",
+      "week_index": 18,
+      "trajectory_label": "stable",
+      "confidence": 0.6633062313544998,
+      "contributing_indicators": [
+        "steady_activity"
+      ]
+    },
+    {
+      "pid": "STU_ce56e030",
+      "course_id": "FFF_2014J",
+      "week_index": 8,
+      "trajectory_label": "stable",
+      "confidence": 0.5558180033012723,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise"
+      ]
+    },
+    {
+      "pid": "STU_ca87285e",
+      "course_id": "FFF_2014J",
+      "week_index": 7,
+      "trajectory_label": "stable",
+      "confidence": 0.44839351713483894,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_c9d9760f",
+      "course_id": "FFF_2014J",
+      "week_index": 20,
+      "trajectory_label": "stable",
+      "confidence": 0.4517361124767917,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_rise"
+      ]
+    },
+    {
+      "pid": "STU_2bba9bd5",
+      "course_id": "FFF_2014J",
+      "week_index": 3,
+      "trajectory_label": "stable",
+      "confidence": 0.7507898782158542,
+      "contributing_indicators": [
+        "steady_activity"
+      ]
+    },
+    {
+      "pid": "STU_3530488e",
+      "course_id": "DDD_2014J",
+      "week_index": 11,
+      "trajectory_label": "stable",
+      "confidence": 0.6412747808491565,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop"
+      ]
+    },
+    {
+      "pid": "STU_b1aca6be",
+      "course_id": "BBB_2014J",
+      "week_index": 29,
+      "trajectory_label": "stable",
+      "confidence": 0.34020954099913875,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop"
+      ]
+    },
+    {
+      "pid": "STU_0ea076b7",
+      "course_id": "FFF_2014J",
+      "week_index": 18,
+      "trajectory_label": "stable",
+      "confidence": 0.6676674447760923,
+      "contributing_indicators": [
+        "steady_activity"
+      ]
+    },
+    {
+      "pid": "STU_1790fe79",
+      "course_id": "BBB_2014J",
+      "week_index": 33,
+      "trajectory_label": "stable",
+      "confidence": 0.38561552123361376,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_9ba221e7",
+      "course_id": "BBB_2014J",
+      "week_index": 4,
+      "trajectory_label": "stable",
+      "confidence": 0.7329618482979056,
+      "contributing_indicators": [
+        "inactive_streak"
+      ]
+    },
+    {
+      "pid": "STU_0d0f7231",
+      "course_id": "DDD_2014J",
+      "week_index": 32,
+      "trajectory_label": "stable",
+      "confidence": 0.690306517771694,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "inactive_streak"
+      ]
+    },
+    {
+      "pid": "STU_a536f911",
+      "course_id": "CCC_2014J",
+      "week_index": 19,
+      "trajectory_label": "stable",
+      "confidence": 0.778432800193407,
+      "contributing_indicators": [
+        "inactive_streak"
+      ]
+    },
+    {
+      "pid": "STU_2c8c2afd",
+      "course_id": "EEE_2014J",
+      "week_index": 19,
+      "trajectory_label": "stable",
+      "confidence": 0.7376064815676211,
+      "contributing_indicators": [
+        "steady_activity"
+      ]
+    },
+    {
+      "pid": "STU_09051f94",
+      "course_id": "DDD_2014J",
+      "week_index": 10,
+      "trajectory_label": "stable",
+      "confidence": 0.5866619697516293,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop"
+      ]
+    },
+    {
+      "pid": "STU_be33a49b",
+      "course_id": "DDD_2014J",
+      "week_index": 21,
+      "trajectory_label": "stable",
+      "confidence": 0.31631488985770995,
+      "contributing_indicators": [
+        "recent_activity_rise"
+      ]
+    },
+    {
+      "pid": "STU_50cccd4d",
+      "course_id": "CCC_2014J",
+      "week_index": 25,
+      "trajectory_label": "stable",
+      "confidence": 0.6002882333007145,
+      "contributing_indicators": [
+        "steady_activity"
+      ]
+    },
+    {
+      "pid": "STU_5ecf691a",
+      "course_id": "CCC_2014J",
+      "week_index": 28,
+      "trajectory_label": "stable",
+      "confidence": 0.4122328227425256,
+      "contributing_indicators": [
+        "recent_activity_rise",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_a7cb89ac",
+      "course_id": "FFF_2014J",
+      "week_index": 17,
+      "trajectory_label": "stable",
+      "confidence": 0.5551269390628271,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_8344b770",
+      "course_id": "CCC_2014J",
+      "week_index": 17,
+      "trajectory_label": "stable",
+      "confidence": 0.31654143585268263,
+      "contributing_indicators": [
+        "steady_activity"
+      ]
+    },
+    {
+      "pid": "STU_65d1c5ef",
+      "course_id": "BBB_2014J",
+      "week_index": 21,
+      "trajectory_label": "volatile",
+      "confidence": 0.40588890971859537,
+      "contributing_indicators": [
+        "recent_activity_rise",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_a56d1ee3",
+      "course_id": "GGG_2014J",
+      "week_index": 10,
+      "trajectory_label": "volatile",
+      "confidence": 0.3442974814806696,
+      "contributing_indicators": [
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "frequent_zero_weeks",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_8b01eb1d",
+      "course_id": "CCC_2014J",
+      "week_index": 12,
+      "trajectory_label": "volatile",
+      "confidence": 0.41625273528840934,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "inactive_streak",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_0026007d",
+      "course_id": "BBB_2014J",
+      "week_index": 10,
+      "trajectory_label": "volatile",
+      "confidence": 0.42157865736936107,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "inactive_streak"
+      ]
+    },
+    {
+      "pid": "STU_fd89dcb8",
+      "course_id": "BBB_2014J",
+      "week_index": 10,
+      "trajectory_label": "volatile",
+      "confidence": 0.36591470168677065,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "inactive_streak"
+      ]
+    },
+    {
+      "pid": "STU_dfd7db4d",
+      "course_id": "BBB_2014J",
+      "week_index": 7,
+      "trajectory_label": "volatile",
+      "confidence": 0.6928017216452752,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_a7762611",
+      "course_id": "DDD_2014J",
+      "week_index": 16,
+      "trajectory_label": "volatile",
+      "confidence": 0.4117524215148467,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_rise",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_ebbe299b",
+      "course_id": "CCC_2014J",
+      "week_index": 9,
+      "trajectory_label": "volatile",
+      "confidence": 0.36291946959964666,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_f54871d5",
+      "course_id": "EEE_2014J",
+      "week_index": 8,
+      "trajectory_label": "volatile",
+      "confidence": 0.5656899551381482,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_eb2cfc93",
+      "course_id": "BBB_2014J",
+      "week_index": 31,
+      "trajectory_label": "volatile",
+      "confidence": 0.6143135565834633,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_483c7773",
+      "course_id": "BBB_2014J",
+      "week_index": 4,
+      "trajectory_label": "volatile",
+      "confidence": 0.4314442704556599,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability",
+        "frequent_zero_weeks",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_5be52dc7",
+      "course_id": "FFF_2014J",
+      "week_index": 34,
+      "trajectory_label": "volatile",
+      "confidence": 0.5850745878906968,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_45b77947",
+      "course_id": "BBB_2014J",
+      "week_index": 21,
+      "trajectory_label": "volatile",
+      "confidence": 0.571830249428343,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_f83ad0d3",
+      "course_id": "GGG_2014J",
+      "week_index": 15,
+      "trajectory_label": "volatile",
+      "confidence": 0.4270404425798223,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_1cd036b3",
+      "course_id": "DDD_2014J",
+      "week_index": 30,
+      "trajectory_label": "volatile",
+      "confidence": 0.38742319170118256,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_8b05b0d9",
+      "course_id": "CCC_2014J",
+      "week_index": 11,
+      "trajectory_label": "volatile",
+      "confidence": 0.5216287395956201,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "high_weekly_variability",
+        "frequent_zero_weeks",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_521134a8",
+      "course_id": "FFF_2014J",
+      "week_index": 24,
+      "trajectory_label": "volatile",
+      "confidence": 0.38024862563917655,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_c24ed2d6",
+      "course_id": "DDD_2014J",
+      "week_index": 5,
+      "trajectory_label": "volatile",
+      "confidence": 0.5932764939736885,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_2ab2e20f",
+      "course_id": "DDD_2014J",
+      "week_index": 19,
+      "trajectory_label": "volatile",
+      "confidence": 0.4207288334559404,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_f3e688bc",
+      "course_id": "CCC_2014J",
+      "week_index": 16,
+      "trajectory_label": "volatile",
+      "confidence": 0.35796367689342773,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_2230b1e8",
+      "course_id": "BBB_2014J",
+      "week_index": 33,
+      "trajectory_label": "volatile",
+      "confidence": 0.44331851659690313,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_44a37df4",
+      "course_id": "CCC_2014J",
+      "week_index": 4,
+      "trajectory_label": "volatile",
+      "confidence": 0.45375296191942993,
+      "contributing_indicators": [
+        "recent_activity_rise",
+        "high_weekly_variability",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_265c96f8",
+      "course_id": "CCC_2014J",
+      "week_index": 7,
+      "trajectory_label": "volatile",
+      "confidence": 0.4287775254706183,
+      "contributing_indicators": [
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_b058a7d3",
+      "course_id": "BBB_2014J",
+      "week_index": 30,
+      "trajectory_label": "volatile",
+      "confidence": 0.3029080820068118,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "inactive_streak",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_7597e30b",
+      "course_id": "CCC_2014J",
+      "week_index": 9,
+      "trajectory_label": "volatile",
+      "confidence": 0.38685827009456736,
+      "contributing_indicators": [
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "frequent_zero_weeks",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_de1552dc",
+      "course_id": "FFF_2014J",
+      "week_index": 33,
+      "trajectory_label": "volatile",
+      "confidence": 0.4751985401983623,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_drop",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_012c45ae",
+      "course_id": "GGG_2014J",
+      "week_index": 11,
+      "trajectory_label": "volatile",
+      "confidence": 0.38508140477587255,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_rise",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_85ab5f2e",
+      "course_id": "EEE_2014J",
+      "week_index": 31,
+      "trajectory_label": "volatile",
+      "confidence": 0.45603815570719036,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_cb335c7c",
+      "course_id": "BBB_2014J",
+      "week_index": 17,
+      "trajectory_label": "volatile",
+      "confidence": 0.44001563087239604,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "inactive_streak"
+      ]
+    },
+    {
+      "pid": "STU_2dfbda4d",
+      "course_id": "CCC_2014J",
+      "week_index": 4,
+      "trajectory_label": "volatile",
+      "confidence": 0.4211271980201406,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_2cc4f984",
+      "course_id": "BBB_2014J",
+      "week_index": 9,
+      "trajectory_label": "volatile",
+      "confidence": 0.3861523189987167,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_bdeeeb20",
+      "course_id": "CCC_2014J",
+      "week_index": 8,
+      "trajectory_label": "volatile",
+      "confidence": 0.4226390671327015,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_f05b047e",
+      "course_id": "DDD_2014J",
+      "week_index": 10,
+      "trajectory_label": "volatile",
+      "confidence": 0.45156011479682634,
+      "contributing_indicators": [
+        "high_weekly_variability",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_8286659a",
+      "course_id": "CCC_2014J",
+      "week_index": 21,
+      "trajectory_label": "volatile",
+      "confidence": 0.48012447425770743,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "high_weekly_variability",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_2d8dd54c",
+      "course_id": "AAA_2014J",
+      "week_index": 25,
+      "trajectory_label": "volatile",
+      "confidence": 0.41039509693215254,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_7c8b7859",
+      "course_id": "BBB_2014J",
+      "week_index": 4,
+      "trajectory_label": "volatile",
+      "confidence": 0.43931952896026927,
+      "contributing_indicators": [
+        "recent_activity_drop",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_2126f9f4",
+      "course_id": "BBB_2014J",
+      "week_index": 17,
+      "trajectory_label": "volatile",
+      "confidence": 0.41210977250259423,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_rise",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_160cdf2e",
+      "course_id": "CCC_2014J",
+      "week_index": 15,
+      "trajectory_label": "volatile",
+      "confidence": 0.3620069020307187,
+      "contributing_indicators": [
+        "recent_activity_rise",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_4b095215",
+      "course_id": "CCC_2014J",
+      "week_index": 16,
+      "trajectory_label": "volatile",
+      "confidence": 0.5397408780764726,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "inactive_streak"
+      ]
+    },
+    {
+      "pid": "STU_dc5f6090",
+      "course_id": "FFF_2014J",
+      "week_index": 16,
+      "trajectory_label": "volatile",
+      "confidence": 0.4081866073174715,
+      "contributing_indicators": [
+        "high_weekly_variability",
+        "frequent_zero_weeks",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_3be93c05",
+      "course_id": "DDD_2014J",
+      "week_index": 5,
+      "trajectory_label": "volatile",
+      "confidence": 0.5564627377506305,
+      "contributing_indicators": [
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_4b32c2b2",
+      "course_id": "CCC_2014J",
+      "week_index": 17,
+      "trajectory_label": "volatile",
+      "confidence": 0.3639891767121346,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_rise",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_923bf093",
+      "course_id": "CCC_2014J",
+      "week_index": 24,
+      "trajectory_label": "volatile",
+      "confidence": 0.35059501784501573,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "high_weekly_variability",
+        "frequent_zero_weeks",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_d73548b5",
+      "course_id": "DDD_2014J",
+      "week_index": 11,
+      "trajectory_label": "volatile",
+      "confidence": 0.47929992347787087,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "recent_activity_drop",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_129ab515",
+      "course_id": "BBB_2014J",
+      "week_index": 27,
+      "trajectory_label": "volatile",
+      "confidence": 0.35887575966448865,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "late_submissions"
+      ]
+    },
+    {
+      "pid": "STU_7bc571fd",
+      "course_id": "DDD_2014J",
+      "week_index": 25,
+      "trajectory_label": "volatile",
+      "confidence": 0.3651848765861881,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_c1271d27",
+      "course_id": "BBB_2014J",
+      "week_index": 5,
+      "trajectory_label": "volatile",
+      "confidence": 0.4190033437873512,
+      "contributing_indicators": [
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_1648d676",
+      "course_id": "EEE_2014J",
+      "week_index": 29,
+      "trajectory_label": "volatile",
+      "confidence": 0.45692414624031213,
+      "contributing_indicators": [
+        "clicks_declining_trend",
+        "high_weekly_variability",
+        "frequent_zero_weeks"
+      ]
+    },
+    {
+      "pid": "STU_05221090",
+      "course_id": "GGG_2014J",
+      "week_index": 24,
+      "trajectory_label": "volatile",
+      "confidence": 0.3922202769231906,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "recent_activity_rise",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_81e1afc1",
+      "course_id": "FFF_2014J",
+      "week_index": 7,
+      "trajectory_label": "volatile",
+      "confidence": 0.5006768544319992,
+      "contributing_indicators": [
+        "clicks_rising_trend",
+        "high_weekly_variability"
+      ]
+    },
+    {
+      "pid": "STU_af09da1e",
+      "course_id": "AAA_2014J",
+      "week_index": 7,
+      "trajectory_label": "declining",
+      "confidence": 0.86,
+      "contributing_indicators": [
+        "no_activity_7w"
+      ]
+    },
+    {
+      "pid": "STU_38b0c43b",
+      "course_id": "BBB_2014J",
+      "week_index": 8,
+      "trajectory_label": "declining",
+      "confidence": 0.86,
+      "contributing_indicators": [
+        "no_activity_7w"
+      ]
+    },
+    {
+      "pid": "STU_e5e9226a",
+      "course_id": "CCC_2014J",
+      "week_index": 9,
+      "trajectory_label": "declining",
+      "confidence": 0.86,
+      "contributing_indicators": [
+        "never_active"
+      ]
+    },
+    {
+      "pid": "STU_a94cfacd",
+      "course_id": "DDD_2014J",
+      "week_index": 10,
+      "trajectory_label": "declining",
+      "confidence": 0.86,
+      "contributing_indicators": [
+        "no_activity_7w"
+      ]
+    },
+    {
+      "pid": "STU_99f56de9",
+      "course_id": "EEE_2014J",
+      "week_index": 11,
+      "trajectory_label": "declining",
+      "confidence": 0.86,
+      "contributing_indicators": [
+        "never_active"
+      ]
+    }
+  ]
+}
