@@ -46,6 +46,7 @@ from app.core.schema_mapping import (
 from app.core.security import ACCESS_TOKEN_TYPE, decode_token
 from app.db import collections as col
 from app.models.user import User
+from app.services.event_week import resolve_event_week
 
 router = APIRouter(tags=["videos"])
 
@@ -509,7 +510,7 @@ async def record_video_watch(
         "schema_version": 1,
         "pid": pid,
         "course_id": video["course_id"],
-        "week_index": 1,
+        "week_index": await resolve_event_week(db, video["course_id"], now, 1),
         "event_type": "video_watch",
         "event_payload": {
             "video_id": video_id,
