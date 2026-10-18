@@ -558,5 +558,110 @@
     "model": "Gradient Boosting",
     "rationale": "Engagement Support has the highest suitability score (73%) from the Gradient Boosting model for a student with Motivation Erosion (C1), a declining trajectory (C2), medium dropout risk (0.32) and behavioural factors as the strongest cause (C3).",
     "explanation": null
+  },
+  {
+    "id": "434f3efd9093",
+    "student_id": "IT23149076",
+    "created_at": "2026-10-16T03:22:43+00:00",
+    "created_by": "admin",
+    "inputs": {
+      "c1_condition": "Motivation Erosion",
+      "c2_trajectory": "Declining",
+      "risk_probability": 0.32,
+      "risk_tier": "Medium",
+      "c3": {
+        "affective": 0.3,
+        "behavioural": 0.45,
+        "academic": 0.25
+      },
+      "c3_dominant": "Behavioural"
+    },
+    "recommendations": [
+      {
+        "intervention": "Engagement Support",
+        "suitability": 0.7279
+      },
+      {
+        "intervention": "Career Guidance",
+        "suitability": 0.0819
+      },
+      {
+        "intervention": "Attendance Support",
+        "suitability": 0.0768
+      }
+    ],
+    "model": "Gradient Boosting",
+    "rationale": "Engagement Support has the highest suitability score (73%) from the Gradient Boosting model for a student with Motivation Erosion (C1), a declining trajectory (C2), medium dropout risk (0.32) and behavioural factors as the strongest cause (C3).",
+    "explanation": null
+  },
+  {
+    "id": "7341f94ba44d",
+    "student_id": "IT23149076",
+    "created_at": "2026-10-16T04:55:22+00:00",
+    "created_by": "admin",
+    "inputs": {
+      "c1_condition": "Motivation Erosion",
+      "c2_trajectory": "Declining",
+      "risk_probability": 0.32,
+      "risk_tier": "Medium",
+      "c3": {
+        "affective": 0.3,
+        "behavioural": 0.45,
+        "academic": 0.25
+      },
+      "c3_dominant": "Behavioural"
+    },
+    "recommendations": [
+      {
+        "intervention": "Engagement Support",
+        "suitability": 0.7279
+      },
+      {
+        "intervention": "Career Guidance",
+        "suitability": 0.0819
+      },
+      {
+        "intervention": "Attendance Support",
+        "suitability": 0.0768
+      }
+    ],
+    "model": "Gradient Boosting",
+    "rationale": "Engagement Support has the highest suitability score (73%) from the Gradient Boosting model for a student with Motivation Erosion (C1), a declining trajectory (C2), medium dropout risk (0.32) and behavioural factors as the strongest cause (C3).",
+    "explanation": null
+  },
+  {
+    "id": "193bfd96033c",
+    "student_id": "IT23149076",
+    "created_at": "2026-10-18T13:07:59+00:00",
+    "created_by": "admin",
+    "inputs": {
+      "c1_condition": "Motivation Erosion",
+      "c2_trajectory": "Declining",
+      "risk_probability": 0.32,
+      "risk_tier": "Medium",
+      "c3": {
+        "affective": 0.3,
+        "behavioural": 0.45,
+        "academic": 0.25
+      },
+      "c3_dominant": "Behavioural"
+    },
+    "recommendations": [
+      {
+        "intervention": "Engagement Support",
+        "suitability": 0.7279
+      },
+      {
+        "intervention": "Career Guidance",
+        "suitability": 0.0819
+      },
+      {
+        "intervention": "Attendance Support",
+        "suitability": 0.0768
+      }
+    ],
+    "model": "Gradient Boosting",
+    "rationale": "Engagement Support has the highest suitability score (73%) from the Gradient Boosting model for a student with Motivation Erosion (C1), a declining trajectory (C2), medium dropout risk (0.32) and behavioural factors as the strongest cause (C3).",
+    "explanation": null
   }
 ]
