@@ -8,6 +8,7 @@ Calculates:
   - risk_tier ('low', 'medium', 'high', 'critical')
   - modality_contributions ({affective: float, behavioral: float, academic: float}) summing to 1.0
   - top_drivers (SHAP-ranked human-readable risk drivers)
+  - top_modality ('affective' | 'behavioural' | 'academic')
 """
 
 import os
@@ -17,41 +18,48 @@ import numpy as np
 import pandas as pd
 from typing import Dict, List, Tuple, Any
 
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
-from sklearn.metrics import classification_report, roc_auc_score
 import shap
 
-# Feature grouping by modality
+# Feature grouping by modality (matching contracts/v1 field names)
 ACADEMIC_NUMERIC = [
-    "quiz_avg_score",
-    "assignment_avg_score",
-    "assignment_submission_delay_days",
-    "attendance_percentage",
-    "cumulative_grade",
+    "attendance_pct",
+    "ca_marks",
+    "midterm_mark",
+    "quiz_score",
+    "submission_delay_hours",
 ]
 
 BEHAVIORAL_NUMERIC = [
-    "weekly_clicks",
-    "active_days_count",
-    "video_watch_minutes",
-    "forum_post_count",
-    "trajectory_confidence",
+    "login_count",
+    "session_minutes",
+    "clicks",
+    "video_play_count",
+    "video_pause_count",
+    "video_rewind_count",
+    "video_skip_count",
+    "video_completion_pct",
+    "submissions_count",
+    "avg_submission_delay_hours",
 ]
 
 AFFECTIVE_NUMERIC = [
+    "message_count",
     "exam_anxiety",
     "conceptual_confusion",
     "academic_helplessness",
     "course_frustration",
     "motivation_erosion",
-    "affective_confidence",
+    "confidence",
 ]
 
 CATEGORICAL_FEATURES = [
     "trajectory_label",
-    "dominant_stress_label",
+    "stress_label",
 ]
 
 ALL_FEATURE_COLS = (
@@ -71,26 +79,30 @@ def map_risk_tier(score: float) -> str:
 
 
 class MultimodalRiskModel:
-    def __init__(self, n_estimators: int = 150, max_depth: int = 6, random_state: int = 42):
+    def __init__(self, n_estimators: int = 150, max_depth: int = 5, learning_rate: float = 0.08, random_state: int = 42):
         self.random_state = random_state
+        numeric_cols = ACADEMIC_NUMERIC + BEHAVIORAL_NUMERIC + AFFECTIVE_NUMERIC
+
+        num_pipeline = Pipeline([
+            ("imputer", SimpleImputer(strategy="median")),
+            ("scaler", StandardScaler()),
+        ])
+
+        cat_pipeline = Pipeline([
+            ("imputer", SimpleImputer(strategy="constant", fill_value="missing")),
+            ("encoder", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
+        ])
+
         self.preprocessor = ColumnTransformer(
             transformers=[
-                (
-                    "num",
-                    StandardScaler(),
-                    ACADEMIC_NUMERIC + BEHAVIORAL_NUMERIC + AFFECTIVE_NUMERIC,
-                ),
-                (
-                    "cat",
-                    OneHotEncoder(handle_unknown="ignore", sparse_output=False),
-                    CATEGORICAL_FEATURES,
-                ),
+                ("num", num_pipeline, numeric_cols),
+                ("cat", cat_pipeline, CATEGORICAL_FEATURES),
             ]
         )
         self.clf = GradientBoostingClassifier(
             n_estimators=n_estimators,
             max_depth=max_depth,
-            learning_rate=0.08,
+            learning_rate=learning_rate,
             random_state=random_state,
         )
         self.explainer: Any = None
@@ -101,18 +113,19 @@ class MultimodalRiskModel:
         """Maps each transformed feature name to its parent modality."""
         self.modality_map_ = {}
         for feat in self.feature_names_:
-            if any(feat.startswith(f"num__{a}") for a in ACADEMIC_NUMERIC):
+            clean = feat.replace("num__", "").replace("cat__", "")
+            if any(clean.startswith(a) for a in ACADEMIC_NUMERIC):
                 self.modality_map_[feat] = "academic"
-            elif any(feat.startswith(f"num__{b}") for b in BEHAVIORAL_NUMERIC):
-                self.modality_map_[feat] = "behavioral"
-            elif any(feat.startswith(f"num__{af}") for af in AFFECTIVE_NUMERIC):
+            elif any(clean.startswith(b) for b in BEHAVIORAL_NUMERIC):
+                self.modality_map_[feat] = "behavioural"
+            elif any(clean.startswith(af) for af in AFFECTIVE_NUMERIC):
                 self.modality_map_[feat] = "affective"
-            elif "trajectory_label" in feat:
-                self.modality_map_[feat] = "behavioral"
-            elif "dominant_stress_label" in feat:
+            elif clean.startswith("trajectory_label"):
+                self.modality_map_[feat] = "behavioural"
+            elif clean.startswith("stress_label"):
                 self.modality_map_[feat] = "affective"
             else:
-                self.modality_map_[feat] = "behavioral"
+                self.modality_map_[feat] = "behavioural"
 
     def fit(self, X: pd.DataFrame, y: np.ndarray) -> "MultimodalRiskModel":
         """Fits preprocessor, model, and SHAP TreeExplainer."""
@@ -132,6 +145,7 @@ class MultimodalRiskModel:
           - risk_tier: 'low' | 'medium' | 'high' | 'critical'
           - modality_contributions: {affective: float, behavioral: float, academic: float}
           - top_drivers: list of top human-readable factors
+          - top_modality: 'affective' | 'behavioural' | 'academic'
         """
         X_trans = self.preprocessor.transform(X[ALL_FEATURE_COLS])
         prob_scores = self.clf.predict_proba(X_trans)[:, 1]
@@ -139,7 +153,6 @@ class MultimodalRiskModel:
         # Compute SHAP values for explainability
         shap_values = self.explainer.shap_values(X_trans)
         if isinstance(shap_values, list):
-            # For binary classification, use positive class SHAP values
             shap_values = shap_values[1]
 
         results = []
@@ -151,17 +164,17 @@ class MultimodalRiskModel:
 
             # Aggregate SHAP importances by modality
             abs_shap = np.abs(row_shap)
-            mod_sums = {"affective": 0.0, "behavioral": 0.0, "academic": 0.0}
+            mod_sums = {"affective": 0.0, "behavioural": 0.0, "academic": 0.0}
 
             for f_idx, f_name in enumerate(self.feature_names_):
-                mod = self.modality_map_.get(f_name, "behavioral")
+                mod = self.modality_map_.get(f_name, "behavioural")
                 mod_sums[mod] += float(abs_shap[f_idx])
 
             total_shap = sum(mod_sums.values())
             if total_shap > 1e-6:
                 norm_aff = round(mod_sums["affective"] / total_shap, 2)
-                norm_beh = round(mod_sums["behavioral"] / total_shap, 2)
-                norm_acad = round(1.0 - (norm_aff + norm_beh), 2)  # Guarantee sum to 1.0
+                norm_beh = round(mod_sums["behavioural"] / total_shap, 2)
+                norm_acad = round(1.0 - (norm_aff + norm_beh), 2)
             else:
                 norm_aff, norm_beh, norm_acad = 0.33, 0.34, 0.33
 
@@ -171,13 +184,13 @@ class MultimodalRiskModel:
                 "academic": norm_acad,
             }
 
-            # Extract Top Drivers (features with strongest positive contribution to risk)
-            # Higher positive SHAP value = pushing student toward risk
+            top_mod = max(mod_sums, key=mod_sums.get)
+
+            # Extract Top Drivers (features with strongest positive contribution pushing towards risk)
             positive_impact_indices = np.argsort(row_shap)[::-1][:4]
             top_drivers = []
             for idx in positive_impact_indices:
                 raw_name = self.feature_names_[idx].replace("num__", "").replace("cat__", "")
-                val = X[ALL_FEATURE_COLS].iloc[i].get(raw_name.split("_")[0], "")
                 clean_name = raw_name.replace("_", " ").title()
                 top_drivers.append(clean_name)
 
@@ -186,6 +199,7 @@ class MultimodalRiskModel:
                 "risk_tier": tier,
                 "modality_contributions": modality_contributions,
                 "top_drivers": top_drivers[:4],
+                "top_modality": top_mod,
             })
 
         return results

@@ -13,20 +13,27 @@ from src.ingest_client import C3IngestClient
 
 
 def test_multimodal_dataset_generation():
-    df = generate_multimodal_data(num_students=10, num_weeks=4, seed=123)
-    assert len(df) == 40
-    assert "pid" in df.columns
-    assert "actual_composite_risk" in df.columns
-    assert "risk_tier" in df.columns
+    train_df, truth_df = generate_multimodal_data(num_students=10, num_weeks=4, seed=123)
+    assert len(train_df) <= 40
+    assert len(truth_df) == 10
+    assert "pid" in train_df.columns
+    assert "cohort" in train_df.columns
+    assert "withdraws_within_k_weeks" in train_df.columns
+
+    # Verify former leakage columns are absent from training table
+    assert "actual_composite_risk" not in train_df.columns
+    assert "risk_tier" not in train_df.columns
+    assert "actual_dropout" not in train_df.columns
 
     # Verify all expected feature columns are present
     for col in ALL_FEATURE_COLS:
-        assert col in df.columns, f"Missing feature: {col}"
+        assert col in train_df.columns, f"Missing feature: {col}"
 
     # Verify value ranges
-    assert (df["quiz_avg_score"] >= 0.0).all() and (df["quiz_avg_score"] <= 100.0).all()
-    assert (df["exam_anxiety"] >= 0.0).all() and (df["exam_anxiety"] <= 1.0).all()
-    assert (df["actual_composite_risk"] >= 0.0).all() and (df["actual_composite_risk"] <= 1.0).all()
+    assert (train_df["quiz_score"] >= 0.0).all() and (train_df["quiz_score"] <= 100.0).all()
+    valid_affect = train_df["exam_anxiety"].dropna()
+    assert (valid_affect >= 0.0).all() and (valid_affect <= 1.0).all()
+    assert set(train_df["withdraws_within_k_weeks"].unique()).issubset({0, 1})
 
 
 def test_map_risk_tier():
