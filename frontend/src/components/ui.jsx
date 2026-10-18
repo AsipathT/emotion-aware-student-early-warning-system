@@ -35,7 +35,7 @@ export function initials(name = "") {
     .join("");
 }
 
-export function Avatar({ name, size = 44 }) {
+export function Avatar({ name, size = 44, initialsOverride }) {
   const hash = [...name].reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
   return (
     <div
@@ -43,7 +43,7 @@ export function Avatar({ name, size = 44 }) {
       style={{ width: size, height: size, fontSize: size * 0.38, background: AVATAR_COLOURS[hash % AVATAR_COLOURS.length] }}
       aria-hidden="true"
     >
-      {initials(name)}
+      {initialsOverride ?? initials(name)}
     </div>
   );
 }

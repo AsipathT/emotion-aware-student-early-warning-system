@@ -37,7 +37,7 @@ export default function Layout() {
             ))}
           </nav>
           <div className="sidebar-user">
-            <Avatar name={user.name} size={38} />
+            <Avatar name={user.name} size={38} initialsOverride="A" />
             <div className="sidebar-user-text">
               <strong>Admin</strong>
             </div>
