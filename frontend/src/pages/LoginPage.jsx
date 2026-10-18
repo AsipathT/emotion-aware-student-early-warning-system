@@ -35,7 +35,7 @@ export default function LoginPage() {
       <form className="login-card" onSubmit={handleSubmit}>
         <div className="brand brand-dark">
           <div className="brand-logo">C4</div>
-          <div className="brand-text">Intervention Recommendation</div>
+          <div className="brand-text">Adaptive Intervention Recommendation</div>
         </div>
         <h1>Sign in</h1>
         <p className="muted">Admin access for counsellors.</p>

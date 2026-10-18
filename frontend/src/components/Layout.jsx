@@ -26,7 +26,7 @@ export default function Layout() {
         <aside className="sidebar">
           <div className="brand">
             <div className="brand-logo">C4</div>
-            <div className="brand-text">Intervention Recommendation</div>
+            <div className="brand-text">Adaptive Intervention Recommendation</div>
           </div>
           <nav className="nav">
             {NAV.map(({ to, label, Icon, match }) => (
