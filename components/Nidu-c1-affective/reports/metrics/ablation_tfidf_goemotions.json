@@ -18,7 +18,9 @@
       "macro_precision": 0.3637,
       "macro_recall": 0.3882,
       "macro_roc_auc": 0.8011,
-      "exact_match_ratio": 0.6906
+      "exact_match_ratio": 0.6906,
+      "macro_f1_supported_classes": 0.3694,
+      "zero_support_classes_excluded_from_supported_macro": false
     },
     "per_class_metrics": {
       "exam_anxiety": {
@@ -76,7 +78,9 @@
         "macro_precision": 0.3538,
         "macro_recall": 0.4998,
         "macro_roc_auc": 0.863,
-        "exact_match_ratio": 0.74
+        "exact_match_ratio": 0.74,
+        "macro_f1_supported_classes": 0.4118,
+        "zero_support_classes_excluded_from_supported_macro": false
       },
       "per_class_metrics": {
         "exam_anxiety": {
@@ -133,7 +137,9 @@
         "macro_precision": 0.3169,
         "macro_recall": 0.1396,
         "macro_roc_auc": 0.6405,
-        "exact_match_ratio": 0.3244
+        "exact_match_ratio": 0.3244,
+        "macro_f1_supported_classes": 0.318,
+        "zero_support_classes_excluded_from_supported_macro": true
       },
       "per_class_metrics": {
         "exam_anxiety": {

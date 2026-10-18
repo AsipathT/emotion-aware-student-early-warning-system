@@ -18,7 +18,9 @@
       "macro_precision": 0.4395,
       "macro_recall": 0.5105,
       "macro_roc_auc": 0.8762,
-      "exact_match_ratio": 0.7312
+      "exact_match_ratio": 0.7312,
+      "macro_f1_supported_classes": 0.4721,
+      "zero_support_classes_excluded_from_supported_macro": false
     },
     "per_class_metrics": {
       "exam_anxiety": {
@@ -76,7 +78,9 @@
         "macro_precision": 0.3963,
         "macro_recall": 0.4583,
         "macro_roc_auc": 0.8581,
-        "exact_match_ratio": 0.7507
+        "exact_match_ratio": 0.7507,
+        "macro_f1_supported_classes": 0.4249,
+        "zero_support_classes_excluded_from_supported_macro": false
       },
       "per_class_metrics": {
         "exam_anxiety": {
@@ -133,7 +137,9 @@
         "macro_precision": 0.4039,
         "macro_recall": 0.4551,
         "macro_roc_auc": 0.8946,
-        "exact_match_ratio": 0.5867
+        "exact_match_ratio": 0.5867,
+        "macro_f1_supported_classes": 0.7133,
+        "zero_support_classes_excluded_from_supported_macro": true
       },
       "per_class_metrics": {
         "exam_anxiety": {

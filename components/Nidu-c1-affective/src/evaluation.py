@@ -129,6 +129,8 @@ def compute_multilabel_metrics(
         }
 
     macro_f1 = float(np.mean([m["f1"] for m in per_class_metrics.values()]))
+    supported_f1s = [m["f1"] for m in per_class_metrics.values() if m["support"] > 0]
+    macro_f1_supported = float(np.mean(supported_f1s)) if supported_f1s else 0.0
     macro_prec = float(np.mean([m["precision"] for m in per_class_metrics.values()]))
     macro_rec = float(np.mean([m["recall"] for m in per_class_metrics.values()]))
     macro_auc = float(np.mean(roc_aucs)) if roc_aucs else 0.50
@@ -139,10 +141,12 @@ def compute_multilabel_metrics(
     return {
         "macro_metrics": {
             "macro_f1": round(macro_f1, 4),
+            "macro_f1_supported_classes": round(macro_f1_supported, 4),
             "macro_precision": round(macro_prec, 4),
             "macro_recall": round(macro_rec, 4),
             "macro_roc_auc": round(macro_auc, 4),
             "exact_match_ratio": round(exact_match, 4),
+            "zero_support_classes_excluded_from_supported_macro": bool(len(supported_f1s) < len(class_names)),
         },
         "per_class_metrics": per_class_metrics,
         "total_samples": int(len(y_true)),

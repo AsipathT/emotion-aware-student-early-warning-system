@@ -114,6 +114,7 @@ def train_model(
     max_samples: Optional[int] = None,
     ablation_source: Optional[str] = None,
     seed: int = 42,
+    run_name: Optional[str] = None,
 ) -> Dict[str, any]:
     """Full training pipeline with validation epoch selection, threshold tuning, and proxy evaluation."""
     set_seed(seed)
@@ -124,7 +125,22 @@ def train_model(
     models_dir = component_root / "models"
     reports_metrics_dir = component_root / "reports" / "metrics"
     reports_figures_dir = component_root / "reports" / "figures"
-    checkpoint_dir = models_dir / ("checkpoint-smoke" if max_samples else "checkpoint-best")
+
+    if run_name:
+        run_dir = component_root / "runs" / run_name
+        checkpoint_dir = run_dir / "checkpoint-best"
+        thresh_file = run_dir / "thresholds.json"
+        fig_path = run_dir / "confusion_matrix.png"
+        report_json_path = run_dir / f"{run_name}.json"
+        run_dir.mkdir(parents=True, exist_ok=True)
+    else:
+        run_dir = None
+        checkpoint_dir = models_dir / ("checkpoint-smoke" if max_samples else "checkpoint-best")
+        thresh_file = models_dir / ("thresholds_smoke.json" if max_samples else "thresholds.json")
+        fig_name = "confusion_matrix_distilroberta_smoke.png" if max_samples else "confusion_matrix_distilroberta.png"
+        fig_path = reports_figures_dir / fig_name
+        report_json_name = "distilroberta_smoke.json" if max_samples else "distilroberta_full.json"
+        report_json_path = reports_metrics_dir / report_json_name
 
     models_dir.mkdir(parents=True, exist_ok=True)
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
@@ -229,8 +245,7 @@ def train_model(
             model.save_pretrained(checkpoint_dir)
             tokenizer.save_pretrained(checkpoint_dir)
 
-    # 7. Save optimal thresholds to models/thresholds.json
-    thresh_file = models_dir / ("thresholds_smoke.json" if max_samples else "thresholds.json")
+    # 7. Save optimal thresholds
     with open(thresh_file, "w", encoding="utf-8") as f:
         json.dump(best_thresholds, f, indent=2)
     logger.info(f"Saved tuned thresholds to {thresh_file}")
@@ -247,12 +262,11 @@ def train_model(
     )
 
     # 9. Plot and save confusion matrix
-    fig_name = "confusion_matrix_distilroberta_smoke.png" if max_samples else "confusion_matrix_distilroberta.png"
     plot_and_save_confusion_matrices(
         y_test,
         test_probs,
         thresholds=best_thresholds,
-        output_png=reports_figures_dir / fig_name,
+        output_png=fig_path,
         model_name=f"DistilRoBERTa (Best Epoch {best_epoch})",
         class_names=DEFAULT_CLASSES,
     )
@@ -277,9 +291,12 @@ def train_model(
         "overall_test_proxy_metrics": test_overall,
         "metrics_by_source": test_by_source,
     }
+    if run_name:
+        result_report["run_name"] = run_name
 
-    report_json_name = "distilroberta_smoke.json" if max_samples else "distilroberta_full.json"
-    save_evaluation_report(result_report, reports_metrics_dir / report_json_name)
+    save_evaluation_report(result_report, report_json_path)
+    if run_name:
+        save_evaluation_report(result_report, reports_metrics_dir / f"{run_name}.json")
 
     return result_report
 
@@ -292,6 +309,7 @@ def main():
     parser.add_argument("--lr", type=float, default=2e-5, help="Learning rate")
     parser.add_argument("--seed", type=int, default=42, help="Seed")
     parser.add_argument("--ablation", type=str, default=None, help="Train only on specific source (e.g. goemotions_proxy)")
+    parser.add_argument("--run-name", type=str, default=None, help="Optional run identifier writing outputs to runs/<run-name>/")
     args = parser.parse_args()
 
     component_root = Path(__file__).resolve().parents[1]
@@ -304,10 +322,21 @@ def main():
         max_samples=args.max_samples,
         ablation_source=args.ablation,
         seed=args.seed,
+        run_name=args.run_name,
     )
 
+    if args.max_samples:
+        mode_label = "SMOKE TEST"
+    elif args.ablation:
+        mode_label = f"ABLATION ({args.ablation})"
+    else:
+        mode_label = "FULL"
+
+    if args.run_name:
+        mode_label += f" | RUN: {args.run_name}"
+
     print("\n" + "=" * 60)
-    print(f"DISTILROBERTA TRAINING COMPLETE ({'SMOKE TEST' if args.max_samples else 'FULL'})")
+    print(f"DISTILROBERTA TRAINING COMPLETE ({mode_label})")
     print("=" * 60)
     print(f"Best Epoch:      {res['best_epoch']} / {res['total_epochs']}")
     print(f"Macro F1:        {res['overall_test_proxy_metrics']['macro_metrics']['macro_f1']:.4f}")

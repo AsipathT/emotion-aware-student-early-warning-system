@@ -33,7 +33,9 @@
       "macro_precision": 0.0855,
       "macro_recall": 0.8462,
       "macro_roc_auc": 0.673,
-      "exact_match_ratio": 0.0
+      "exact_match_ratio": 0.0,
+      "macro_f1_supported_classes": 0.1092,
+      "zero_support_classes_excluded_from_supported_macro": false
     },
     "per_class_metrics": {
       "exam_anxiety": {
@@ -91,7 +93,9 @@
         "macro_precision": 0.0855,
         "macro_recall": 0.8462,
         "macro_roc_auc": 0.673,
-        "exact_match_ratio": 0.0
+        "exact_match_ratio": 0.0,
+        "macro_f1_supported_classes": 0.1092,
+        "zero_support_classes_excluded_from_supported_macro": false
       },
       "per_class_metrics": {
         "exam_anxiety": {
