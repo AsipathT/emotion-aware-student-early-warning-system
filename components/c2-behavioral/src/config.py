@@ -18,6 +18,9 @@ S_FLAT: float = 0.10
 DORMANT_POLICY: str = "declining_flag"  # Allowed: "exclude_and_flag", "stable_flag", "declining_flag"
 DORMANT_ZERO_WEEKS: int = 7
 DORMANT_RULE_CONFIDENCE: float = 0.86
+INDICATOR_DIFF: float = 0.5
+LATE_DELAY_HOURS: float = 24.0
+INFER_MIN_WEEKS: int = MIN_T + 1
 
 REQUIRED_OULAD_FILES: List[str] = [
     "assessments.csv",
