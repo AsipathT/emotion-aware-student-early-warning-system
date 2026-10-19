@@ -35,9 +35,9 @@ export default function Layout() {
             ))}
           </nav>
           <div className="sidebar-user">
-            <Avatar name="Counsellor" size={38} initialsOverride="C" />
+            <Avatar name="Admin" size={38} initialsOverride="A" />
             <div className="sidebar-user-text">
-              <strong>Counsellor</strong>
+              <strong>Admin</strong>
             </div>
           </div>
         </aside>
