@@ -17,6 +17,7 @@ import joblib
 
 from service.lms_client import LmsClient
 from service.pipeline import classify_records
+from service.plotting import plot_trajectories
 from service.schemas import build_envelope
 from service.settings import settings
 
@@ -93,6 +94,12 @@ def main() -> None:
         default=False,
         help="Print classified student trajectories table (sorted by pid)",
     )
+    parser.add_argument(
+        "--plot",
+        metavar="PATH",
+        default=None,
+        help="Path to save trajectories plot PNG (optional)",
+    )
 
     args = parser.parse_args()
 
@@ -164,6 +171,12 @@ def main() -> None:
         print("=" * 65)
         print(format_show_table(show_rows))
         print("=" * 65)
+
+    # 5c. Plot trajectories if --plot is set
+    if args.plot:
+        t = args.week if args.week is not None else (traj_records[0].week_index if traj_records else 0)
+        plot_trajectories(records, traj_records, args.plot, f"Component 2 trajectories, course {args.course_id}, week {t}")
+        print(f"Saved plot: {args.plot}")
 
     # 6. Post if --send flag is set
     if not args.send:
