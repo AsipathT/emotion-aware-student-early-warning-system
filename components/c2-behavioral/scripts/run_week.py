@@ -21,6 +21,48 @@ from service.schemas import build_envelope
 from service.settings import settings
 
 
+def format_show_table(rows: list[dict]) -> str:
+    """
+    Format classified student trajectory records into a readable text table.
+
+    Columns:
+      pid_suffix (last 4 chars) | clicks for the last 6 weeks as a compact list (e.g. 12,9,7,3,0,0) | trajectory_label | confidence (2 decimals) | indicators joined by ","
+    """
+    header = "pid_suffix | clicks_last_6w | trajectory_label | confidence | indicators"
+    separator = "-" * len(header)
+    lines = [header, separator]
+
+    for r in rows:
+        pid_raw = str(r.get("pid_suffix") or r.get("pid") or "")
+        pid_suffix = pid_raw[-4:] if len(pid_raw) >= 4 else pid_raw
+
+        clicks_raw = r.get("clicks", [])
+        if isinstance(clicks_raw, (list, tuple)):
+            clicks_str = ",".join(str(int(c)) for c in clicks_raw)
+        else:
+            clicks_str = str(clicks_raw)
+
+        label = str(r.get("trajectory_label", ""))
+
+        conf_raw = r.get("confidence", 0.0)
+        try:
+            conf_str = f"{float(conf_raw):.2f}"
+        except (ValueError, TypeError):
+            conf_str = str(conf_raw)
+
+        ind_raw = r.get("indicators")
+        if ind_raw is None:
+            ind_raw = r.get("contributing_indicators", [])
+        if isinstance(ind_raw, (list, tuple)):
+            ind_str = ",".join(str(x) for x in ind_raw)
+        else:
+            ind_str = str(ind_raw)
+
+        lines.append(f"{pid_suffix} | {clicks_str} | {label} | {conf_str} | {ind_str}")
+
+    return "\n".join(lines)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Run Component 2 weekly trajectory classification and ingest."
@@ -44,6 +86,12 @@ def main() -> None:
         dest="dry_run",
         action="store_false",
         help="Run ingest in live write mode",
+    )
+    parser.add_argument(
+        "--show",
+        action="store_true",
+        default=False,
+        help="Print classified student trajectories table (sorted by pid)",
     )
 
     args = parser.parse_args()
@@ -86,6 +134,36 @@ def main() -> None:
     for lbl, count in stats["label_counts"].items():
         print(f"    {lbl:<12}: {count:,}")
     print("=" * 65)
+
+    # 5b. Print per-student trajectory table if --show is set
+    if args.show:
+        clicks_by_pid_week: dict[str, dict[int, int]] = {}
+        for r in records:
+            if r.pid not in clicks_by_pid_week:
+                clicks_by_pid_week[r.pid] = {}
+            clicks_by_pid_week[r.pid][r.week_index] = int(r.clicks)
+
+        show_rows = []
+        for traj in traj_records:
+            t = traj.week_index
+            hist = clicks_by_pid_week.get(traj.pid, {})
+            clicks_6w = [hist.get(w, 0) for w in range(t - 5, t + 1)]
+            show_rows.append(
+                {
+                    "pid": traj.pid,
+                    "clicks": clicks_6w,
+                    "trajectory_label": traj.trajectory_label,
+                    "confidence": traj.confidence,
+                    "indicators": traj.contributing_indicators,
+                }
+            )
+
+        show_rows.sort(key=lambda item: item["pid"])
+        print("\n" + "=" * 65)
+        print("CLASSIFIED STUDENT TRAJECTORIES (--show)")
+        print("=" * 65)
+        print(format_show_table(show_rows))
+        print("=" * 65)
 
     # 6. Post if --send flag is set
     if not args.send:
