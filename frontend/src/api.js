@@ -1,6 +1,5 @@
 // Small fetch wrapper for the FastAPI backend.
 const BASE = `${import.meta.env.VITE_API_URL || ""}/api`;
-const TOKEN_KEY = "c4.token";
 const LAST_STUDENT_KEY = "c4.lastStudentId";
 
 function storageGet(key) {
@@ -20,17 +19,9 @@ function storageSet(key, value) {
   }
 }
 
-export const getToken = () => storageGet(TOKEN_KEY);
-export const setToken = (token) => storageSet(TOKEN_KEY, token);
-
 // The student last opened, used by the Dashboard and Recommendations menu items.
 export const getLastStudentId = () => storageGet(LAST_STUDENT_KEY);
 export const setLastStudentId = (id) => storageSet(LAST_STUDENT_KEY, id);
-
-let handleUnauthorized = () => {};
-export function setUnauthorizedHandler(fn) {
-  handleUnauthorized = fn;
-}
 
 export class ApiError extends Error {
   constructor(message, status) {
@@ -50,9 +41,6 @@ function errorMessage(data, status) {
 
 export async function api(path, { method = "GET", body } = {}) {
   const headers = { "Content-Type": "application/json" };
-  const token = getToken();
-  if (token) headers.Authorization = `Bearer ${token}`;
-
   let response;
   try {
     response = await fetch(`${BASE}${path}`, {
@@ -65,9 +53,7 @@ export async function api(path, { method = "GET", body } = {}) {
   }
 
   const data = await response.json().catch(() => null);
-  if (response.status === 401 && path !== "/auth/login") handleUnauthorized();
   if (!response.ok && data === null && response.status >= 500) {
-    // The dev proxy answers 500 with no JSON when the backend is down or still starting.
     throw new ApiError("The backend is not responding. Make sure it is running on port 8000, then try again.", response.status);
   }
   if (!response.ok) throw new ApiError(errorMessage(data, response.status), response.status);

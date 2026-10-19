@@ -6,6 +6,7 @@ import os
 from datetime import datetime, timedelta, timezone
 
 import jwt
+import bcrypt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
@@ -22,6 +23,11 @@ def hash_password(password: str, salt: bytes | None = None) -> str:
 
 
 def verify_password(password: str, stored: str) -> bool:
+    if stored.startswith("$2"):
+        try:
+            return bcrypt.checkpw(password.encode(), stored.encode())
+        except (ValueError, TypeError):
+            return False
     try:
         _, iterations, salt_b64, hash_b64 = stored.split("$")
         digest = hashlib.pbkdf2_hmac("sha256", password.encode(), base64.b64decode(salt_b64), int(iterations))
@@ -37,7 +43,13 @@ def create_token(username: str) -> str:
 
 
 def public_user(user: dict) -> dict:
-    return {k: v for k, v in user.items() if k != "password_hash"}
+    identity = user.get("email") or user.get("id") or user.get("username")
+    return {
+        "username": identity,
+        "name": user.get("full_name") or user.get("name") or identity,
+        "role": user.get("role"),
+        "id": user.get("id"),
+    }
 
 
 def make_current_user_dependency(users_store):
@@ -50,7 +62,7 @@ def make_current_user_dependency(users_store):
             payload = jwt.decode(credentials.credentials, config.JWT_SECRET, algorithms=["HS256"])
         except jwt.PyJWTError:
             raise unauthorised
-        user = next((u for u in users_store.read() if u["username"] == payload.get("sub")), None)
+        user = users_store.find_user(payload.get("sub", ""))
         if user is None:
             raise unauthorised
         return public_user(user)

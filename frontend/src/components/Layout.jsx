@@ -1,6 +1,5 @@
-import { ClipboardList, History, LayoutDashboard, LogOut, Users } from "lucide-react";
+import { ClipboardList, History, LayoutDashboard, Users } from "lucide-react";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { useAuth } from "../auth";
 import { ReferenceProvider } from "../reference";
 import { Avatar } from "./ui";
 
@@ -17,7 +16,6 @@ const NAV = [
 ];
 
 export default function Layout() {
-  const { user, logout } = useAuth();
   const { pathname } = useLocation();
 
   return (
@@ -37,13 +35,10 @@ export default function Layout() {
             ))}
           </nav>
           <div className="sidebar-user">
-            <Avatar name={user.name} size={38} initialsOverride="A" />
+            <Avatar name="Counsellor" size={38} initialsOverride="C" />
             <div className="sidebar-user-text">
-              <strong>Admin</strong>
+              <strong>Counsellor</strong>
             </div>
-            <button className="icon-button" onClick={logout} title="Log out" aria-label="Log out">
-              <LogOut size={18} />
-            </button>
           </div>
         </aside>
         <main className="content">
