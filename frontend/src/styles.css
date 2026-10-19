@@ -1066,11 +1066,7 @@ select {
   gap: 12px;
 }
 
-.option-score {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 700;
+.option-suitability {
   margin-top: auto;
 }
 

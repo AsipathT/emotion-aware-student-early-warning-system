@@ -13,7 +13,7 @@ import {
   ScoreBar,
   TrendIcon,
 } from "../components/ui";
-import { formatDate, formatDateTime, percent, score } from "../format";
+import { formatDate, formatDateTime, score } from "../format";
 import { useReference } from "../reference";
 
 export default function RecommendationPage() {
@@ -96,9 +96,9 @@ export default function RecommendationPage() {
                   <strong>{option.intervention}</strong>
                 </div>
                 <p className="muted small">{reference.interventions[option.intervention]}</p>
-                <div className="option-score">
-                  <ScoreBar value={option.suitability} />
-                  <span>{percent(option.suitability)}</span>
+                <div className="suitability option-suitability">
+                  <span className="metric-label">Suitability Score</span>
+                  <span className="suitability-value">{score(option.suitability)}</span>
                 </div>
               </div>
             ))}

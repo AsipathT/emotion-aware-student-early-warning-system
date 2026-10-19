@@ -663,5 +663,131 @@
     "model": "Gradient Boosting",
     "rationale": "Engagement Support has the highest suitability score (73%) from the Gradient Boosting model for a student with Motivation Erosion (C1), a declining trajectory (C2), medium dropout risk (0.32) and behavioural factors as the strongest cause (C3).",
     "explanation": null
+  },
+  {
+    "id": "d4a34c1ef115",
+    "student_id": "IT23149076",
+    "created_at": "2026-10-19T06:50:35+00:00",
+    "created_by": "admin",
+    "inputs": {
+      "c1_condition": "Motivation Erosion",
+      "c2_trajectory": "Declining",
+      "risk_probability": 0.32,
+      "risk_tier": "Medium",
+      "c3": {
+        "affective": 0.3,
+        "behavioural": 0.45,
+        "academic": 0.25
+      },
+      "c3_dominant": "Behavioural"
+    },
+    "recommendations": [
+      {
+        "intervention": "Engagement Support",
+        "suitability": 0.7279
+      },
+      {
+        "intervention": "Career Guidance",
+        "suitability": 0.0819
+      },
+      {
+        "intervention": "Attendance Support",
+        "suitability": 0.0768
+      }
+    ],
+    "model": "Gradient Boosting",
+    "rationale": "Engagement Support has the highest suitability score (73%) from the Gradient Boosting model for a student with Motivation Erosion (C1), a declining trajectory (C2), medium dropout risk (0.32) and behavioural factors as the strongest cause (C3).",
+    "explanation": {
+      "text": "The model recommends Engagement Support (73% model suitability score) because the student shows Motivation Erosion with a declining trajectory, a medium dropout-risk score (0.32), and the strongest causal signal in behavioural factors (0.45), so activities and regular check-ins aim at rebuilding participation and routine. Career Guidance (8%) might be preferred if the main issue is a lack of future direction, and Attendance Support (8%) if practical barriers to attending are dominant. Past entries consistently pointed to Engagement Support on multiple dates with the same inputs, showing a steady recommendation pattern; these percentages are model suitability scores from a model trained on synthetic prototype data, not proven effectiveness.",
+      "ai_generated": true,
+      "provider": "OpenAI",
+      "model": "gpt-5-mini-2025-08-07",
+      "generated_at": "2026-10-19T07:00:13+00:00",
+      "past_recommendations_used": 5
+    }
+  },
+  {
+    "id": "781305d6503c",
+    "student_id": "IT23237918",
+    "created_at": "2026-10-19T07:00:06+00:00",
+    "created_by": "admin",
+    "inputs": {
+      "c1_condition": "Exam Anxiety",
+      "c2_trajectory": "Stable",
+      "risk_probability": 0.5,
+      "risk_tier": "Medium",
+      "c3": {
+        "affective": 0.34,
+        "behavioural": 0.33,
+        "academic": 0.33
+      },
+      "c3_dominant": "Affective"
+    },
+    "recommendations": [
+      {
+        "intervention": "Counselling",
+        "suitability": 0.8361
+      },
+      {
+        "intervention": "Peer Mentoring",
+        "suitability": 0.0611
+      },
+      {
+        "intervention": "Time Management Support",
+        "suitability": 0.0494
+      }
+    ],
+    "model": "Gradient Boosting",
+    "rationale": "Counselling has the highest suitability score (84%) from the Gradient Boosting model for a student with Exam Anxiety (C1), a stable trajectory (C2), medium dropout risk (0.50) and affective factors as the strongest cause (C3).",
+    "explanation": {
+      "text": "Counselling is the top suggestion (84% model suitability score) because the student’s presenting issue is exam anxiety and the model shows the strongest causal signal in affective factors (0.34), so one-to-one work on stress and emotions aligns with those inputs. Peer mentoring (6%) could be preferred if the student benefits more from ongoing social or peer-based support, and time management support (5%) might be chosen if practical planning or behavioural/academic factors were stronger. The trajectory is stable and dropout risk is medium (0.50), so counselling would focus on current emotional barriers rather than crisis response. There are no past recommendations listed, so this is the first suggested intervention.",
+      "ai_generated": true,
+      "provider": "OpenAI",
+      "model": "gpt-5-mini-2025-08-07",
+      "generated_at": "2026-10-19T07:00:20+00:00",
+      "past_recommendations_used": 0
+    }
+  },
+  {
+    "id": "5068d37a127c",
+    "student_id": "IT23157030",
+    "created_at": "2026-10-19T07:16:22+00:00",
+    "created_by": "admin",
+    "inputs": {
+      "c1_condition": "Course Pacing Frustration",
+      "c2_trajectory": "Stable",
+      "risk_probability": 0.22,
+      "risk_tier": "Low",
+      "c3": {
+        "affective": 0.2,
+        "behavioural": 0.45,
+        "academic": 0.35
+      },
+      "c3_dominant": "Behavioural"
+    },
+    "recommendations": [
+      {
+        "intervention": "Additional Learning Resources",
+        "suitability": 0.8112
+      },
+      {
+        "intervention": "Time Management Support",
+        "suitability": 0.1217
+      },
+      {
+        "intervention": "Attendance Support",
+        "suitability": 0.0384
+      }
+    ],
+    "model": "Gradient Boosting",
+    "rationale": "Additional Learning Resources has the highest suitability score (81%) from the Gradient Boosting model for a student with Course Pacing Frustration (C1), a stable trajectory (C2), low dropout risk (0.22) and behavioural factors as the strongest cause (C3).",
+    "explanation": {
+      "text": "The model's top suggestion is Additional Learning Resources (81% model suitability score) because the student reports course‑pacing frustration and the causal strengths are highest for behavioural (0.45) with academic also present (0.35), so self‑paced notes, videos and practice sets align with those inputs. Time Management Support (12%) might be preferred if planning and prioritising are the main barriers rather than needing extra materials. Past recommendations moved from Career Guidance (96%) on 2026-08-20 to repeated Additional Learning Resources (81%) on 2026-09-24 and 2026-10-10; the trajectory shifted from Improving to Stable and the dropout risk score fell from 0.38 to 0.22.",
+      "ai_generated": true,
+      "provider": "OpenAI",
+      "model": "gpt-5-mini-2025-08-07",
+      "generated_at": "2026-10-19T07:16:43+00:00",
+      "past_recommendations_used": 3
+    }
   }
 ]
