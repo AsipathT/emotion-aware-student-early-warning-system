@@ -16,10 +16,11 @@ DEFAULT_LMS_BASE_URL = "http://localhost:8000"
 
 
 def fetch_messages(
-    limit: int = 20,
+    limit: int = 100,
     base_url: Optional[str] = None,
     api_key: Optional[str] = None,
     course_id: Optional[str] = None,
+    pid: Optional[str] = None,
     week_index: Optional[int] = None,
     timeout: float = 10.0,
 ) -> List[Dict[str, Any]]:
@@ -48,6 +49,8 @@ def fetch_messages(
     }
     if course_id:
         params["course_id"] = course_id
+    if pid:
+        params["pid"] = pid.strip()
     if week_index is not None:
         params["week_from"] = week_index
         params["week_to"] = week_index

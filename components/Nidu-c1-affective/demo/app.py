@@ -330,22 +330,36 @@ def main():
 
         if c1_key:
             st.success("🔑 C1 Component Key configured. Ready to fetch live messages.")
-            lms_url = st.text_input("LMS Base URL:", value=os.environ.get("LMS_BASE_URL", "http://localhost:8000"))
+            col_cfg1, col_cfg2, col_cfg3 = st.columns([2.0, 1.2, 1.5])
+            with col_cfg1:
+                lms_url = st.text_input("LMS Base URL:", value=os.environ.get("LMS_BASE_URL", "http://localhost:8000"))
+            with col_cfg2:
+                fetch_limit = st.selectbox("Max Messages to Fetch:", [20, 50, 100, 250, 500], index=4)
+            with col_cfg3:
+                search_pid = st.text_input("Filter by Student PID (optional):", placeholder="e.g. STU_7f00e57b")
 
-            if st.button("Fetch Latest 20 Messages from LMS", type="primary"):
+            if st.button("Fetch Messages from LMS", type="primary"):
                 try:
                     from src.lms_client import fetch_messages
 
                     with st.spinner("Querying LMS export API..."):
-                        messages = fetch_messages(limit=20, base_url=lms_url, api_key=c1_key)
+                        target_pid = search_pid.strip() if search_pid.strip() else None
+                        messages = fetch_messages(limit=fetch_limit, base_url=lms_url, api_key=c1_key, pid=target_pid)
 
                     if not messages:
-                        st.info("No text messages returned from LMS.")
+                        st.info("No text messages returned from LMS matching criteria.")
                     else:
-                        st.write(f"Retrieved **{len(messages)}** student messages.")
-                        processed_rows = []
+                        # Sort by timestamp descending (newest posts first)
+                        messages_sorted = sorted(
+                            messages,
+                            key=lambda m: m.get("timestamp") or "",
+                            reverse=True,
+                        )
 
-                        for msg in messages:
+                        processed_rows = []
+                        distress_count = 0
+
+                        for msg in messages_sorted:
                             clean_text = msg.get("clean_text", "")
                             word_count = len(clean_text.split())
                             is_low_signal = word_count < 3
@@ -354,17 +368,52 @@ def main():
                             scores = predict_text_scores(clean_text, model, tokenizer)
                             active_classes = [c for c, s in scores.items() if s >= thresholds.get(c, 0.50)]
                             predicted_label = active_classes[0] if active_classes else "none"
+                            if predicted_label != "none":
+                                distress_count += 1
+
+                            top_cls = max(scores, key=scores.get)
+                            top_val = scores[top_cls]
 
                             processed_rows.append({
                                 "pid": msg.get("pid"),
                                 "source_type": msg.get("source_type"),
                                 "week_index": msg.get("week_index"),
+                                "timestamp": (msg.get("timestamp") or "")[:19].replace("T", " "),
                                 "words": word_count,
                                 "signal": "LOW SIGNAL (<3 words)" if is_low_signal else "OK",
                                 "predicted_label": predicted_label,
+                                "top_score_str": f"{top_cls} ({top_val:.2f})",
                                 "clean_text": clean_text,
                                 "scores": scores,
                             })
+
+                        # Summary metric cards
+                        kpi1, kpi2, kpi3 = st.columns(3)
+                        kpi1.metric("Total Messages Retrieved", len(processed_rows))
+                        kpi2.metric("Distress Alerts Detected", distress_count)
+                        kpi3.metric("Neutral / Non-Distress ('none')", len(processed_rows) - distress_count)
+
+                        # Filter controls for dataframe
+                        fcol1, fcol2 = st.columns([1.5, 1.5])
+                        with fcol1:
+                            distress_filter = st.selectbox(
+                                "Filter Display Table:",
+                                ["All Messages", "Distress Alerts Only", "Neutral ('none') Only"],
+                            )
+                        with fcol2:
+                            source_filter = st.multiselect(
+                                "Filter by Source Type:",
+                                ["forum", "journal", "chat"],
+                                default=["forum", "journal", "chat"],
+                            )
+
+                        filtered_display_rows = processed_rows
+                        if distress_filter == "Distress Alerts Only":
+                            filtered_display_rows = [r for r in filtered_display_rows if r["predicted_label"] != "none"]
+                        elif distress_filter == "Neutral ('none') Only":
+                            filtered_display_rows = [r for r in filtered_display_rows if r["predicted_label"] == "none"]
+
+                        filtered_display_rows = [r for r in filtered_display_rows if r["source_type"] in source_filter]
 
                         # Summary table
                         df_display = pd.DataFrame([
@@ -372,11 +421,13 @@ def main():
                                 "PID": r["pid"],
                                 "Source": r["source_type"],
                                 "Week": r["week_index"],
+                                "Timestamp (UTC)": r["timestamp"],
                                 "Signal": r["signal"],
                                 "Predicted Label": r["predicted_label"],
-                                "Message": r["clean_text"],
+                                "Top Score": r["top_score_str"],
+                                "Message (Scrubbed)": r["clean_text"],
                             }
-                            for r in processed_rows
+                            for r in filtered_display_rows
                         ])
                         st.dataframe(df_display, use_container_width=True)
 
@@ -387,7 +438,6 @@ def main():
 
                         for p in pids:
                             student_msgs = [r for r in processed_rows if r["pid"] == p]
-                            # Average scores across student's messages
                             avg_scores = {}
                             for c in DEFAULT_CLASSES:
                                 avg_scores[c] = round(float(np.mean([m["scores"][c] for m in student_msgs])), 4)
@@ -395,6 +445,7 @@ def main():
                             active = [c for c, s in avg_scores.items() if s >= thresholds.get(c, 0.50)]
                             dominant = active[0] if active else "none"
 
+                            badge = "🚨 " if dominant != "none" else "✅ "
                             pid_vector = {
                                 "pid": p,
                                 "course_id": "CS101",
@@ -404,7 +455,7 @@ def main():
                                 "confidence": round(float(max(avg_scores.values())), 4),
                                 "message_count": len(student_msgs),
                             }
-                            with st.expander(f"Weekly Vector: {p} ({len(student_msgs)} messages, Dominant: {dominant})"):
+                            with st.expander(f"{badge}PID: {p} ({len(student_msgs)} messages | Dominant: {dominant})"):
                                 st.json(pid_vector)
 
                 except Exception as e:
