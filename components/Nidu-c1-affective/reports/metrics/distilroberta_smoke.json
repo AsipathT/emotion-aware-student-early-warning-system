@@ -1,0 +1,150 @@
+{
+  "model_name": "distilroberta-base",
+  "evaluation_type": "proxy test",
+  "best_epoch": 1,
+  "total_epochs": 1,
+  "batch_size": 16,
+  "learning_rate": 2e-05,
+  "max_length": 64,
+  "smoke_test": true,
+  "ablation_training_source": "all_sources",
+  "sample_counts": {
+    "train": 500,
+    "val": 100,
+    "test_proxy": 100
+  },
+  "pos_weights_applied": {
+    "exam_anxiety": 10.0,
+    "conceptual_confusion": 10.0,
+    "academic_helplessness": 10.0,
+    "course_frustration": 6.8125,
+    "motivation_erosion": 10.0
+  },
+  "tuned_val_thresholds": {
+    "exam_anxiety": 0.1,
+    "conceptual_confusion": 0.1,
+    "academic_helplessness": 0.1,
+    "course_frustration": 0.55,
+    "motivation_erosion": 0.15
+  },
+  "overall_test_proxy_metrics": {
+    "macro_metrics": {
+      "macro_f1": 0.1092,
+      "macro_precision": 0.0855,
+      "macro_recall": 0.8462,
+      "macro_roc_auc": 0.673,
+      "exact_match_ratio": 0.0,
+      "macro_f1_supported_classes": 0.1092,
+      "zero_support_classes_excluded_from_supported_macro": false
+    },
+    "per_class_metrics": {
+      "exam_anxiety": {
+        "precision": 0.06,
+        "recall": 1.0,
+        "f1": 0.1132,
+        "roc_auc": 0.7553,
+        "support": 6,
+        "predicted_positives": 100,
+        "applied_threshold": 0.1
+      },
+      "conceptual_confusion": {
+        "precision": 0.04,
+        "recall": 1.0,
+        "f1": 0.0769,
+        "roc_auc": 0.7995,
+        "support": 4,
+        "predicted_positives": 100,
+        "applied_threshold": 0.1
+      },
+      "academic_helplessness": {
+        "precision": 0.04,
+        "recall": 1.0,
+        "f1": 0.0769,
+        "roc_auc": 0.4922,
+        "support": 4,
+        "predicted_positives": 100,
+        "applied_threshold": 0.1
+      },
+      "course_frustration": {
+        "precision": 0.2727,
+        "recall": 0.2308,
+        "f1": 0.25,
+        "roc_auc": 0.7321,
+        "support": 13,
+        "predicted_positives": 11,
+        "applied_threshold": 0.55
+      },
+      "motivation_erosion": {
+        "precision": 0.0147,
+        "recall": 1.0,
+        "f1": 0.029,
+        "roc_auc": 0.5859,
+        "support": 1,
+        "predicted_positives": 68,
+        "applied_threshold": 0.15
+      }
+    },
+    "total_samples": 100
+  },
+  "metrics_by_source": {
+    "goemotions_proxy": {
+      "macro_metrics": {
+        "macro_f1": 0.1092,
+        "macro_precision": 0.0855,
+        "macro_recall": 0.8462,
+        "macro_roc_auc": 0.673,
+        "exact_match_ratio": 0.0,
+        "macro_f1_supported_classes": 0.1092,
+        "zero_support_classes_excluded_from_supported_macro": false
+      },
+      "per_class_metrics": {
+        "exam_anxiety": {
+          "precision": 0.06,
+          "recall": 1.0,
+          "f1": 0.1132,
+          "roc_auc": 0.7553,
+          "support": 6,
+          "predicted_positives": 100,
+          "applied_threshold": 0.1
+        },
+        "conceptual_confusion": {
+          "precision": 0.04,
+          "recall": 1.0,
+          "f1": 0.0769,
+          "roc_auc": 0.7995,
+          "support": 4,
+          "predicted_positives": 100,
+          "applied_threshold": 0.1
+        },
+        "academic_helplessness": {
+          "precision": 0.04,
+          "recall": 1.0,
+          "f1": 0.0769,
+          "roc_auc": 0.4922,
+          "support": 4,
+          "predicted_positives": 100,
+          "applied_threshold": 0.1
+        },
+        "course_frustration": {
+          "precision": 0.2727,
+          "recall": 0.2308,
+          "f1": 0.25,
+          "roc_auc": 0.7321,
+          "support": 13,
+          "predicted_positives": 11,
+          "applied_threshold": 0.55
+        },
+        "motivation_erosion": {
+          "precision": 0.0147,
+          "recall": 1.0,
+          "f1": 0.029,
+          "roc_auc": 0.5859,
+          "support": 1,
+          "predicted_positives": 68,
+          "applied_threshold": 0.15
+        }
+      },
+      "total_samples": 100
+    }
+  }
+}

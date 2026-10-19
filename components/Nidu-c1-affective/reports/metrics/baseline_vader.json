@@ -1,0 +1,34 @@
+{
+  "model_name": "VADER Sentiment Lexicon (Binary Baseline)",
+  "evaluation_type": "proxy test",
+  "description": "VADER is evaluated strictly as a coarse binary 'any distress' detector. Because VADER is a generic rule-based sentiment lexicon lacking pedagogical/academic semantic understanding, it CANNOT separate or classify the 5 fine-grained academic distress classes.",
+  "decision_rule": "predicted_distress = (compound <= -0.05)",
+  "test_proxy_total_samples": 5956,
+  "overall_binary_metrics": {
+    "accuracy": 0.7579,
+    "precision": 0.5923,
+    "recall": 0.6036,
+    "f1": 0.5979,
+    "roc_auc": 0.7657,
+    "true_distress_count": 1776,
+    "predicted_distress_count": 1810
+  },
+  "binary_metrics_by_source": {
+    "goemotions_proxy": {
+      "samples": 5247,
+      "precision": 0.5085,
+      "recall": 0.6083,
+      "f1": 0.5539,
+      "accuracy": 0.7707,
+      "roc_auc": 0.7717
+    },
+    "emotion4_proxy": {
+      "samples": 709,
+      "precision": 0.9531,
+      "recall": 0.5931,
+      "f1": 0.7312,
+      "accuracy": 0.6629,
+      "roc_auc": 0.8441
+    }
+  }
+}

@@ -147,15 +147,17 @@ When a single message exhibits traits across multiple distress categories, the a
 | `fear` | `exam_anxiety` | **Proxy** | Dread of negative outcomes, panic, and distress under evaluative pressure. |
 | `confusion` | `conceptual_confusion` | **Proxy** | Explicit cognitive uncertainty, ambiguity, and perplexity. |
 | `sadness` | `academic_helplessness` | **Proxy** | Low-control negative affect, sorrow, and demoralization. |
-| `grief` | `academic_helplessness` | **Proxy** | Intense sorrow and overwhelming loss of coping agency. |
-| `remorse` | `academic_helplessness` | **Proxy** | Regret, self-reproach, and guilt over irremediable academic setbacks. |
 | `anger` | `course_frustration` | **Proxy** | High-arousal hostility and resentment toward external hurdles. |
 | `annoyance` | `course_frustration` | **Proxy** | Irritation and exasperation with logistical friction and policies. |
 | `disapproval` | `course_frustration` | **Proxy** | Critical dissatisfaction and dispute regarding course requirements. |
-| `disgust` | `course_frustration` | **Proxy** | Aversion and strong rejection of course administration or group dynamics. |
 | `disappointment` | `motivation_erosion` | **Proxy** | Dashed expectations and disillusioned morale leading to disengagement. |
-| `embarrassment` | `motivation_erosion` | **Proxy** | Academic shame and self-consciousness leading to participation withdrawal. |
+| `embarrassment` | `null` | **Ignore (Proxy)** | Excluded from training; interpersonal awkwardness does not cleanly map to academic motivation erosion. |
+| `remorse` | `null` | **Ignore (Proxy)** | Excluded from training; personal guilt does not cleanly map to academic helplessness. |
+| `grief` | `null` | **Ignore (Proxy)** | Excluded from training; personal bereavement is out of scope for LMS academic distress. |
+| `disgust` | `null` | **Ignore (Proxy)** | Excluded from training; visceral revulsion introduces noise into course frustration. |
 | *(16 remaining)* | `null` | **Unmapped** | Positive (`joy`, `admiration`, `gratitude`, `pride`, `relief`, `love`, `optimism`, `caring`, `desire`, `amusement`, `approval`), epistemic (`curiosity`, `realization`), or neutral (`neutral`, `surprise`). |
+
+> **Ignore-Label Rule:** If a sample contains an ignore label alongside a mapped distress label (e.g., `disgust` + `anger`), it is **kept** with the distress label(s) as positives. Only samples whose labels are ignore-only or ignore plus unmapped are excluded from training, ensuring they are not used as noisy negatives.
 
 ### 5.2 Emotion-4 Dataset (`eng_dataset.csv`) → C1 Taxonomy
 
