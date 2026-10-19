@@ -213,3 +213,55 @@ def test_train_parser_and_banner_logic():
 
     assert "ABLATION" in mode
     assert mode != "FULL"
+
+
+def test_demo_fetch_messages_signature_compatibility():
+    """Verify demo/app.py call to fetch_messages matches function signature and does not pass pid."""
+    import ast
+    import inspect
+    from src.lms_client import fetch_messages
+
+    sig = inspect.signature(fetch_messages)
+
+    # 1. Ensure 'pid' is NOT in fetch_messages signature (backend export endpoint does not accept pid parameter)
+    assert "pid" not in sig.parameters, (
+        "fetch_messages should not have 'pid' in signature; PID filtering is handled client-side"
+    )
+
+    # 2. Check standard parameters expected by client callers
+    for param_name in ["limit", "base_url", "api_key"]:
+        assert param_name in sig.parameters, f"Expected parameter '{param_name}' missing from fetch_messages signature"
+
+    # 3. Parse demo/app.py to inspect the actual call to fetch_messages
+    demo_app_file = COMPONENT_ROOT / "demo" / "app.py"
+    assert demo_app_file.exists(), f"Demo file not found at {demo_app_file}"
+
+    tree = ast.parse(demo_app_file.read_text(encoding="utf-8"))
+    call_nodes = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            func_name = None
+            if isinstance(node.func, ast.Name):
+                func_name = node.func.id
+            elif isinstance(node.func, ast.Attribute):
+                func_name = node.func.attr
+            if func_name == "fetch_messages":
+                call_nodes.append(node)
+
+    assert len(call_nodes) >= 1, "fetch_messages must be called in demo/app.py"
+
+    for call in call_nodes:
+        kwargs_passed = [kw.arg for kw in call.keywords if kw.arg is not None]
+        assert "pid" not in kwargs_passed, (
+            "demo/app.py must not pass 'pid' to fetch_messages; filtering must be done client-side"
+        )
+        for kw in kwargs_passed:
+            assert kw in sig.parameters, (
+                f"Keyword argument '{kw}' passed in demo/app.py does not match fetch_messages signature"
+            )
+
+        # Confirm arguments bind successfully with inspect.signature without raising TypeError
+        dummy_kwargs = {kw: 10 if kw == "limit" else "http://dummy" for kw in kwargs_passed}
+        bound = sig.bind_partial(**dummy_kwargs)
+        assert bound is not None
+

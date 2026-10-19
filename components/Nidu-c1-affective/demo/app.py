@@ -343,8 +343,12 @@ def main():
                     from src.lms_client import fetch_messages
 
                     with st.spinner("Querying LMS export API..."):
-                        target_pid = search_pid.strip() if search_pid.strip() else None
-                        messages = fetch_messages(limit=fetch_limit, base_url=lms_url, api_key=c1_key, pid=target_pid)
+                        messages = fetch_messages(limit=fetch_limit, base_url=lms_url, api_key=c1_key)
+
+                    # Filter by PID client-side after fetching
+                    if search_pid.strip():
+                        target_pid = search_pid.strip().lower()
+                        messages = [m for m in messages if str(m.get("pid", "")).strip().lower() == target_pid]
 
                     if not messages:
                         st.info("No text messages returned from LMS matching criteria.")
