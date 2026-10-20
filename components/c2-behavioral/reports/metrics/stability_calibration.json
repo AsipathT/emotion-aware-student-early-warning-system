@@ -1,0 +1,112 @@
+{
+  "flip_rate": {
+    "reference": 0.4499,
+    "predicted": 0.4673
+  },
+  "smoothing": {
+    "1": {
+      "macro_f1": 0.5025,
+      "flip_rate": 0.4673
+    },
+    "2": {
+      "macro_f1": 0.4751,
+      "flip_rate": 0.3589
+    },
+    "3": {
+      "macro_f1": 0.4402,
+      "flip_rate": 0.301
+    }
+  },
+  "calibration": {
+    "ece": 0.0351,
+    "mean_confidence": 0.5611,
+    "accuracy": 0.526,
+    "bins": [
+      {
+        "bin": 1,
+        "bin_lower": 0.0,
+        "bin_upper": 0.1,
+        "n": 0,
+        "mean_confidence": 0.0,
+        "accuracy": 0.0
+      },
+      {
+        "bin": 2,
+        "bin_lower": 0.1,
+        "bin_upper": 0.2,
+        "n": 0,
+        "mean_confidence": 0.0,
+        "accuracy": 0.0
+      },
+      {
+        "bin": 3,
+        "bin_lower": 0.2,
+        "bin_upper": 0.3,
+        "n": 912,
+        "mean_confidence": 0.2882,
+        "accuracy": 0.2533
+      },
+      {
+        "bin": 4,
+        "bin_lower": 0.3,
+        "bin_upper": 0.4,
+        "n": 26648,
+        "mean_confidence": 0.3646,
+        "accuracy": 0.3152
+      },
+      {
+        "bin": 5,
+        "bin_lower": 0.4,
+        "bin_upper": 0.5,
+        "n": 58422,
+        "mean_confidence": 0.4503,
+        "accuracy": 0.3929
+      },
+      {
+        "bin": 6,
+        "bin_lower": 0.5,
+        "bin_upper": 0.6,
+        "n": 47586,
+        "mean_confidence": 0.5469,
+        "accuracy": 0.5285
+      },
+      {
+        "bin": 7,
+        "bin_lower": 0.6,
+        "bin_upper": 0.7,
+        "n": 32656,
+        "mean_confidence": 0.647,
+        "accuracy": 0.6331
+      },
+      {
+        "bin": 8,
+        "bin_lower": 0.7,
+        "bin_upper": 0.8,
+        "n": 20836,
+        "mean_confidence": 0.7446,
+        "accuracy": 0.7178
+      },
+      {
+        "bin": 9,
+        "bin_lower": 0.8,
+        "bin_upper": 0.9,
+        "n": 8698,
+        "mean_confidence": 0.8433,
+        "accuracy": 0.7965
+      },
+      {
+        "bin": 10,
+        "bin_lower": 0.9,
+        "bin_upper": 1.0,
+        "n": 8849,
+        "mean_confidence": 0.962,
+        "accuracy": 0.9419
+      }
+    ]
+  },
+  "macro_f1_by_week_bucket": {
+    "3-5": 0.4774,
+    "6-12": 0.491,
+    "13+": 0.5047
+  }
+}

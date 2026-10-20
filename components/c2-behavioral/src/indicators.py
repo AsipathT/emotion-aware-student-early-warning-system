@@ -5,7 +5,36 @@ Rule-based contributing indicator extraction for trajectory explanation.
 from typing import Any, Dict, List
 import pandas as pd
 
-from src.config import INDICATOR_DIFF, LATE_DELAY_HOURS, RESID_SD_HI, S_TREND
+from src.config import (
+    INDICATOR_DIFF,
+    LATE_DELAY_HOURS,
+    LOW_ACTIVITY_MIN_WEEKS,
+    LOW_ACTIVITY_RATIO,
+    RESID_SD_HI,
+    S_TREND,
+)
+
+
+def low_activity_vs_history(clicks: List[float]) -> bool:
+    """
+    Evaluates whether recent activity has dropped sharply compared to the student's prior baseline.
+    clicks: RAW weekly clicks for weeks 0..t (last element = week t).
+    If len(clicks) < LOW_ACTIVITY_MIN_WEEKS -> False.
+    recent = mean of the last 3 weeks; prior = mean of all earlier weeks (clicks[:-3]).
+    If prior <= 0 -> False. Return recent <= LOW_ACTIVITY_RATIO * prior.
+    """
+    if len(clicks) < LOW_ACTIVITY_MIN_WEEKS:
+        return False
+
+    recent = sum(clicks[-3:]) / 3.0
+    prior_clicks = clicks[:-3]
+    prior = sum(prior_clicks) / float(len(prior_clicks))
+
+    if prior <= 0.0:
+        return False
+
+    return bool(recent <= LOW_ACTIVITY_RATIO * prior)
+
 
 
 def contributing_indicators(row: Dict[str, Any], label: str) -> List[str]:

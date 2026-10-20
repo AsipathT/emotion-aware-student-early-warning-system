@@ -11,7 +11,8 @@ from src.config import DORMANT_RULE_CONFIDENCE, INFER_MIN_WEEKS
 from src.deploy_features import to_deploy
 from src.dormant import causal_dormancy
 from src.features import build_causal_features
-from src.indicators import contributing_indicators
+from src.indicators import contributing_indicators, low_activity_vs_history
+
 
 
 def predict_trajectory(
@@ -98,9 +99,18 @@ def predict_trajectory(
     raw_row_dict = raw_feat.iloc[0].to_dict()
     indicators = contributing_indicators(raw_row_dict, label)
 
+    raw_clicks = [float(c) for c in history["clicks"]]
+    if low_activity_vs_history(raw_clicks):
+        if "steady_activity" in indicators:
+            indicators.remove("steady_activity")
+        if "low_activity_vs_own_history" not in indicators:
+            indicators.append("low_activity_vs_own_history")
+        indicators = indicators[:10]
+
     # 4. Return result
     return {
         "trajectory_label": label,
         "confidence": confidence,
         "contributing_indicators": indicators,
     }
+

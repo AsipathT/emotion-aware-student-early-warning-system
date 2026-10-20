@@ -69,3 +69,9 @@ def get_oulad_dir() -> Path:
 def day_to_week(day: int) -> int:
     """Converts day offset to zero-indexed week using integer floor division."""
     return int(day) // 7
+
+
+# ── Low-Activity Indicator Constants (a priori design constants, not tuned) ──
+LOW_ACTIVITY_RATIO: float = 0.25
+LOW_ACTIVITY_MIN_WEEKS: int = 6
+

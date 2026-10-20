@@ -198,3 +198,21 @@ Run the pure unit test suite:
 ```powershell
 python -m pytest tests -q
 ```
+
+---
+
+## 8. Indicator Vocabulary (12 tokens)
+
+- `clicks_declining_trend`: Linear regression slope over recent weeks <= -0.20
+- `clicks_rising_trend`: Linear regression slope over recent weeks >= +0.20
+- `recent_activity_drop`: Recent difference between current and prior 3-week window <= -0.50
+- `recent_activity_rise`: Recent difference between current and prior 3-week window >= +0.50
+- `high_weekly_variability`: High click variability with residual standard deviation >= 1.0
+- `inactive_streak`: Continuous zero-click streak of 2 or more consecutive weeks
+- `frequent_zero_weeks`: Two or more zero-click weeks within the recent 6-week window
+- `late_submissions`: Average assessment submission delay exceeding 24.0 hours
+- `steady_activity`: Default baseline when no adverse or rising behavioral signals are triggered
+- `never_active`: Complete absence of clickstream interaction across all historical weeks
+- `no_activity_7w`: Inactivity streak lasting 7 or more consecutive weeks following prior engagement
+- `low_activity_vs_own_history`: Recent 3-week mean clicks dropped to <= 25% of the student's prior history mean (minimum 6 weeks history)
+
