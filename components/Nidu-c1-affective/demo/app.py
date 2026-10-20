@@ -73,7 +73,7 @@ def load_model_and_resources():
     vader_analyzer = SentimentIntensityAnalyzer()
 
     # Load contract schema
-    contract_path = comp_root.parents[0] / "contracts" / "v1" / "AffectiveWeeklyVector.json"
+    contract_path = comp_root.parents[1] / "contracts" / "v1" / "AffectiveWeeklyVector.json"
     schema = None
     if contract_path.exists():
         with open(contract_path, "r", encoding="utf-8") as f:
@@ -286,7 +286,12 @@ def main():
                 else:
                     st.warning(f"ℹ **Contract Check:** {validation_msg}")
 
-                with st.expander("View Generated AffectiveWeeklyVector JSON Payload", expanded=False):
+                col_v1, col_v2, col_v3 = st.columns(3)
+                col_v1.metric("Student PID", sample_vector["pid"])
+                col_v2.metric("Stress Label", sample_vector["stress_label"])
+                col_v3.metric("Vector Confidence", f"{sample_vector['confidence']:.3f}")
+
+                with st.expander("Technical view: API payload for C3 (JSON)", expanded=False):
                     st.json(sample_vector)
 
         # Side panel: VADER baseline comparison
@@ -460,7 +465,23 @@ def main():
                                 "message_count": len(student_msgs),
                             }
                             with st.expander(f"{badge}PID: {p} ({len(student_msgs)} messages | Dominant: {dominant})"):
-                                st.json(pid_vector)
+                                m_col1, m_col2, m_col3 = st.columns(3)
+                                m_col1.metric("Dominant Affective State", dominant)
+                                m_col2.metric("Messages Analyzed", len(student_msgs))
+                                m_col3.metric("Peak Confidence", f"{pid_vector['confidence']:.3f}")
+
+                                st.markdown("**Aggregated Emotion Scores:**")
+                                for c in DEFAULT_CLASSES:
+                                    s = avg_scores[c]
+                                    t = thresholds.get(c, 0.50)
+                                    is_act = s >= t
+                                    sc1, sc2, sc3 = st.columns([1.5, 4.0, 1.2])
+                                    sc1.markdown(f"**{c}**" + (" ⚠️" if is_act else ""))
+                                    sc2.progress(min(1.0, s))
+                                    sc3.caption(f"Score: **{s:.3f}** (Threshold: {t:.2f})")
+
+                                with st.expander("Technical view: API payload for C3 (JSON)", expanded=False):
+                                    st.json(pid_vector)
 
                 except Exception as e:
                     st.error(f"Failed to fetch or process live LMS messages: {e}")
