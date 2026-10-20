@@ -163,7 +163,7 @@ def render_highlighted_text(words_with_drops: List[Tuple[str, float]]) -> str:
 
 
 def main():
-    st.title("Component 1: Student Affective State Detection")
+    st.title("Student Affective State Detection")
     st.caption("J26-IT-349 AI-Driven Early Warning System — Fine-Tuned DistilRoBERTa on Academic Distress Taxonomy")
 
     model_bundle, vader_analyzer, contract_schema = load_model_and_resources()
