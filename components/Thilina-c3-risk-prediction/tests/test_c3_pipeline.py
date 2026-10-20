@@ -8,7 +8,7 @@ import pytest
 import numpy as np
 import pandas as pd
 from src.generate_multimodal_dataset import generate_multimodal_data
-from src.model import map_risk_tier, ALL_FEATURE_COLS
+from src.model import map_risk_tier, ALL_FEATURE_COLS, BiLSTMRiskModel
 from src.ingest_client import C3IngestClient
 
 
@@ -68,3 +68,30 @@ def test_ingest_client_envelope():
     assert "generated_at" in envelope
     assert len(envelope["data"]) == 1
     assert envelope["data"][0]["risk_tier"] == "high"
+
+
+def test_bilstm_risk_model(tmp_path):
+    train_df, _ = generate_multimodal_data(num_students=8, num_weeks=4, seed=42)
+    y = train_df["withdraws_within_k_weeks"].values
+
+    bilstm = BiLSTMRiskModel(
+        hidden_dim=16,
+        num_layers=1,
+        dropout=0.0,
+        window_size=3,
+        epochs=2,
+        batch_size=16,
+        random_state=42,
+    )
+    bilstm.fit(train_df, y)
+    probs = bilstm.predict_proba(train_df)
+
+    assert len(probs) == len(train_df)
+    assert np.all((probs >= 0.0) & (probs <= 1.0))
+
+    # Test serialization and deserialization
+    bilstm.save(str(tmp_path))
+    loaded = BiLSTMRiskModel.load(str(tmp_path), preprocessor=bilstm.preprocessor)
+    loaded_probs = loaded.predict_proba(train_df)
+    assert np.allclose(probs, loaded_probs, atol=1e-5)
+
