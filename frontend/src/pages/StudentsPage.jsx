@@ -37,7 +37,7 @@ export default function StudentsPage() {
       <header className="page-header">
         <div>
           <h1 className="page-title">Students</h1>
-          <p className="muted">Select a student to enter their C1, C2 and C3 inputs and get an intervention recommendation.</p>
+          <p className="muted">Select a student to enter their inputs and get an intervention recommendation.</p>
         </div>
       </header>
 

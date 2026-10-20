@@ -72,8 +72,8 @@ export default function HistoryPage() {
                 <tr>
                   <th>Date</th>
                   <th>Student</th>
-                  <th>Condition (C1)</th>
-                  <th>Trajectory (C2)</th>
+                  <th>Condition</th>
+                  <th>Trajectory</th>
                   <th>Risk</th>
                   <th>Top recommendation</th>
                   <th aria-label="Open" />

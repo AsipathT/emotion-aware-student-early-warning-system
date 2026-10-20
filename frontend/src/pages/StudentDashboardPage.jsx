@@ -117,10 +117,10 @@ export default function StudentDashboardPage() {
       </section>
 
       {/* Inputs used by the model */}
-      <h2 className="section-title">Key Student Context (From C1, C2, C3)</h2>
+      <h2 className="section-title">Key Student Context</h2>
       <section className="context-grid">
         <div className="card context-card">
-          <h3>Condition (C1)</h3>
+          <h3>Condition</h3>
           <div className="context-main">
             <ConditionIcon name={inputs.c1_condition} size={34} />
             <strong>{inputs.c1_condition}</strong>
@@ -129,7 +129,7 @@ export default function StudentDashboardPage() {
         </div>
 
         <div className="card context-card">
-          <h3>Engagement Trajectory (C2)</h3>
+          <h3>Engagement Trajectory</h3>
           <TrajectoryGlyph trajectory={inputs.c2_trajectory} />
           <strong style={{ color: trendColour(inputs.c2_trajectory) }}>{inputs.c2_trajectory}</strong>
           <p className="muted small">{reference?.trajectories[inputs.c2_trajectory]}</p>
@@ -145,7 +145,7 @@ export default function StudentDashboardPage() {
         </div>
 
         <div className="card context-card">
-          <h3>Causal Risk Strength (C3)</h3>
+          <h3>Causal Risk Strength</h3>
           <C3Bars c3={inputs.c3} dominant={inputs.c3_dominant} />
           <p className="muted small">
             Strongest: <strong>{inputs.c3_dominant}</strong> (0 – 1 scale)

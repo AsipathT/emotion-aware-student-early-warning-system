@@ -111,9 +111,9 @@ export default function RecommendationPage() {
           <section className="card">
             <h2 className="card-title">Inputs Used</h2>
             <dl className="input-list">
-              <div><dt>C1 · Condition</dt><dd>{inputs.c1_condition}</dd></div>
+              <div><dt>Condition</dt><dd>{inputs.c1_condition}</dd></div>
               <div>
-                <dt>C2 · Trajectory</dt>
+                <dt>Trajectory</dt>
                 <dd className="inline-icon"><TrendIcon trajectory={inputs.c2_trajectory} size={16} /> {inputs.c2_trajectory}</dd>
               </div>
               <div>
@@ -121,7 +121,7 @@ export default function RecommendationPage() {
                 <dd><RiskBadge tier={inputs.risk_tier} probability={inputs.risk_probability} /></dd>
               </div>
             </dl>
-            <h3 className="subheading">C3 · Causal Risk Strength</h3>
+            <h3 className="subheading">Causal Risk Strength</h3>
             <C3Bars c3={inputs.c3} dominant={inputs.c3_dominant} />
           </section>
 

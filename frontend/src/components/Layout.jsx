@@ -23,7 +23,6 @@ export default function Layout() {
       <div className="app">
         <aside className="sidebar">
           <div className="brand">
-            <div className="brand-logo">C4</div>
             <div className="brand-text">Adaptive Intervention Recommendation</div>
           </div>
           <nav className="nav">

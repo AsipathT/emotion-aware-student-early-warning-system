@@ -121,7 +121,7 @@ export default function AssessmentFormPage() {
 
       <form onSubmit={handleSubmit} className="form-grid">
         <section className="card">
-          <h2 className="card-title">C1 · Condition</h2>
+          <h2 className="card-title">Condition</h2>
           <div className="choice-grid">
             {Object.entries(reference.conditions).map(([name, description]) => (
               <label key={name} className={`choice ${form.c1_condition === name ? "selected" : ""}`}>
@@ -143,7 +143,7 @@ export default function AssessmentFormPage() {
         </section>
 
         <section className="card">
-          <h2 className="card-title">C2 · Engagement Trajectory</h2>
+          <h2 className="card-title">Engagement Trajectory</h2>
           <div className="segmented" role="radiogroup" aria-label="Engagement trajectory">
             {Object.keys(reference.trajectories).map((name) => (
               <label key={name} className={`segment ${form.c2_trajectory === name ? "selected" : ""}`}>
@@ -190,7 +190,7 @@ export default function AssessmentFormPage() {
         </section>
 
         <section className="card">
-          <h2 className="card-title">C3 · Causal Risk Strength</h2>
+          <h2 className="card-title">Causal Risk Strength</h2>
           {C3_FIELDS.map(({ key, label, hint }) => (
             <div key={key} className="c3-input">
               <div className="c3-input-label">
