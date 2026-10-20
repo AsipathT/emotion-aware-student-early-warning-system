@@ -258,6 +258,84 @@ export const StudentRiskModal: React.FC<StudentRiskModalProps> = ({
                 </div>
               )}
 
+              {/* C2 Engagement Trajectory History */}
+              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                <div className="pb-3 border-b border-slate-100">
+                  <h3 className="text-base font-bold text-slate-900">
+                    C2 Engagement Trajectory History
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Component 2: weekly label, confidence and rule-based indicators computed from weekly clicks and submissions.
+                  </p>
+                </div>
+                {(() => {
+                  const c2Rows = (detail.longitudinal_trends || [])
+                    .filter((pt) => pt.has_trajectory === true)
+                    .sort((a, b) => a.week_index - b.week_index);
+
+                  if (c2Rows.length === 0) {
+                    return (
+                      <p className="text-xs text-slate-400 mt-4">
+                        No C2 trajectory records for this student yet.
+                      </p>
+                    );
+                  }
+
+                  return (
+                    <div className="overflow-x-auto mt-4">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px]">
+                            <th className="pb-2 pr-4">Week</th>
+                            <th className="pb-2 pr-4">Clicks</th>
+                            <th className="pb-2 pr-4">Trajectory</th>
+                            <th className="pb-2 pr-4">Confidence</th>
+                            <th className="pb-2">Indicators</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {c2Rows.map((pt) => (
+                            <tr key={pt.week_index}>
+                              <td className="py-2.5 pr-4 font-semibold text-slate-800 whitespace-nowrap">
+                                {pt.week_label}
+                              </td>
+                              <td className="py-2.5 pr-4 text-slate-600 whitespace-nowrap">
+                                {pt.clicks !== undefined && pt.clicks !== null ? pt.clicks : '-'}
+                              </td>
+                              <td className="py-2.5 pr-4 capitalize font-semibold text-slate-700 whitespace-nowrap">
+                                <span className="inline-flex items-center">
+                                  {getTrajectoryIcon(pt.trajectory_label)}
+                                  {pt.trajectory_label}
+                                </span>
+                              </td>
+                              <td className="py-2.5 pr-4 text-slate-600 whitespace-nowrap">
+                                {Math.round((pt.trajectory_confidence || 0) * 100)}%
+                              </td>
+                              <td className="py-2.5">
+                                {pt.contributing_indicators && pt.contributing_indicators.length > 0 ? (
+                                  <div className="flex flex-wrap gap-1">
+                                    {pt.contributing_indicators.map((ind, idx) => (
+                                      <span
+                                        key={idx}
+                                        className="px-1.5 py-0.5 bg-sky-50 text-sky-700 border border-sky-200 rounded text-[9px] font-medium"
+                                      >
+                                        {ind.replace(/_/g, ' ')}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-400">-</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+              </div>
+
               {/* Longitudinal Charts Section (Feature 29) */}
               <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-3">

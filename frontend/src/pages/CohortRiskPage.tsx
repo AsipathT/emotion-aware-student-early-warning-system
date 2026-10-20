@@ -578,6 +578,23 @@ export const CohortRiskPage: React.FC = () => {
                       <span className="text-[10px] text-slate-400 block ml-4">
                         {(student.trajectory_confidence * 100).toFixed(0)}% conf
                       </span>
+                      {student.contributing_indicators && student.contributing_indicators.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {student.contributing_indicators.slice(0, 3).map((ind, idx) => (
+                            <span
+                              key={idx}
+                              className="px-1.5 py-0.5 bg-sky-50 text-sky-700 border border-sky-200 rounded text-[9px] font-medium"
+                            >
+                              {ind.replace(/_/g, ' ')}
+                            </span>
+                          ))}
+                          {student.contributing_indicators.length > 3 && (
+                            <span className="px-1.5 py-0.5 bg-sky-50 text-sky-700 border border-sky-200 rounded text-[9px] font-medium">
+                              +{student.contributing_indicators.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </td>
 
                     {/* Primary Driver */}

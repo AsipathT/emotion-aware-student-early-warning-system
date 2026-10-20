@@ -78,6 +78,7 @@ export interface LongitudinalPoint {
   stress_label?: string | null;
   top_drivers: string[];
   contributing_indicators: string[];
+  has_trajectory?: boolean;
 }
 
 export interface RecommendedIntervention {
