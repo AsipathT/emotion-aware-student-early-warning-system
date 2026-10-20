@@ -383,6 +383,7 @@ async def get_student_risk_detail(
             "stress_label": af_item.get("stress_label"),
             "top_drivers": r_item.get("top_drivers", []) if r_item else [],
             "contributing_indicators": t_item.get("contributing_indicators", []),
+            "has_trajectory": True if w in traj_by_week else False,
         }
         longitudinal_trends.append(point)
 
