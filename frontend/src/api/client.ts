@@ -7,6 +7,7 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 60000,
 });
 
 // Attach Authorization Bearer token to requests if present in localStorage
