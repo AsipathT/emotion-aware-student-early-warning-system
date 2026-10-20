@@ -13,7 +13,7 @@ import {
   ScoreBar,
   TrendIcon,
 } from "../components/ui";
-import { formatDate, formatDateTime, score } from "../format";
+import { formatDate, formatDateTime, formatRationale, score } from "../format";
 import { useReference } from "../reference";
 
 export default function RecommendationPage() {
@@ -81,7 +81,7 @@ export default function RecommendationPage() {
             </div>
             <ScoreBar value={top.suitability} colour="var(--success)" />
             <p className="rationale">
-              <span className="label-strong">Rationale:</span> {assessment.rationale}
+              <span className="label-strong">Rationale:</span> {formatRationale(assessment.rationale)}
             </p>
           </section>
 

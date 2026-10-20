@@ -23,3 +23,4 @@ export function formatDate(iso) {
 
 export const percent = (value) => `${Math.round(value * 100)}%`;
 export const score = (value) => Number(value).toFixed(2);
+export const formatRationale = (rationale) => rationale.replace(/ \(C[123]\)/g, "");

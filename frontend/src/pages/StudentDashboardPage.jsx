@@ -16,7 +16,7 @@ import {
   TrendIcon,
   trendColour,
 } from "../components/ui";
-import { formatDate, formatDateTime, percent, score } from "../format";
+import { formatDate, formatDateTime, formatRationale, percent, score } from "../format";
 import { useReference } from "../reference";
 
 export default function StudentDashboardPage() {
@@ -168,7 +168,7 @@ export default function StudentDashboardPage() {
           <div className="recommendation-text">
             <strong className="recommendation-name">{top.intervention}</strong>
             <p>
-              <span className="label-strong">Rationale:</span> {assessment.rationale}
+              <span className="label-strong">Rationale:</span> {formatRationale(assessment.rationale)}
             </p>
           </div>
           <div className="suitability">
