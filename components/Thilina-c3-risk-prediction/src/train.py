@@ -35,7 +35,7 @@ from sklearn.metrics import (
 )
 import shap
 
-from src.model import MultimodalRiskModel, ALL_FEATURE_COLS
+from src.model import MultimodalRiskModel, ALL_FEATURE_COLS, BiLSTMRiskModel
 
 AFFECTIVE_COLS = [
     "message_count",
@@ -243,7 +243,38 @@ def main():
     lr_pos_rate = float(np.mean(lr_test_preds))
     lr_tn, lr_fp, lr_fn, lr_tp = confusion_matrix(y_test, lr_test_preds).ravel()
 
-    # ── 4. Main Model: C3 Multimodal Gradient Boosting ─────────────────────────
+    # ── 4. Deep Learning Sequence Model: BiLSTM ────────────────────────────────
+    print("[*] Training PyTorch BiLSTM Sequence Model (W=5 temporal windows)...")
+    bilstm = BiLSTMRiskModel(
+        hidden_dim=48,
+        num_layers=2,
+        dropout=0.25,
+        window_size=5,
+        lr=0.0015,
+        epochs=12,
+        batch_size=128,
+        random_state=42,
+    )
+    bilstm.fit(train_df[train_mask], y_train, preprocessor=temp_model.preprocessor)
+
+    bilstm_val_probs = bilstm.predict_proba(train_df[val_mask])
+    bilstm_thresh, _ = find_optimal_threshold(y_val, bilstm_val_probs)
+
+    bilstm_test_probs = bilstm.predict_proba(train_df[test_mask])
+    bilstm_test_preds = (bilstm_test_probs >= bilstm_thresh).astype(int)
+
+    bilstm_roc = float(roc_auc_score(y_test, bilstm_test_probs))
+    bilstm_pr = float(average_precision_score(y_test, bilstm_test_probs))
+    bilstm_f1 = float(f1_score(y_test, bilstm_test_preds, zero_division=0))
+    bilstm_brier = float(brier_score_loss(y_test, bilstm_test_probs))
+    bilstm_ece = compute_ece(y_test, bilstm_test_probs)
+    bilstm_pos_rate = float(np.mean(bilstm_test_preds))
+    bilstm_tn, bilstm_fp, bilstm_fn, bilstm_tp = confusion_matrix(y_test, bilstm_test_preds).ravel()
+
+    bilstm.save(model_dir)
+    print(f"[OK] BiLSTM model checkpoint saved to {model_dir}")
+
+    # ── 5. Main Model: C3 Multimodal Gradient Boosting ─────────────────────────
     model = MultimodalRiskModel(n_estimators=150, max_depth=5, learning_rate=0.08, random_state=42)
     model.fit(X_train, y_train)
 
@@ -268,14 +299,29 @@ def main():
 
     # Print Table 1: Metrics Table
     metrics_table = pd.DataFrame({
-        "ROC-AUC": [f"{maj_roc:.4f}", f"{lr_roc:.4f}", f"{c3_roc:.4f}"],
-        "PR-AUC": [f"{maj_pr:.4f}", f"{lr_pr:.4f}", f"{c3_pr:.4f}"],
-        "F1 (Val Threshold)": [f"{maj_f1:.4f} (th=0.50)", f"{lr_f1:.4f} (th={lr_thresh:.2f})", f"{c3_f1:.4f} (th={c3_thresh:.2f})"],
-        "Brier Score": [f"{maj_brier:.4f}", f"{lr_brier:.4f}", f"{c3_brier:.4f}"],
-        "ECE": [f"{maj_ece:.4f}", f"{lr_ece:.4f}", f"{c3_ece:.4f}"],
-        "Positive Rate": [f"{maj_pos_rate:.4f}", f"{lr_pos_rate:.4f}", f"{c3_pos_rate:.4f}"],
-        "Confusion Counts (TN, FP, FN, TP)": [f"({maj_tn}, {maj_fp}, {maj_fn}, {maj_tp})", f"({lr_tn}, {lr_fp}, {lr_fn}, {lr_tp})", f"({c3_tn}, {c3_fp}, {c3_fn}, {c3_tp})"],
-    }, index=["Majority-Class Baseline", "Logistic Regression", "C3 Gradient-Boosting Model"])
+        "ROC-AUC": [f"{maj_roc:.4f}", f"{lr_roc:.4f}", f"{bilstm_roc:.4f}", f"{c3_roc:.4f}"],
+        "PR-AUC": [f"{maj_pr:.4f}", f"{lr_pr:.4f}", f"{bilstm_pr:.4f}", f"{c3_pr:.4f}"],
+        "F1 (Val Threshold)": [
+            f"{maj_f1:.4f} (th=0.50)",
+            f"{lr_f1:.4f} (th={lr_thresh:.2f})",
+            f"{bilstm_f1:.4f} (th={bilstm_thresh:.2f})",
+            f"{c3_f1:.4f} (th={c3_thresh:.2f})",
+        ],
+        "Brier Score": [f"{maj_brier:.4f}", f"{lr_brier:.4f}", f"{bilstm_brier:.4f}", f"{c3_brier:.4f}"],
+        "ECE": [f"{maj_ece:.4f}", f"{lr_ece:.4f}", f"{bilstm_ece:.4f}", f"{c3_ece:.4f}"],
+        "Positive Rate": [f"{maj_pos_rate:.4f}", f"{lr_pos_rate:.4f}", f"{bilstm_pos_rate:.4f}", f"{c3_pos_rate:.4f}"],
+        "Confusion Counts (TN, FP, FN, TP)": [
+            f"({maj_tn}, {maj_fp}, {maj_fn}, {maj_tp})",
+            f"({lr_tn}, {lr_fp}, {lr_fn}, {lr_tp})",
+            f"({bilstm_tn}, {bilstm_fp}, {bilstm_fn}, {bilstm_tp})",
+            f"({c3_tn}, {c3_fp}, {c3_fn}, {c3_tp})",
+        ],
+    }, index=[
+        "Majority-Class Baseline",
+        "Logistic Regression",
+        "BiLSTM Sequence Model",
+        "C3 Gradient-Boosting Model",
+    ])
 
     print("\n" + "=" * 80)
     print(f"  TEST-SET (COHORT_3) METRICS TABLE (Test Positive Rate: {test_pos_rate:.4f})")
