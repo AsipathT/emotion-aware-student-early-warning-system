@@ -1,0 +1,11 @@
+{
+  "pos_weights": {
+    "exam_anxiety": 10.0,
+    "conceptual_confusion": 10.0,
+    "academic_helplessness": 10.0,
+    "course_frustration": 5.8647,
+    "motivation_erosion": 10.0
+  },
+  "clip_max": 10.0,
+  "note": "Computed on train.csv only. Thresholds to be tuned on val.csv in Phase 3."
+}

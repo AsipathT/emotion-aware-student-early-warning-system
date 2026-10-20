@@ -54,8 +54,14 @@ def test_goemotions_proxy_labels_marked_as_proxy(label_map):
             assert spec.get("mapping_type") == "proxy", f"Emotion {emo} must have mapping_type: proxy"
             mapped_count += 1
         else:
-            assert spec.get("mapping_type") in ["unmapped_positive", "unmapped_neutral", "unmapped_epistemic"]
+            assert spec.get("mapping_type") in ["unmapped_positive", "unmapped_neutral", "unmapped_epistemic", "ignore"]
+            if spec.get("mapping_type") == "ignore":
+                assert spec.get("is_proxy") is True
     assert mapped_count > 0
+    # Specifically assert the 4 ignore labels
+    for ign in ["embarrassment", "remorse", "grief", "disgust"]:
+        assert goemotions[ign]["mapping_type"] == "ignore"
+        assert goemotions[ign]["target"] is None
 
 
 def test_all_mapped_targets_are_valid_classes(contract_distress_classes, label_map):

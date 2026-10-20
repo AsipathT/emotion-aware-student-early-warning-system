@@ -1,0 +1,91 @@
+{
+  "goemotions_stats": {
+    "train": {
+      "total_input": 43410,
+      "kept_ignore_plus_distress": 344,
+      "excluded_ignore_only_or_unmapped": 1353,
+      "kept_distress_clean": 9420,
+      "kept_unmapped_clean": 32293,
+      "total_kept": 42057
+    },
+    "dev": {
+      "total_input": 5426,
+      "kept_ignore_plus_distress": 42,
+      "excluded_ignore_only_or_unmapped": 166,
+      "kept_distress_clean": 1177,
+      "kept_unmapped_clean": 4041,
+      "total_kept": 5260
+    },
+    "test": {
+      "total_input": 5427,
+      "kept_ignore_plus_distress": 47,
+      "excluded_ignore_only_or_unmapped": 174,
+      "kept_distress_clean": 1181,
+      "kept_unmapped_clean": 4025,
+      "total_kept": 5253
+    }
+  },
+  "emotion4_stats": {
+    "total_input": 7102,
+    "valid_records": 7102,
+    "train_count": 5681,
+    "val_count": 710,
+    "test_count": 711
+  },
+  "dedup_stats": {
+    "test_intra_duplicates_dropped": 8,
+    "val_intra_duplicates_dropped": 9,
+    "val_test_leakage_dropped_from_val": 18,
+    "train_eval_leakage_dropped_from_train": 217,
+    "train_intra_duplicates_dropped": 237,
+    "final_train_samples": 47284,
+    "final_val_samples": 5943,
+    "final_test_proxy_samples": 5956
+  },
+  "split_counts": {
+    "train": 47284,
+    "val": 5943,
+    "test_proxy": 5956
+  },
+  "pos_weights_train": {
+    "exam_anxiety": 10.0,
+    "conceptual_confusion": 10.0,
+    "academic_helplessness": 10.0,
+    "course_frustration": 5.8647,
+    "motivation_erosion": 10.0
+  },
+  "target_classes": [
+    "exam_anxiety",
+    "conceptual_confusion",
+    "academic_helplessness",
+    "course_frustration",
+    "motivation_erosion"
+  ],
+  "thresholds_todo": "Tune per-class sigmoid thresholds on val split in Phase 3.",
+  "class_distribution": {
+    "train": {
+      "exam_anxiety": 2472,
+      "conceptual_confusion": 1361,
+      "academic_helplessness": 2469,
+      "course_frustration": 6888,
+      "motivation_erosion": 1265,
+      "all_zero_negatives": 33332
+    },
+    "val": {
+      "exam_anxiety": 326,
+      "conceptual_confusion": 151,
+      "academic_helplessness": 291,
+      "course_frustration": 887,
+      "motivation_erosion": 163,
+      "all_zero_negatives": 4186
+    },
+    "test_proxy": {
+      "exam_anxiety": 323,
+      "conceptual_confusion": 153,
+      "academic_helplessness": 309,
+      "course_frustration": 896,
+      "motivation_erosion": 151,
+      "all_zero_negatives": 4180
+    }
+  }
+}

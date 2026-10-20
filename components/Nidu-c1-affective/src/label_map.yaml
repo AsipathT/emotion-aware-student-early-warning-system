@@ -44,15 +44,15 @@ goemotions:
     confidence_weight: 0.80
     rationale: "Sorrow, defeatism, and emotional deflatedness reflecting diminished academic self-efficacy and despair."
   grief:
-    target: academic_helplessness
-    mapping_type: proxy
-    confidence_weight: 0.85
-    rationale: "Profound sorrow and despair representing extreme feeling of loss of control and overwhelming distress."
+    target: null
+    mapping_type: ignore
+    is_proxy: true
+    rationale: "Excluded from training; personal bereavement/loss is out of scope for LMS academic distress. Not used as negatives."
   remorse:
-    target: academic_helplessness
-    mapping_type: proxy
-    confidence_weight: 0.75
-    rationale: "Guilt and regret over fallen performance, missed work, and inability to recover academic standing."
+    target: null
+    mapping_type: ignore
+    is_proxy: true
+    rationale: "Excluded from training; interpersonal guilt/regret introduces noise into academic helplessness. Not used as negatives."
 
   # Class 4: course_frustration
   anger:
@@ -71,10 +71,10 @@ goemotions:
     confidence_weight: 0.80
     rationale: "Explicit dissatisfaction, criticism, or objection regarding instructional quality or course administration."
   disgust:
-    target: course_frustration
-    mapping_type: proxy
-    confidence_weight: 0.70
-    rationale: "Strong aversion and rejection towards course structure, unfair evaluation, or chaotic coursework."
+    target: null
+    mapping_type: ignore
+    is_proxy: true
+    rationale: "Excluded from training; visceral revulsion introduces noise into course frustration. Not used as negatives."
 
   # Class 5: motivation_erosion
   disappointment:
@@ -83,10 +83,10 @@ goemotions:
     confidence_weight: 0.85
     rationale: "Disillusionment, dashed expectations, and deflated morale leading to academic withdrawal and disengagement."
   embarrassment:
-    target: motivation_erosion
-    mapping_type: proxy
-    confidence_weight: 0.75
-    rationale: "Shame or acute self-consciousness in learning contexts leading to social withdrawal and diminished participation."
+    target: null
+    mapping_type: ignore
+    is_proxy: true
+    rationale: "Excluded from training; social awkwardness does not cleanly translate to academic motivation erosion. Not used as negatives."
 
   # ── Unmapped / Non-Distress Emotions (16 categories) ──────────────────────
   # Positive, social, or neutral states that do not indicate academic distress.

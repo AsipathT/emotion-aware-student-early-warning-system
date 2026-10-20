@@ -19,6 +19,7 @@ from app.core.dependencies import get_current_user
 from app.core.privacy import pseudonymize
 from app.db import collections as col
 from app.models.user import User
+from app.services.event_week import resolve_event_week
 
 router = APIRouter(prefix="/api/v1/telemetry", tags=["telemetry"])
 
@@ -52,7 +53,7 @@ async def log_activity_event(
         "schema_version": 1,
         "pid": pid,
         "course_id": payload.course_id or "general",
-        "week_index": payload.week_index,
+        "week_index": await resolve_event_week(db, payload.course_id if payload.course_id != "general" else None, now, payload.week_index),
         "event_type": payload.event_type.lower(),
         "event_payload": payload.event_payload or {},
         "clicks": payload.clicks,
