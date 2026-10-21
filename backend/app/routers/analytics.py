@@ -55,7 +55,7 @@ router = APIRouter(prefix="/api/v1/analytics", tags=["analytics"])
 class SyntheticCohortGenerateRequest(BaseModel):
     course_id: str = Field(default="CS101", min_length=1, max_length=128)
     num_students: int = Field(default=10, ge=2, le=50)
-    num_weeks: int = Field(default=6, ge=1, le=12)
+    num_weeks: int = Field(default=15, ge=1, le=15)
     cohort_profile: str = Field(
         default="balanced",
         description="Distribution profile: balanced, high_risk_heavy, healthy_cohort, or volatile"
@@ -179,12 +179,24 @@ async def get_cohort_risk_overview(
 
     for r in risk_docs:
         pid = r["pid"]
-        tier = str(r.get("risk_tier", "low")).lower()
-        score = float(r.get("risk_score", 0.0))
-        mods = r.get("modality_contributions", {}) or {}
-        aff = float(mods.get("affective", 0.33))
-        beh = float(mods.get("behavioral", 0.34))
-        acad = float(mods.get("academic", 0.33))
+        w_idx = int(r.get("week_index", selected_week))
+
+        if w_idx < 5:
+            # Academic Observation Phase Guard: First 5 weeks (0-4) of a 15-week semester
+            tier = "low"
+            score = 0.05
+            aff = 0.50
+            beh = 0.50
+            acad = 0.0
+            top_drivers = [f"Observation Phase (Week {w_idx + 1}/15): Academic assessments pending."]
+        else:
+            tier = str(r.get("risk_tier", "low")).lower()
+            score = float(r.get("risk_score", 0.0))
+            mods = r.get("modality_contributions", {}) or {}
+            aff = float(mods.get("affective", 0.33))
+            beh = float(mods.get("behavioral", 0.34))
+            acad = float(mods.get("academic", 0.33))
+            top_drivers = r.get("top_drivers", [])
 
         tier_counts[tier] = tier_counts.get(tier, 0) + 1
         total_risk += score
@@ -222,9 +234,9 @@ async def get_cohort_risk_overview(
                 "academic": round(acad, 3),
             },
             "primary_driver_modality": primary_mod,
-            "top_drivers": r.get("top_drivers", []),
+            "top_drivers": top_drivers,
             "contributing_indicators": t_data.get("contributing_indicators", []),
-            "week_index": r.get("week_index", selected_week),
+            "week_index": w_idx,
         }
         students_list.append(student_row)
 
@@ -363,15 +375,29 @@ async def get_student_risk_detail(
 
         mods = r_item.get("modality_contributions", {}) if r_item else {}
         risk_val = float(r_item.get("risk_score", 0.0)) if r_item else 0.0
+        tier_val = str(r_item.get("risk_tier", "low")).lower() if r_item else "low"
+        aff_pct = round(float(mods.get("affective", 0.33)) * 100, 1)
+        beh_pct = round(float(mods.get("behavioral", 0.34)) * 100, 1)
+        acad_pct = round(float(mods.get("academic", 0.33)) * 100, 1)
+        drivers_val = r_item.get("top_drivers", []) if r_item else []
+
+        if w < 5:
+            # Observation Phase Guard: Weeks 0-4
+            risk_val = 0.05
+            tier_val = "low"
+            aff_pct = 50.0
+            beh_pct = 50.0
+            acad_pct = 0.0
+            drivers_val = [f"Observation Phase (Week {w + 1}/15): Academic assessments pending."]
 
         point = {
             "week_index": w,
             "week_label": f"Week {w + 1}",
             "risk_score": round(risk_val, 3),
-            "risk_tier": str(r_item.get("risk_tier", "low")).lower() if r_item else "low",
-            "affective_pct": round(float(mods.get("affective", 0.33)) * 100, 1),
-            "behavioral_pct": round(float(mods.get("behavioral", 0.34)) * 100, 1),
-            "academic_pct": round(float(mods.get("academic", 0.33)) * 100, 1),
+            "risk_tier": tier_val,
+            "affective_pct": aff_pct,
+            "behavioral_pct": beh_pct,
+            "academic_pct": acad_pct,
             "trajectory_label": str(t_item.get("trajectory_label", "stable")).lower(),
             "trajectory_confidence": round(float(t_item.get("confidence", 0.8)), 2),
             "login_count": b_item.get("login_count", 0),
@@ -383,7 +409,7 @@ async def get_student_risk_detail(
             "attendance_pct": round(float(att_item.get("attendance_pct", 85.0)), 1),
             "ca_marks": g_item.get("score"),
             "stress_label": af_item.get("stress_label"),
-            "top_drivers": r_item.get("top_drivers", []) if r_item else [],
+            "top_drivers": drivers_val,
             "contributing_indicators": t_item.get("contributing_indicators", []),
             "has_trajectory": True if w in traj_by_week else False,
         }
@@ -699,20 +725,36 @@ async def generate_synthetic_cohort_data(
                 beh_weight = 0.40
                 acad_weight = 0.40
 
+            # Observation Phase Guard for Weeks 0-4 (Observation Warm-up)
+            synth_risk_score = risk_score
+            synth_risk_tier = risk_tier.value if hasattr(risk_tier, "value") else str(risk_tier)
+            synth_mod_contributions = {
+                "affective": aff_weight,
+                "behavioral": beh_weight,
+                "academic": acad_weight,
+            }
+            synth_top_drivers = top_drivers
+
+            if w < 5:
+                synth_risk_score = 0.05
+                synth_risk_tier = "low"
+                synth_mod_contributions = {
+                    "affective": 0.50,
+                    "behavioral": 0.50,
+                    "academic": 0.0,
+                }
+                synth_top_drivers = [f"Observation Phase (Week {w + 1}/15): Academic assessments pending."]
+
             # 3a. col.RISK_ASSESSMENTS
             ra_doc = {
                 "_id": doc_id,
                 "pid": pid,
                 "course_id": course_id,
                 "week_index": w,
-                "risk_score": risk_score,
-                "risk_tier": risk_tier.value if hasattr(risk_tier, "value") else str(risk_tier),
-                "modality_contributions": {
-                    "affective": aff_weight,
-                    "behavioral": beh_weight,
-                    "academic": acad_weight,
-                },
-                "top_drivers": top_drivers,
+                "risk_score": synth_risk_score,
+                "risk_tier": synth_risk_tier,
+                "modality_contributions": synth_mod_contributions,
+                "top_drivers": synth_top_drivers,
                 "schema_version": 1,
                 "source_version": "1.0",
                 "source": "synthetic",
