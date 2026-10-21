@@ -166,15 +166,18 @@ export const CohortRiskPage: React.FC = () => {
               onChange={(e) => setSelectedWeek(Number(e.target.value))}
               className="bg-slate-800/90 text-white text-xs font-semibold rounded-lg px-3 py-1.5 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
-              {cohortData?.available_weeks?.length ? (
-                cohortData.available_weeks.map((w) => (
-                  <option key={w} value={w}>
-                    Week {w + 1}
+              {Array.from({ length: 15 }, (_, i) => {
+                const hasData = cohortData?.available_weeks?.includes(i);
+                const isObservation = i < 5;
+                let label = `Week ${i + 1}`;
+                if (isObservation) label += ' (Observation)';
+                else if (!hasData) label += ' (No data)';
+                return (
+                  <option key={i} value={i}>
+                    {label}
                   </option>
-                ))
-              ) : (
-                <option value={0}>Week 1</option>
-              )}
+                );
+              })}
             </select>
           </div>
         </div>

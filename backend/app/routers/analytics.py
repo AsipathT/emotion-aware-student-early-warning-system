@@ -11,6 +11,7 @@ analytics, individual student multimodal diagnostic breakdowns, and a realistic
 synthetic data generator for institutional simulations and ML research.
 """
 
+import asyncio
 from datetime import datetime, timezone
 import random
 import uuid
@@ -19,6 +20,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel, Field
+from pymongo import ReplaceOne, UpdateOne
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_roles
@@ -53,7 +55,7 @@ router = APIRouter(prefix="/api/v1/analytics", tags=["analytics"])
 class SyntheticCohortGenerateRequest(BaseModel):
     course_id: str = Field(default="CS101", min_length=1, max_length=128)
     num_students: int = Field(default=10, ge=2, le=50)
-    num_weeks: int = Field(default=6, ge=1, le=12)
+    num_weeks: int = Field(default=15, ge=1, le=15)
     cohort_profile: str = Field(
         default="balanced",
         description="Distribution profile: balanced, high_risk_heavy, healthy_cohort, or volatile"
@@ -177,12 +179,24 @@ async def get_cohort_risk_overview(
 
     for r in risk_docs:
         pid = r["pid"]
-        tier = str(r.get("risk_tier", "low")).lower()
-        score = float(r.get("risk_score", 0.0))
-        mods = r.get("modality_contributions", {}) or {}
-        aff = float(mods.get("affective", 0.33))
-        beh = float(mods.get("behavioral", 0.34))
-        acad = float(mods.get("academic", 0.33))
+        w_idx = int(r.get("week_index", selected_week))
+
+        if w_idx < 5:
+            # Academic Observation Phase Guard: First 5 weeks (0-4) of a 15-week semester
+            tier = "low"
+            score = 0.05
+            aff = 0.50
+            beh = 0.50
+            acad = 0.0
+            top_drivers = [f"Observation Phase (Week {w_idx + 1}/15): Academic assessments pending."]
+        else:
+            tier = str(r.get("risk_tier", "low")).lower()
+            score = float(r.get("risk_score", 0.0))
+            mods = r.get("modality_contributions", {}) or {}
+            aff = float(mods.get("affective", 0.33))
+            beh = float(mods.get("behavioral", 0.34))
+            acad = float(mods.get("academic", 0.33))
+            top_drivers = r.get("top_drivers", [])
 
         tier_counts[tier] = tier_counts.get(tier, 0) + 1
         total_risk += score
@@ -220,9 +234,9 @@ async def get_cohort_risk_overview(
                 "academic": round(acad, 3),
             },
             "primary_driver_modality": primary_mod,
-            "top_drivers": r.get("top_drivers", []),
+            "top_drivers": top_drivers,
             "contributing_indicators": t_data.get("contributing_indicators", []),
-            "week_index": r.get("week_index", selected_week),
+            "week_index": w_idx,
         }
         students_list.append(student_row)
 
@@ -361,15 +375,29 @@ async def get_student_risk_detail(
 
         mods = r_item.get("modality_contributions", {}) if r_item else {}
         risk_val = float(r_item.get("risk_score", 0.0)) if r_item else 0.0
+        tier_val = str(r_item.get("risk_tier", "low")).lower() if r_item else "low"
+        aff_pct = round(float(mods.get("affective", 0.33)) * 100, 1)
+        beh_pct = round(float(mods.get("behavioral", 0.34)) * 100, 1)
+        acad_pct = round(float(mods.get("academic", 0.33)) * 100, 1)
+        drivers_val = r_item.get("top_drivers", []) if r_item else []
+
+        if w < 5:
+            # Observation Phase Guard: Weeks 0-4
+            risk_val = 0.05
+            tier_val = "low"
+            aff_pct = 50.0
+            beh_pct = 50.0
+            acad_pct = 0.0
+            drivers_val = [f"Observation Phase (Week {w + 1}/15): Academic assessments pending."]
 
         point = {
             "week_index": w,
             "week_label": f"Week {w + 1}",
             "risk_score": round(risk_val, 3),
-            "risk_tier": str(r_item.get("risk_tier", "low")).lower() if r_item else "low",
-            "affective_pct": round(float(mods.get("affective", 0.33)) * 100, 1),
-            "behavioral_pct": round(float(mods.get("behavioral", 0.34)) * 100, 1),
-            "academic_pct": round(float(mods.get("academic", 0.33)) * 100, 1),
+            "risk_tier": tier_val,
+            "affective_pct": aff_pct,
+            "behavioral_pct": beh_pct,
+            "academic_pct": acad_pct,
             "trajectory_label": str(t_item.get("trajectory_label", "stable")).lower(),
             "trajectory_confidence": round(float(t_item.get("confidence", 0.8)), 2),
             "login_count": b_item.get("login_count", 0),
@@ -381,7 +409,7 @@ async def get_student_risk_detail(
             "attendance_pct": round(float(att_item.get("attendance_pct", 85.0)), 1),
             "ca_marks": g_item.get("score"),
             "stress_label": af_item.get("stress_label"),
-            "top_drivers": r_item.get("top_drivers", []) if r_item else [],
+            "top_drivers": drivers_val,
             "contributing_indicators": t_item.get("contributing_indicators", []),
             "has_trajectory": True if w in traj_by_week else False,
         }
@@ -507,13 +535,15 @@ async def generate_synthetic_cohort_data(
 
     # 1. Clear existing course data if requested
     if payload.clear_existing:
-        await db[col.RISK_ASSESSMENTS].delete_many({"course_id": course_id, "source": "synthetic"})
-        await db[col.ENGAGEMENT_TRAJECTORIES].delete_many({"course_id": course_id, "source": "synthetic"})
-        await db[col.BEHAVIOR_WEEKLY].delete_many({"course_id": course_id, "source": "synthetic"})
-        await db[col.AFFECTIVE_WEEKLY].delete_many({"course_id": course_id, "source": "synthetic"})
-        await db[col.GRADES].delete_many({"course_id": course_id, "source": "synthetic"})
-        await db[col.ATTENDANCE].delete_many({"course_id": course_id, "source": "synthetic"})
-        await db[col.MESSAGES].delete_many({"course_id": course_id, "source": "synthetic"})
+        await asyncio.gather(
+            db[col.RISK_ASSESSMENTS].delete_many({"course_id": course_id, "source": "synthetic"}),
+            db[col.ENGAGEMENT_TRAJECTORIES].delete_many({"course_id": course_id, "source": "synthetic"}),
+            db[col.BEHAVIOR_WEEKLY].delete_many({"course_id": course_id, "source": "synthetic"}),
+            db[col.AFFECTIVE_WEEKLY].delete_many({"course_id": course_id, "source": "synthetic"}),
+            db[col.GRADES].delete_many({"course_id": course_id, "source": "synthetic"}),
+            db[col.ATTENDANCE].delete_many({"course_id": course_id, "source": "synthetic"}),
+            db[col.MESSAGES].delete_many({"course_id": course_id, "source": "synthetic"}),
+        )
 
     # Ensure course exists in COURSES collection
     course_doc = await db[col.COURSES].find_one({"_id": course_id})
@@ -535,6 +565,9 @@ async def generate_synthetic_cohort_data(
     # 2. Generate Student Identities
     created_students = []
     rng = random.Random(42 + hash(course_id) % 1000)
+    vault_ops = []
+    enr_ops = []
+    now_dt = datetime.now(timezone.utc)
 
     # Assign student persona profiles based on cohort_profile
     for i in range(num_students):
@@ -569,31 +602,32 @@ async def generate_synthetic_cohort_data(
             "persona": persona,
         })
 
-        # Save to identity vault
-        now_dt = datetime.now(timezone.utc)
-        await db[col.IDENTITY_VAULT].update_one(
-            {"pid": pid},
-            {
-                "$set": {
-                    "_id": pid,
-                    "pid": pid,
-                    "student_id": student_id_str,
-                    "name": full_name,
-                    "email": email,
-                    "is_imported": True,
-                    "updated_at": now_dt,
+        # Save to identity vault (bulk op)
+        vault_ops.append(
+            UpdateOne(
+                {"pid": pid},
+                {
+                    "$set": {
+                        "_id": pid,
+                        "pid": pid,
+                        "student_id": student_id_str,
+                        "name": full_name,
+                        "email": email,
+                        "is_imported": True,
+                        "updated_at": now_dt,
+                    },
+                    "$setOnInsert": {"created_at": now_dt},
                 },
-                "$setOnInsert": {"created_at": now_dt},
-            },
-            upsert=True,
+                upsert=True,
+            )
         )
 
-        # Ensure enrollment document exists
+        # Ensure enrollment document exists (bulk op)
         enr_id = f"enr_{pid}_{course_id}"
-        await db[col.ENROLMENTS].update_one(
-            {"_id": enr_id},
-            {
-                "$set": {
+        enr_ops.append(
+            ReplaceOne(
+                {"_id": enr_id},
+                {
                     "_id": enr_id,
                     "pid": pid,
                     "course_id": course_id,
@@ -603,20 +637,20 @@ async def generate_synthetic_cohort_data(
                     "source_version": "1.0",
                     "source": "synthetic",
                     "ingested_at": now_dt,
-                }
-            },
-            upsert=True,
+                },
+                upsert=True,
+            )
         )
 
-    # 3. Generate Multimodal Telemetry and Risk Data Week-by-Week
-    total_ra = 0
-    total_et = 0
-    total_bw = 0
-    total_af = 0
-    total_ac = 0
-    total_msg = 0
-
+    # 3. Generate Multimodal Telemetry and Risk Data Week-by-Week (Accumulate into bulk batches)
     now_utc = datetime.now(timezone.utc)
+    ra_ops = []
+    et_ops = []
+    bw_ops = []
+    grade_ops = []
+    att_ops = []
+    af_ops = []
+    msg_ops = []
 
     for student in created_students:
         pid = student["pid"]
@@ -691,29 +725,44 @@ async def generate_synthetic_cohort_data(
                 beh_weight = 0.40
                 acad_weight = 0.40
 
-            # 3a. Save col.RISK_ASSESSMENTS
+            # Observation Phase Guard for Weeks 0-4 (Observation Warm-up)
+            synth_risk_score = risk_score
+            synth_risk_tier = risk_tier.value if hasattr(risk_tier, "value") else str(risk_tier)
+            synth_mod_contributions = {
+                "affective": aff_weight,
+                "behavioral": beh_weight,
+                "academic": acad_weight,
+            }
+            synth_top_drivers = top_drivers
+
+            if w < 5:
+                synth_risk_score = 0.05
+                synth_risk_tier = "low"
+                synth_mod_contributions = {
+                    "affective": 0.50,
+                    "behavioral": 0.50,
+                    "academic": 0.0,
+                }
+                synth_top_drivers = [f"Observation Phase (Week {w + 1}/15): Academic assessments pending."]
+
+            # 3a. col.RISK_ASSESSMENTS
             ra_doc = {
                 "_id": doc_id,
                 "pid": pid,
                 "course_id": course_id,
                 "week_index": w,
-                "risk_score": risk_score,
-                "risk_tier": risk_tier.value if hasattr(risk_tier, "value") else str(risk_tier),
-                "modality_contributions": {
-                    "affective": aff_weight,
-                    "behavioral": beh_weight,
-                    "academic": acad_weight,
-                },
-                "top_drivers": top_drivers,
+                "risk_score": synth_risk_score,
+                "risk_tier": synth_risk_tier,
+                "modality_contributions": synth_mod_contributions,
+                "top_drivers": synth_top_drivers,
                 "schema_version": 1,
                 "source_version": "1.0",
                 "source": "synthetic",
                 "ingested_at": now_utc,
             }
-            await db[col.RISK_ASSESSMENTS].update_one({"_id": doc_id}, {"$set": ra_doc}, upsert=True)
-            total_ra += 1
+            ra_ops.append(ReplaceOne({"_id": doc_id}, ra_doc, upsert=True))
 
-            # 3b. Save col.ENGAGEMENT_TRAJECTORIES
+            # 3b. col.ENGAGEMENT_TRAJECTORIES
             et_doc = {
                 "_id": doc_id,
                 "pid": pid,
@@ -727,10 +776,9 @@ async def generate_synthetic_cohort_data(
                 "source": "synthetic",
                 "ingested_at": now_utc,
             }
-            await db[col.ENGAGEMENT_TRAJECTORIES].update_one({"_id": doc_id}, {"$set": et_doc}, upsert=True)
-            total_et += 1
+            et_ops.append(ReplaceOne({"_id": doc_id}, et_doc, upsert=True))
 
-            # 3c. Save col.BEHAVIOR_WEEKLY
+            # 3c. col.BEHAVIOR_WEEKLY
             bw_doc = {
                 "_id": doc_id,
                 "pid": pid,
@@ -751,10 +799,9 @@ async def generate_synthetic_cohort_data(
                 "source": "synthetic",
                 "ingested_at": now_utc,
             }
-            await db[col.BEHAVIOR_WEEKLY].update_one({"_id": doc_id}, {"$set": bw_doc}, upsert=True)
-            total_bw += 1
+            bw_ops.append(ReplaceOne({"_id": doc_id}, bw_doc, upsert=True))
 
-            # 3d. Save col.GRADES & col.ATTENDANCE
+            # 3d. col.GRADES & col.ATTENDANCE
             grade_doc = {
                 "_id": f"grd_{doc_id}",
                 "pid": pid,
@@ -769,7 +816,7 @@ async def generate_synthetic_cohort_data(
                 "source": "synthetic",
                 "ingested_at": now_utc,
             }
-            await db[col.GRADES].update_one({"_id": f"grd_{doc_id}"}, {"$set": grade_doc}, upsert=True)
+            grade_ops.append(ReplaceOne({"_id": f"grd_{doc_id}"}, grade_doc, upsert=True))
 
             att_doc = {
                 "_id": f"att_{doc_id}",
@@ -784,10 +831,9 @@ async def generate_synthetic_cohort_data(
                 "source": "synthetic",
                 "ingested_at": now_utc,
             }
-            await db[col.ATTENDANCE].update_one({"_id": f"att_{doc_id}"}, {"$set": att_doc}, upsert=True)
-            total_ac += 1
+            att_ops.append(ReplaceOne({"_id": f"att_{doc_id}"}, att_doc, upsert=True))
 
-            # 3e. Save col.AFFECTIVE_WEEKLY
+            # 3e. col.AFFECTIVE_WEEKLY
             distress_map = {
                 DistressClass.EXAM_ANXIETY.value: round(rng.uniform(0.1, 0.8), 2),
                 DistressClass.CONCEPTUAL_CONFUSION.value: round(rng.uniform(0.15, 0.85), 2),
@@ -811,10 +857,9 @@ async def generate_synthetic_cohort_data(
                 "source": "synthetic",
                 "ingested_at": now_utc,
             }
-            await db[col.AFFECTIVE_WEEKLY].update_one({"_id": doc_id}, {"$set": af_doc}, upsert=True)
-            total_af += 1
+            af_ops.append(ReplaceOne({"_id": doc_id}, af_doc, upsert=True))
 
-            # 3f. Save sample message
+            # 3f. col.MESSAGES
             msg_id = f"msg_{doc_id}"
             sample_clean_texts = [
                 "Could anyone explain the recursive edge condition discussed in lecture 4?",
@@ -839,8 +884,38 @@ async def generate_synthetic_cohort_data(
                 "source": "synthetic",
                 "ingested_at": now_utc,
             }
-            await db[col.MESSAGES].update_one({"_id": msg_id}, {"$set": msg_doc}, upsert=True)
-            total_msg += 1
+            msg_ops.append(ReplaceOne({"_id": msg_id}, msg_doc, upsert=True))
+
+    # Concurrently write all collections in bulk (reduces ~1,000 round-trips to just 1 parallel call)
+    batch_tasks = []
+    if vault_ops:
+        batch_tasks.append(db[col.IDENTITY_VAULT].bulk_write(vault_ops, ordered=False))
+    if enr_ops:
+        batch_tasks.append(db[col.ENROLMENTS].bulk_write(enr_ops, ordered=False))
+    if ra_ops:
+        batch_tasks.append(db[col.RISK_ASSESSMENTS].bulk_write(ra_ops, ordered=False))
+    if et_ops:
+        batch_tasks.append(db[col.ENGAGEMENT_TRAJECTORIES].bulk_write(et_ops, ordered=False))
+    if bw_ops:
+        batch_tasks.append(db[col.BEHAVIOR_WEEKLY].bulk_write(bw_ops, ordered=False))
+    if grade_ops:
+        batch_tasks.append(db[col.GRADES].bulk_write(grade_ops, ordered=False))
+    if att_ops:
+        batch_tasks.append(db[col.ATTENDANCE].bulk_write(att_ops, ordered=False))
+    if af_ops:
+        batch_tasks.append(db[col.AFFECTIVE_WEEKLY].bulk_write(af_ops, ordered=False))
+    if msg_ops:
+        batch_tasks.append(db[col.MESSAGES].bulk_write(msg_ops, ordered=False))
+
+    if batch_tasks:
+        await asyncio.gather(*batch_tasks)
+
+    total_ra = len(ra_ops)
+    total_et = len(et_ops)
+    total_bw = len(bw_ops)
+    total_af = len(af_ops)
+    total_ac = len(grade_ops)
+    total_msg = len(msg_ops)
 
     # 4. Audit Log Entry
     await log_event(
@@ -897,13 +972,15 @@ async def clear_synthetic_course_data(
     current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.LECTURER)),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
-    del_ra = await db[col.RISK_ASSESSMENTS].delete_many({"course_id": course_id, "source": "synthetic"})
-    del_et = await db[col.ENGAGEMENT_TRAJECTORIES].delete_many({"course_id": course_id, "source": "synthetic"})
-    del_bw = await db[col.BEHAVIOR_WEEKLY].delete_many({"course_id": course_id, "source": "synthetic"})
-    del_af = await db[col.AFFECTIVE_WEEKLY].delete_many({"course_id": course_id, "source": "synthetic"})
-    del_grd = await db[col.GRADES].delete_many({"course_id": course_id, "source": "synthetic"})
-    del_att = await db[col.ATTENDANCE].delete_many({"course_id": course_id, "source": "synthetic"})
-    del_msg = await db[col.MESSAGES].delete_many({"course_id": course_id, "source": "synthetic"})
+    del_ra, del_et, del_bw, del_af, del_grd, del_att, del_msg = await asyncio.gather(
+        db[col.RISK_ASSESSMENTS].delete_many({"course_id": course_id, "source": "synthetic"}),
+        db[col.ENGAGEMENT_TRAJECTORIES].delete_many({"course_id": course_id, "source": "synthetic"}),
+        db[col.BEHAVIOR_WEEKLY].delete_many({"course_id": course_id, "source": "synthetic"}),
+        db[col.AFFECTIVE_WEEKLY].delete_many({"course_id": course_id, "source": "synthetic"}),
+        db[col.GRADES].delete_many({"course_id": course_id, "source": "synthetic"}),
+        db[col.ATTENDANCE].delete_many({"course_id": course_id, "source": "synthetic"}),
+        db[col.MESSAGES].delete_many({"course_id": course_id, "source": "synthetic"}),
+    )
 
     if request:
         await log_event(
