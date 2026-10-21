@@ -239,17 +239,15 @@ async def process_component_ingestion(
             accepted_records.append(rec)
 
         # 6. Prepare documents for storage
-        existing_id_map: Dict[Tuple[str, str, int], str] = {}
+        existing_id_map: Dict[Tuple[str, str, int], Any] = {}
         if not is_recommendations and accepted_records:
-            filter_or = [
-                {"pid": r.pid, "course_id": r.course_id, "week_index": r.week_index}
-                for r in accepted_records
-            ]
+            batch_pids = list({r.pid for r in accepted_records})
+            batch_courses = list({str(r.course_id) for r in accepted_records})
             async for ex_doc in db[target_collection].find(
-                {"$or": filter_or},
+                {"pid": {"$in": batch_pids}, "course_id": {"$in": batch_courses}},
                 {"_id": 1, "pid": 1, "course_id": 1, "week_index": 1},
             ):
-                existing_id_map[(ex_doc["pid"], str(ex_doc["course_id"]), ex_doc["week_index"])] = str(ex_doc["_id"])
+                existing_id_map[(ex_doc["pid"], str(ex_doc["course_id"]), int(ex_doc["week_index"]))] = ex_doc["_id"]
 
         docs_to_persist: List[Dict[str, Any]] = []
         now_utc = datetime.now(timezone.utc)
@@ -259,10 +257,8 @@ async def process_component_ingestion(
             if is_recommendations:
                 doc_id = rec.recommendation_id
             else:
-                doc_id = existing_id_map.get(
-                    (rec.pid, str(rec.course_id), rec.week_index),
-                    f"{rec.pid}__{rec.course_id}__{rec.week_index}",
-                )
+                matched_id = existing_id_map.get((rec.pid, str(rec.course_id), int(rec.week_index)))
+                doc_id = matched_id if matched_id is not None else f"{rec.pid}_{rec.course_id}_{rec.week_index}"
 
             # Convert enum keys or values to plain strings for MongoDB compliance
             if "emotion_scores" in dumped and isinstance(dumped["emotion_scores"], dict):
