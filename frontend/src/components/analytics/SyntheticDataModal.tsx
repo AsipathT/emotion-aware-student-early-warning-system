@@ -36,7 +36,7 @@ export const SyntheticDataModal: React.FC<SyntheticDataModalProps> = ({
   const queryClient = useQueryClient();
   const [courseId, setCourseId] = useState<string>(currentCourseId || 'CS101');
   const [numStudents, setNumStudents] = useState<number>(10);
-  const [numWeeks, setNumWeeks] = useState<number>(6);
+  const [numWeeks, setNumWeeks] = useState<number>(15);
   const [cohortProfile, setCohortProfile] = useState<
     'balanced' | 'high_risk_heavy' | 'healthy_cohort' | 'volatile'
   >('balanced');
@@ -163,7 +163,8 @@ export const SyntheticDataModal: React.FC<SyntheticDataModalProps> = ({
                 <option value={4}>4 Weeks (Early Assessment)</option>
                 <option value={6}>6 Weeks (Midterm Trajectory)</option>
                 <option value={8}>8 Weeks (Extended Diagnostic)</option>
-                <option value={12}>12 Weeks (Full Semester)</option>
+                <option value={12}>12 Weeks (Standard Term)</option>
+                <option value={15}>15 Weeks (Full 15-Week Semester)</option>
               </select>
             </div>
           </div>

@@ -38,8 +38,8 @@ class ExportActor(BaseModel):
 EXPORT_SCOPE_MAP: dict[str, set[str]] = {
     "messages": {"c1"},
     "c1": {"c1"},
-    "behavior": {"c2"},
-    "c2": {"c2"},
+    "behavior": {"c2", "c3"},
+    "c2": {"c2", "c3"},
     "academic": {"c3"},
     "c3": {"c3"},
     "affective": {"c3", "c4"},

@@ -203,7 +203,15 @@ class MultimodalInferencePipeline:
 
         # 5. Format into contract-compliant RiskAssessment records
         risk_assessments = []
+        observation_count = 0
+        active_prediction_count = 0
+
         for (pid, c_id, w_idx), pred in zip(meta_keys, predictions):
+            if w_idx < 5:
+                observation_count += 1
+            else:
+                active_prediction_count += 1
+
             record = {
                 "pid": pid,
                 "course_id": c_id,
@@ -215,7 +223,11 @@ class MultimodalInferencePipeline:
             }
             risk_assessments.append(record)
 
-        logger.info(f"Successfully constructed {len(risk_assessments)} risk assessments.")
+        logger.info(
+            f"Successfully constructed {len(risk_assessments)} risk assessments "
+            f"({active_prediction_count} active predictions [weeks >= 5], "
+            f"{observation_count} observation baseline [weeks 0-4])."
+        )
 
         # 6. Ingest back to LMS
         logger.info(f"Sending risk assessments to {self.platform_url}/api/v1/ingest/risk (dry_run={dry_run})...")
