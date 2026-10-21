@@ -157,6 +157,26 @@ class MultimodalRiskModel:
 
         results = []
         for i in range(len(X)):
+            w_idx = int(X["week_index"].iloc[i]) if "week_index" in X.columns else 5
+
+            # Observation Warm-up Guard: First 5 weeks (0-4) of a 15-week semester
+            # Suppress premature dropout alarms as assignments and quizzes have not yet commenced.
+            if w_idx < 5:
+                results.append({
+                    "risk_score": 0.05,
+                    "risk_tier": "low",
+                    "modality_contributions": {
+                        "affective": 0.50,
+                        "behavioral": 0.50,
+                        "academic": 0.0,
+                    },
+                    "top_drivers": [
+                        f"Observation Phase (Week {w_idx + 1}/15): Academic assessments pending."
+                    ],
+                    "top_modality": "affective",
+                })
+                continue
+
             score = float(np.round(prob_scores[i], 3))
             tier = map_risk_tier(score)
 

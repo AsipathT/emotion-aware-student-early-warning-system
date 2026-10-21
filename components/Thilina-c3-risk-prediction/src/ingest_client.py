@@ -55,6 +55,6 @@ class C3IngestClient:
         }
         params = {"dry_run": "true"} if dry_run else {}
 
-        response = requests.post(self.endpoint, json=envelope, headers=headers, params=params, timeout=30)
+        response = requests.post(self.endpoint, json=envelope, headers=headers, params=params, timeout=120)
         response.raise_for_status()
         return response.json()
