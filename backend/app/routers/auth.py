@@ -230,7 +230,6 @@ async def login(
                 now_utc = datetime.now(timezone.utc)
                 await db[col.ACTIVITY_EVENTS].insert_one({
                     "_id": event_id,
-                    "id": event_id,
                     "schema_version": 1,
                     "pid": pid,
                     "course_id": "CS101",
@@ -326,4 +325,3 @@ async def refresh_tokens(
         refresh_token=create_refresh_token(user_id_str, role_str),
         consent_required=consent_required,
     )
-

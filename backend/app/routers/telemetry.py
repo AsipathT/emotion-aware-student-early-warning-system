@@ -62,6 +62,7 @@ async def log_activity_event(
         "source_version": CONTRACT_VERSION,
     }
 
+    event_doc.pop("id", None)
     await db[col.ACTIVITY_EVENTS].insert_one(event_doc)
     return {
         "event_id": event_id,
@@ -129,4 +130,3 @@ async def get_my_activity(
 
     events = await cursor.to_list(length=30)
     return events
-
