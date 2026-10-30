@@ -1,4 +1,4 @@
-# Component 1: Student Affective State Detection (`Nidu-c1-affective`)
+# Component 1: Student Affective State Detection (`c1-affective`)
 
 **Project:** J26-IT-349, AI-Driven Early Warning System for Student Dropout in Higher Education
 **Student:** Asipath T.M.N.V (IT23145870), B.Sc. (Hons) in Information Technology, SLIIT
